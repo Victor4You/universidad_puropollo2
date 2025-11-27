@@ -13,10 +13,14 @@ const UserDropdown = () => {
 
   const toggleMenu = () => setIsOpen(!isOpen);
 
+  // =============================================
+  // FUNCIÓN: Manejar cierre de sesión - SIMPLIFICADA
+  // =============================================
   const handleLogout = () => {
+    // SOLO llamamos a logout() - ya maneja todo automáticamente
+    // incluyendo la redirección a la página principal
     logout();
     setIsOpen(false);
-    router.push('/login');
   };
 
   const handleMenuItemClick = (action: string) => {
@@ -31,7 +35,9 @@ const UserDropdown = () => {
     }
   };
 
-  // Cerrar dropdown al hacer clic fuera
+  // =============================================
+  // EFECTO: Cerrar dropdown al hacer clic fuera
+  // =============================================
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !(dropdownRef.current as any).contains(event.target)) {
@@ -119,7 +125,7 @@ const UserDropdown = () => {
               </button>
             </>
           ) : (
-            // Menú para usuario NO autenticado (por si acaso)
+            // Menú para usuario NO autenticado
             <>
               <button 
                 onClick={() => {

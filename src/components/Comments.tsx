@@ -6,7 +6,7 @@ import Avatar from './Avatar';
 
 interface CommentsProps {
   post: Post;
-  currentUser: User;
+  currentUser: User | null;
   onCommentAdded: (comment: CommentType) => void;
 }
 
@@ -16,7 +16,7 @@ export default function Comments({ post, currentUser, onCommentAdded }: Comments
 
   const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newComment.trim()) return;
+    if (!newComment.trim() || !currentUser) return;
 
     setIsSubmitting(true);
 
@@ -38,6 +38,7 @@ export default function Comments({ post, currentUser, onCommentAdded }: Comments
   };
 
   const handleLikeComment = (commentId: string, currentlyLiked: boolean) => {
+    if (!currentUser) return;
     // En una app real, aquí harías una llamada a la API
     console.log(`Comment ${commentId} ${currentlyLiked ? 'unliked' : 'liked'}`);
   };
@@ -67,13 +68,23 @@ export default function Comments({ post, currentUser, onCommentAdded }: Comments
                 <div className="flex items-center space-x-4 mt-1 px-2">
                   <button
                     onClick={() => handleLikeComment(comment.id, comment.liked)}
+                    disabled={!currentUser}
                     className={`text-xs ${
-                      comment.liked ? 'text-red-600 font-medium' : 'text-gray-500'
+                      !currentUser 
+                        ? 'text-gray-400 cursor-not-allowed' 
+                        : comment.liked 
+                        ? 'text-red-600 font-medium' 
+                        : 'text-gray-500 hover:text-gray-700'
                     }`}
                   >
                     Me gusta
                   </button>
-                  <button className="text-xs text-gray-500">Responder</button>
+                  <button 
+                    className="text-xs text-gray-500 hover:text-gray-700"
+                    disabled={!currentUser}
+                  >
+                    Responder
+                  </button>
                   {comment.likes > 0 && (
                     <span className="text-xs text-gray-500">{comment.likes} me gusta</span>
                   )}
@@ -84,32 +95,40 @@ export default function Comments({ post, currentUser, onCommentAdded }: Comments
         </div>
       )}
 
-      {/* Formulario para nuevo comentario */}
-      <div className="p-4 border-t">
-        <form onSubmit={handleSubmitComment} className="flex space-x-3">
-          <Avatar 
-            src={currentUser.avatar} 
-            alt={`Tu avatar`}
-            size="w-8 h-8"
-          />
-          <div className="flex-1">
-            <input
-              type="text"
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              placeholder="Escribe un comentario..."
-              className="w-full border border-gray-300 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+      {/* Formulario para nuevo comentario - Solo si el usuario está autenticado */}
+      {currentUser ? (
+        <div className="p-4 border-t">
+          <form onSubmit={handleSubmitComment} className="flex space-x-3">
+            <Avatar 
+              src={currentUser.avatar} 
+              alt={`Tu avatar`}
+              size="w-8 h-8"
             />
-          </div>
-          <button
-            type="submit"
-            disabled={!newComment.trim() || isSubmitting}
-            className="bg-blue-600 text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {isSubmitting ? '...' : 'Comentar'}
-          </button>
-        </form>
-      </div>
+            <div className="flex-1">
+              <input
+                type="text"
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                placeholder="Escribe un comentario..."
+                className="w-full border border-gray-300 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={!newComment.trim() || isSubmitting}
+              className="bg-blue-600 text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {isSubmitting ? '...' : 'Comentar'}
+            </button>
+          </form>
+        </div>
+      ) : (
+        <div className="p-4 border-t bg-yellow-50">
+          <p className="text-sm text-yellow-700 text-center">
+            ⚠️ Inicia sesión para poder comentar
+          </p>
+        </div>
+      )}
     </div>
   );
 }

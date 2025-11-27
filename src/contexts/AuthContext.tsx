@@ -2,7 +2,9 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-// Tipos (los movemos aquí temporalmente para evitar problemas de importación)
+// =============================================
+// TIPOS DE DATOS - Definimos las interfaces
+// =============================================
 export type UserRole = 'admin' | 'teacher' | 'student' | 'user';
 
 export interface User {
@@ -32,9 +34,14 @@ interface AuthContextType extends AuthState {
   updateUser: (user: User) => void;
 }
 
+// =============================================
+// CONTEXTO - Creamos el contexto de autenticación
+// =============================================
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Usuarios de ejemplo
+// =============================================
+// DATOS DE EJEMPLO - Usuarios para pruebas
+// =============================================
 const mockUsers: User[] = [
   {
     id: '1',
@@ -83,20 +90,28 @@ const mockUsers: User[] = [
   }
 ];
 
+// =============================================
+// PROVEEDOR DEL CONTEXTO - Componente principal
+// =============================================
 export function AuthProvider({ children }: { children: ReactNode }) {
+  // Estado inicial de autenticación
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
     isAuthenticated: false,
     isLoading: true
   });
 
-  // Verificar autenticación al cargar
+  // =============================================
+  // EFECTO: Verificar autenticación al cargar la app
+  // =============================================
   useEffect(() => {
     const checkAuth = () => {
       try {
+        // Buscar token y datos de usuario en localStorage
         const token = localStorage.getItem('auth_token');
         const userData = localStorage.getItem('user_data');
         
+        // Si existen, el usuario está autenticado
         if (token && userData) {
           const user = JSON.parse(userData);
           setAuthState({
@@ -105,6 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             isLoading: false
           });
         } else {
+          // Si no existen, usuario no autenticado
           setAuthState(prev => ({ ...prev, isLoading: false }));
         }
       } catch (error) {
@@ -116,9 +132,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkAuth();
   }, []);
 
+  // =============================================
+  // FUNCIÓN: Iniciar sesión
+  // =============================================
   const login = async (credentials: LoginCredentials): Promise<boolean> => {
     try {
-      // Simular delay de red
+      // Simular delay de red (1 segundo)
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Buscar usuario en los datos de ejemplo
@@ -128,37 +147,58 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       );
 
       if (user) {
+        // Crear token simulado
         const token = `mock_jwt_token_${user.id}`;
         
+        // Guardar en localStorage
         localStorage.setItem('auth_token', token);
         localStorage.setItem('user_data', JSON.stringify(user));
         
+        // Actualizar estado
         setAuthState({
           user,
           isAuthenticated: true,
           isLoading: false
         });
         
-        return true;
+        return true; // Login exitoso
       }
       
-      return false;
+      return false; // Credenciales incorrectas
     } catch (error) {
       console.error('Login error:', error);
       return false;
     }
   };
 
+  // =============================================
+  // FUNCIÓN: Cerrar sesión - ACTUALIZADA
+  // =============================================
   const logout = () => {
+    // PASO 1: Limpiar localStorage (eliminar datos de sesión)
     localStorage.removeItem('auth_token');
     localStorage.removeItem('user_data');
+    
+    // PASO 2: Actualizar estado (usuario ya no está autenticado)
     setAuthState({
       user: null,
       isAuthenticated: false,
       isLoading: false
     });
+    
+    // PASO 3: REDIRECCIÓN A PÁGINA PRINCIPAL - NUEVA FUNCIONALIDAD
+    // Verificamos que window existe (estamos en el cliente)
+    if (typeof window !== 'undefined') {
+      // Usamos window.location.href para forzar la recarga y redirección
+      // Esto asegura que siempre vayas a la página principal (/)
+      // sin importar en qué parte de la app estés
+      window.location.href = '/';
+    }
   };
 
+  // =============================================
+  // FUNCIÓN: Actualizar datos del usuario
+  // =============================================
   const updateUser = (user: User) => {
     localStorage.setItem('user_data', JSON.stringify(user));
     setAuthState(prev => ({ ...prev, user }));
@@ -176,6 +216,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// =============================================
+// HOOK PERSONALIZADO: useAuth
+// =============================================
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {

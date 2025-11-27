@@ -16,7 +16,7 @@ export default function PostCard({ post, currentUser, onUpdate }: PostCardProps)
   const [showComments, setShowComments] = useState(false);
 
   const handleLike = () => {
-    if (!currentUser) return; // No hacer nada si no está autenticado
+    if (!currentUser) return;
     
     const updatedLikes = post.liked ? post.likes - 1 : post.likes + 1;
     onUpdate(post.id, {
@@ -26,7 +26,7 @@ export default function PostCard({ post, currentUser, onUpdate }: PostCardProps)
   };
 
   const handleShare = () => {
-    if (!currentUser) return; // No hacer nada si no está autenticado
+    if (!currentUser) return;
     
     const updatedShares = post.shared ? post.shares - 1 : post.shares + 1;
     onUpdate(post.id, {
@@ -36,11 +36,32 @@ export default function PostCard({ post, currentUser, onUpdate }: PostCardProps)
   };
 
   const handleCommentAdded = (newComment: any) => {
-    if (!currentUser) return; // No hacer nada si no está autenticado
+    if (!currentUser) return;
     
     const updatedComments = [...post.comments, newComment];
     onUpdate(post.id, { comments: updatedComments });
   };
+
+  const handleVote = (optionId: string) => {
+    if (!currentUser || !post.poll || post.poll.voted) return;
+
+    const updatedOptions = post.poll.options.map(option => 
+      option.id === optionId 
+        ? { ...option, votes: option.votes + 1 }
+        : option
+    );
+
+    onUpdate(post.id, {
+      poll: {
+        ...post.poll,
+        options: updatedOptions,
+        voted: true
+      }
+    });
+  };
+
+  // Calcular totalVotes fuera del map para que esté disponible en todo el componente
+  const totalVotes = post.poll ? post.poll.options.reduce((sum, opt) => sum + opt.votes, 0) : 0;
 
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden">
@@ -85,31 +106,30 @@ export default function PostCard({ post, currentUser, onUpdate }: PostCardProps)
             </div>
           )}
 
-          {/* Media: Archivo */}
           {post.media?.type === 'file' && (
-            <div className="mt-4 p-4 bg-gray-50 rounded-lg border">
-              <div className="flex items-center space-x-3">
-                <div className="text-2xl">📄</div>
-                <div>
-                  <p className="font-medium text-gray-900">{post.media.name || 'Archivo adjunto'}</p>
-                  <p className="text-sm text-gray-500">Haz clic para descargar</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Media: Enlace */}
-          {post.media?.type === 'link' && (
-            <div className="mt-4 p-4 bg-gray-50 rounded-lg border">
-              <a href={post.media.url} target="_blank" rel="noopener noreferrer" className="flex items-center space-x-3 hover:bg-gray-100 rounded-lg p-2">
-                <div className="text-2xl">🔗</div>
-                <div>
-                  <p className="font-medium text-gray-900">Enlace compartido</p>
-                  <p className="text-sm text-gray-500">{post.media.url}</p>
-                </div>
-              </a>
-            </div>
-          )}
+  <div className="mt-4 p-4 bg-gray-50 rounded-lg border">
+    <div className="flex items-center space-x-3">
+      <div className="text-2xl">
+        {post.media.name?.endsWith('.pdf') ? '📕' :
+         post.media.name?.endsWith('.doc') || post.media.name?.endsWith('.docx') ? '📄' :
+         post.media.name?.endsWith('.xls') || post.media.name?.endsWith('.xlsx') ? '📊' :
+         post.media.name?.endsWith('.ppt') || post.media.name?.endsWith('.pptx') ? '📽️' :
+         post.media.name?.endsWith('.zip') || post.media.name?.endsWith('.rar') ? '📦' : '📎'}
+      </div>
+      <div className="flex-1">
+        <p className="font-medium text-gray-900">{post.media.name || 'Archivo adjunto'}</p>
+        <p className="text-sm text-gray-500">Haz clic para descargar</p>
+      </div>
+      <a 
+        href={post.media.url} 
+        download={post.media.name}
+        className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+      >
+        Descargar
+      </a>
+    </div>
+  </div>
+)}
 
           {/* Encuesta */}
           {post.poll && (
@@ -117,17 +137,19 @@ export default function PostCard({ post, currentUser, onUpdate }: PostCardProps)
               <h4 className="font-semibold text-gray-900 mb-3">{post.poll.question}</h4>
               <div className="space-y-2">
                 {post.poll.options.map((option) => {
-                  const totalVotes = post.poll!.options.reduce((sum, opt) => sum + opt.votes, 0);
                   const percentage = totalVotes > 0 ? (option.votes / totalVotes) * 100 : 0;
                   
                   return (
                     <div key={option.id} className="relative">
                       <button
-                        disabled={post.poll?.voted}
+                        onClick={() => handleVote(option.id)}
+                        disabled={!currentUser || post.poll?.voted || currentUser.role === 'admin' || currentUser.role === 'teacher'}
                         className={`w-full text-left p-3 rounded-lg border-2 transition-all ${
                           post.poll?.voted 
                             ? 'bg-blue-50 border-blue-200' 
-                            : 'bg-white border-gray-200 hover:border-blue-300'
+                            : currentUser && (currentUser.role === 'student' || currentUser.role === 'user')
+                            ? 'bg-white border-gray-200 hover:border-blue-300 cursor-pointer'
+                            : 'bg-gray-100 border-gray-200 cursor-not-allowed'
                         }`}
                       >
                         <div className="flex justify-between items-center">
@@ -149,8 +171,21 @@ export default function PostCard({ post, currentUser, onUpdate }: PostCardProps)
                   );
                 })}
               </div>
-              {!post.poll.voted && (
-                <p className="text-sm text-gray-500 mt-2">{post.poll.options.reduce((sum, opt) => sum + opt.votes, 0)} votos</p>
+              <p className="text-sm text-gray-500 mt-2">
+                {post.poll.voted 
+                  ? `✅ Ya votaste - ${totalVotes} votos totales`
+                  : `${totalVotes} votos totales`
+                }
+              </p>
+              {!currentUser && (
+                <p className="text-sm text-yellow-600 mt-2">
+                  ⚠️ Inicia sesión para votar en la encuesta
+                </p>
+              )}
+              {currentUser && (currentUser.role === 'admin' || currentUser.role === 'teacher') && (
+                <p className="text-sm text-gray-500 mt-2">
+                  👨‍🏫 Los administradores y profesores no pueden votar en las encuestas
+                </p>
               )}
             </div>
           )}
