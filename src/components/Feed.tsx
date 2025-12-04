@@ -1,172 +1,64 @@
+// src/components/Feed.tsx - VERSIÓN SIMPLIFICADA
 'use client';
 
 import { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import CreatePost from './CreatePost';
-import PostCard from './PostCard';
-import { Post } from '@/types/post';
+import { useAuth } from '@/hooks/useAuth';
+import { Post } from '@/lib/types/post.types';
+import CreatePost from '@/components/posts/CreatePost/CreatePost';
+import PostCard from '@/components/posts/PostCard/PostCard';
 
-// Datos de ejemplo
+// Datos mock para pruebas
 const mockPosts: Post[] = [
   {
     id: '1',
     user: {
-      id: '2',
-      name: 'Ana García',
+      id: '1',
+      name: 'Admin Universidad',
       role: 'admin',
       avatar: null,
-      email: 'ana@universidad.edu'
+      email: 'admin@universidad.edu',
+      createdAt: '2024-01-01'
     },
-    content: '🎓 ¡Gran noticia! Hemos lanzado nuestro nuevo programa de becas para el próximo semestre. Los estudiantes interesados pueden aplicar a través del portal estudiantil hasta el 30 de noviembre.',
-    timestamp: 'Hace 2 horas',
+    content: '¡Bienvenidos al nuevo sistema de la Universidad PuroPolio!',
+    timestamp: '2024-01-15T10:30:00Z',
     likes: 24,
     liked: false,
-    comments: [
-      {
-        id: '1-1',
-        user: {
-          id: '3',
-          name: 'María López',
-          role: 'student',
-          avatar: null,
-          email: 'maria@estudiante.edu'
-        },
-        content: '¡Excelente oportunidad! ¿Dónde puedo encontrar más información sobre los requisitos?',
-        timestamp: 'Hace 1 hora',
-        likes: 3,
-        liked: false
-      }
-    ],
+    comments: [],
     shares: 5,
     shared: false
   },
   {
     id: '2',
     user: {
-      id: '4',
-      name: 'Carlos Mendoza',
+      id: '2',
+      name: 'Profesor Carlos Mendoza',
       role: 'teacher',
       avatar: null,
-      email: 'carlos@universidad.edu'
+      email: 'profesor@universidad.edu',
+      createdAt: '2024-01-01'
     },
-    content: '📚 Recordatorio importante: El período de inscripción para los cursos electivos del próximo trimestre comienza este lunes. Asegúrense de revisar la oferta académica en nuestra plataforma.',
-    media: {
-      type: 'image',
-      url: '/images/academic-calendar.jpg'
-    },
-    timestamp: 'Hace 5 horas',
+    content: 'Recordatorio: Las evaluaciones del primer parcial comienzan la próxima semana.',
+    timestamp: '2024-01-14T14:20:00Z',
     likes: 18,
     liked: true,
-    comments: [],
-    shares: 2,
-    shared: false
-  },
-  {
-    id: '3',
-    user: {
-      id: '2',
-      name: 'Ana García',
-      role: 'admin',
-      avatar: null,
-      email: 'ana@universidad.edu'
-    },
-    content: '¿Qué tema les gustaría que cubriéramos en nuestro próximo webinar?',
-    poll: {
-      question: 'Tema para próximo webinar',
-      options: [
-        { id: '1', text: 'Inteligencia Artificial en Educación', votes: 15 },
-        { id: '2', text: 'Metodologías de Aprendizaje Activo', votes: 8 },
-        { id: '3', text: 'Herramientas Digitales para la Investigación', votes: 12 }
-      ],
-      voted: false
-    },
-    timestamp: 'Hace 1 día',
-    likes: 32,
-    liked: false,
-    comments: [],
-    shares: 7,
-    shared: true
-  },
-  {
-    id: '4',
-    user: {
-      id: '5',
-      name: 'Dr. Roberto Silva',
-      role: 'teacher',
-      avatar: null,
-      email: 'roberto@universidad.edu'
-    },
-    content: 'Comparto con ustedes este interesante artículo sobre innovación educativa que puede ser de utilidad para todos.',
-    media: {
-      type: 'link',
-      url: 'https://ejemplo.com/articulo-innovacion-educativa'
-    },
-    timestamp: 'Hace 2 días',
-    likes: 11,
-    liked: false,
     comments: [
       {
-        id: '4-1',
-        user: {
-          id: '3',
-          name: 'María López',
-          role: 'student',
-          avatar: null,
-          email: 'maria@estudiante.edu'
-        },
-        content: 'Muy interesante, gracias por compartir profesor!',
-        timestamp: 'Hace 1 día',
-        likes: 2,
-        liked: false
-      }
-    ],
-    shares: 3,
-    shared: false
-  },
-  {
-    id: '5',
-    user: {
-      id: '2',
-      name: 'Ana García',
-      role: 'admin',
-      avatar: null,
-      email: 'ana@universidad.edu'
-    },
-    content: '📢 Aviso importante: El próximo viernes no habrá clases por mantenimiento de las instalaciones. Las actividades se reanudarán normalmente el lunes.',
-    timestamp: 'Hace 3 días',
-    likes: 45,
-    liked: true,
-    comments: [
-      {
-        id: '5-1',
+        id: 'c1',
         user: {
           id: '4',
-          name: 'Carlos Mendoza',
-          role: 'teacher',
-          avatar: null,
-          email: 'carlos@universidad.edu'
-        },
-        content: 'Gracias por la información. Ajustaré el calendario de entregas en consecuencia.',
-        timestamp: 'Hace 2 días',
-        likes: 5,
-        liked: false
-      },
-      {
-        id: '5-2',
-        user: {
-          id: '3',
-          name: 'María López',
+          name: 'Estudiante Ejemplo',
           role: 'student',
           avatar: null,
-          email: 'maria@estudiante.edu'
+          email: 'estudiante@universidad.edu',
+          createdAt: '2024-01-01'
         },
-        content: 'Perfecto, gracias por el aviso!',
-        timestamp: 'Hace 2 días',
-        likes: 1,
+        content: '¿Podría publicar los temas que entrarán en el examen?',
+        timestamp: '2024-01-14T15:30:00Z',
+        likes: 3,
         liked: false
       }
     ],
-    shares: 8,
+    shares: 2,
     shared: false
   }
 ];
@@ -179,54 +71,126 @@ export default function Feed() {
     setPosts([newPost, ...posts]);
   };
 
-  const updatePost = (postId: string, updatedPost: Partial<Post>) => {
+  const handleLike = (postId: string) => {
+    if (!isAuthenticated) {
+      return; // Silenciosamente no hacer nada
+    }
+    
     setPosts(posts.map(post => 
-      post.id === postId ? { ...post, ...updatedPost } : post
+      post.id === postId 
+        ? { ...post, likes: post.liked ? post.likes - 1 : post.likes + 1, liked: !post.liked }
+        : post
+    ));
+  };
+
+  const handleComment = (postId: string, content: string) => {
+    if (!isAuthenticated) {
+      return;
+    }
+    
+    setPosts(posts.map(post => {
+      if (post.id === postId) {
+        const newComment = {
+          id: `c${Date.now()}`,
+          user: user!,
+          content,
+          timestamp: new Date().toISOString(),
+          likes: 0,
+          liked: false
+        };
+        return {
+          ...post,
+          comments: [...post.comments, newComment]
+        };
+      }
+      return post;
+    }));
+  };
+
+  const handleShare = (postId: string) => {
+    if (!isAuthenticated) {
+      return;
+    }
+    
+    setPosts(posts.map(post => 
+      post.id === postId 
+        ? { ...post, shares: post.shared ? post.shares - 1 : post.shares + 1, shared: !post.shared }
+        : post
     ));
   };
 
   return (
-    <div className="max-w-2xl mx-auto px-4">
-      {/* Crear nueva publicación (solo para admin y teachers autenticados) */}
-      {isAuthenticated && (user?.role === 'admin' || user?.role === 'teacher') && (
-        <CreatePost currentUser={user} onPostCreated={addPost} />
-      )}
-      
-      {/* Lista de publicaciones - Visible para todos */}
-      <div className="space-y-6 mt-6">
-        {posts.map(post => (
-          <PostCard 
-            key={post.id} 
-            post={post} 
-            currentUser={user}
-            onUpdate={updatePost}
-          />
-        ))}
+    <div className="max-w-2xl mx-auto p-4">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">
+          Feed Universitario
+        </h1>
+        {isAuthenticated && user ? (
+          <p className="text-gray-600 mt-2">
+            Bienvenido, {user.name}. Comparte y descubre contenido académico.
+          </p>
+        ) : (
+          <p className="text-gray-600 mt-2">
+            Explora contenido académico. Inicia sesión para interactuar.
+          </p>
+        )}
       </div>
 
-      {/* Mensaje para usuarios no autenticados */}
+      {/* Formulario para crear publicación - SOLO si usuario autenticado */}
+      {isAuthenticated && user && (
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold mb-4 text-gray-800">
+            ¿Qué quieres compartir, {user.name}?
+          </h2>
+          <CreatePost 
+            currentUser={user}
+            onPostCreated={addPost} 
+          />
+        </div>
+      )}
+
+      {/* Mensaje sutil para usuarios no autenticados */}
       {!isAuthenticated && (
-        <div className="text-center py-8">
-          <div className="bg-blue-50 rounded-lg p-6 max-w-md mx-auto">
-            <div className="text-blue-600 text-4xl mb-4">🔒</div>
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">
-              Inicia sesión para interactuar
-            </h3>
-            <p className="text-gray-600 text-sm mb-4">
-              Puedes ver las publicaciones, pero necesitas iniciar sesión para dar like, comentar o compartir.
-            </p>
+        <div className="mb-6 p-4 bg-blue-50 border border-blue-100 rounded-lg">
+          <div className="flex items-start">
+            <div className="mr-3 text-blue-500">💡</div>
+            <div>
+              <p className="text-blue-700 text-sm">
+                <strong>Inicia sesión</strong> para poder dar like, comentar, compartir y crear publicaciones
+              </p>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Mensaje cuando no hay publicaciones */}
-      {posts.length === 0 && isAuthenticated && (user?.role === 'admin' || user?.role === 'teacher') && (
-        <div className="text-center py-12">
-          <div className="text-gray-400 text-6xl mb-4">📝</div>
-          <h3 className="text-xl font-semibold text-gray-600 mb-2">No hay publicaciones aún</h3>
-          <p className="text-gray-500">Sé el primero en compartir algo con la comunidad.</p>
-        </div>
-      )}
+      {/* Lista de publicaciones - VISIBLE PARA TODOS */}
+      <div className="space-y-6">
+        {posts.map((post) => (
+          <PostCard
+            key={post.id}
+            post={post}
+            onLike={handleLike}
+            onComment={handleComment}
+            onShare={handleShare}
+          />
+        ))}
+        
+        {posts.length === 0 && (
+          <div className="text-center py-12">
+            <h3 className="text-xl font-semibold text-gray-700 mb-2">
+              No hay publicaciones aún
+            </h3>
+            <p className="text-gray-500">
+              Sé el primero en compartir algo con la comunidad universitaria.
+            </p>
+            {!isAuthenticated && (
+              <p className="text-blue-600 mt-3">
+                Inicia sesión para crear la primera publicación
+              </p>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
