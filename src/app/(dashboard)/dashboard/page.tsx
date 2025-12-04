@@ -10,7 +10,6 @@ import { Loader } from '@/components/ui/Loader/Loader';
 
 // 3. Imports de componentes de dashboard
 import { DashboardContent } from '@/components/dashboard/DashboardContent/DashboardContent';
-import { DashboardLayout } from '@/components/dashboard/DashboardLayout/DashboardLayout';
 
 // 4. Imports de hooks
 import { useAuth } from '@/hooks/useAuth';
@@ -37,12 +36,5 @@ export default function DashboardPage() {
     return null;
   }
 
-  return (
-    <DashboardLayout
-      title="Panel de Control"
-      description="Gestiona tu plataforma educativa"
-    >
-      <DashboardContent />
-    </DashboardLayout>
-  );
+  return <DashboardContent />;
 }

@@ -10,6 +10,8 @@ import { Avatar } from '@/components/ui/Avatar/Avatar';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermission } from '@/hooks/usePermission';
 import { UserDropdown } from '@/components/auth/UserDropdown/UserDropdown';
+import Link from 'next/link'; 
+import { usePathname } from 'next/navigation';
 
 /**
  * Props para el componente Sidebar
@@ -30,6 +32,7 @@ interface SidebarProps {
 export function Sidebar({ onMenuToggle, openMenu }: SidebarProps) {
   const { user } = useAuth();
   const { canView } = usePermission();
+  const pathname = usePathname(); // Para detectar ruta activa
 
   // =============================================
   // MANEJADORES DE MENÚ
@@ -41,7 +44,10 @@ export function Sidebar({ onMenuToggle, openMenu }: SidebarProps) {
   const isMenuOpen = (menuName: string) => {
     return openMenu === menuName || (openMenu && openMenu.startsWith(`${menuName}.`));
   };
-
+    // Función para verificar si una ruta está activa
+    const isActive = (route: string) => {
+    return pathname === route || pathname?.startsWith(route + '/');
+    };
   // =============================================
   // RENDERIZADO
   // =============================================
@@ -64,21 +70,25 @@ export function Sidebar({ onMenuToggle, openMenu }: SidebarProps) {
       {/* Navegación */}
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
         {/* Inicio - Accesible para todos */}
-        <a 
-          href="#inicio" 
-          className="flex items-center py-2 px-4 rounded-md hover:bg-gray-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
+        <Link 
+          href="/dashboard"
+          className={`flex items-center py-2 px-4 rounded-md hover:bg-gray-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+            isActive('/dashboard') ? 'bg-blue-600 text-white' : 'hover:bg-gray-700'}`}
+                    >
           <svg className="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
             <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
           </svg>
           <span>Inicio</span>
-        </a>
+        </Link>
 
         {/* Administración - Con submenús */}
         <div>
           <button
             onClick={() => handleMenuClick('administracion')}
-            className="w-full flex items-center justify-between py-2 px-4 rounded-md hover:bg-gray-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className={`w-full flex items-center justify-between py-2 px-4 rounded-md hover:bg-gray-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              ${
+              isMenuOpen('administracion') ? 'bg-gray-700' : 'hover:bg-gray-700'
+                  }`}
             aria-expanded={isMenuOpen('administracion') || undefined}
             aria-controls="administracion-submenu"
           >
@@ -100,25 +110,39 @@ export function Sidebar({ onMenuToggle, openMenu }: SidebarProps) {
               role="region"
               aria-label="Submenú de Administración"
             >
-              <a href="#gestioncursos" className="block py-2 text-sm hover:text-blue-300 transition-colors focus:text-blue-300">
+              <Link href="/dashboard/gestion-cursos" className={`block py-2 text-sm transition-colors ${ isActive('/dashboard/gestion-cursos') 
+                    ? 'text-blue-300 font-medium' 
+                    : 'hover:text-blue-300'
+                }`}>
                 Gestión de cursos
-              </a>
-              <a href="#instructores" className="block py-2 text-sm hover:text-blue-300 transition-colors focus:text-blue-300">
+              </Link>
+              <Link href="/dashboard/instructores" className={`block py-2 text-sm transition-colors ${ isActive('/dashboard/instructores') 
+                    ? 'text-blue-300 font-medium' 
+                    : 'hover:text-blue-300'
+                }`}>
                 Instructores
-              </a>
-              <a href="#grupos" className="block py-2 text-sm hover:text-blue-300 transition-colors focus:text-blue-300">
+              </Link>
+              <Link href="/dashboard/grupos" className={`block py-2 text-sm transition-colors ${ isActive('/dashboard/grupos') 
+                    ? 'text-blue-300 font-medium' 
+                    : 'hover:text-blue-300'
+                }`}>
                 Grupos
-              </a>
-              <a href="#convocatorias" className="block py-2 text-sm hover:text-blue-300 transition-colors focus:text-blue-300">
+              </Link>
+              <Link href="/dashboard/convocatorias" className={`block py-2 text-sm transition-colors ${ isActive('/dashboard/convocatorias') 
+                    ? 'text-blue-300 font-medium' 
+                    : 'hover:text-blue-300'
+                }`}>
                 Convocatorias
-              </a>
+              </Link>
               
               {/* Submenú Reportes - Solo Admin y Teachers */}
               {canView(['admin', 'teacher']) && (
                 <div>
                   <button 
                     onClick={() => handleMenuClick('administracion.reportes')}
-                    className="w-full flex items-center justify-between py-2 text-sm hover:text-blue-300 transition-colors focus:text-blue-300 focus:outline-none"
+                    className={`w-full flex items-center justify-between py-2 text-sm transition-colors focus:text-blue-300 focus:outline-none ${
+                      isActive('/dashboard/reportes') ? 'text-blue-300' : 'hover:text-blue-300'
+                    }`}
                     aria-expanded={isMenuOpen('administracion') || undefined}
                   >
                     <span>Reportes</span>
@@ -129,12 +153,18 @@ export function Sidebar({ onMenuToggle, openMenu }: SidebarProps) {
                   
                   {isMenuOpen('administracion.reportes') && (
                     <div className="ml-4 mt-1 space-y-1 border-l border-gray-600 pl-4">
-                      <a href="#generacion_indicadores" className="block py-2 text-xs hover:text-blue-200 transition-colors">
+                      <Link href="/dashboard/reportes/generacion-indicadores"
+                        className={`block py-2 text-xs transition-colors ${
+                          isActive('/dashboard/reportes/generacion-indicadores') ? 'text-blue-200' : 'hover:text-blue-200'
+                        }`}>
                         Generación de indicadores
-                      </a>
-                      <a href="#exportacion_datos" className="block py-2 text-xs hover:text-blue-200 transition-colors">
+                      </Link>
+                      <Link href="/dashboard/reportes/exportacion-datos"
+                        className={`block py-2 text-xs transition-colors ${
+                          isActive('/dashboard/reportes/exportacion-datos') ? 'text-blue-200' : 'hover:text-blue-200'
+                        }`}>
                         Exportación de datos
-                      </a>
+                      </Link>
                     </div>
                   )}
                 </div>

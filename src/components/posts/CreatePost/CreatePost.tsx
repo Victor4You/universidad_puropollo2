@@ -7,13 +7,25 @@ import { Avatar } from '@/components/ui/Avatar/Avatar';
 
 // Hacer currentUser opcional
 interface CreatePostProps {
-  currentUser?: User | null;  // ← Cambiar a opcional
-  onPostCreated: (newPost: Post) => void;
+  currentUser: User;
+  onPostCreated: (post: Post) => void;
 }
 
 export default function CreatePost({ currentUser, onPostCreated }: CreatePostProps) {
   const [content, setContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const canCreate = currentUser.role === 'admin' || currentUser.role === 'teacher';
+  
+  if (!canCreate) {
+    return (
+      <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+        <p className="text-yellow-700 text-center">
+          Solo administradores y profesores pueden crear publicaciones.
+        </p>
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
