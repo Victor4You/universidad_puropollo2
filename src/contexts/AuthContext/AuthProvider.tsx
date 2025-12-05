@@ -1,10 +1,10 @@
+
+
+'use client';
 // src/contexts/AuthContext/AuthProvider.tsx
 // =============================================
 // PROVEEDOR DEL CONTEXTO DE AUTENTICACIÓN
 // =============================================
-
-'use client';
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { AuthContext } from './AuthContext';
 import { AuthProviderProps } from './AuthContext.types';

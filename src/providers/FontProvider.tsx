@@ -1,6 +1,6 @@
-// src/providers/FontProvider.tsx
-'use client';
 
+'use client';
+// src/providers/FontProvider.tsx
 import { Inter } from 'next/font/google';
 
 const inter = Inter({ 
