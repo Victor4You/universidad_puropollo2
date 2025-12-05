@@ -6,6 +6,7 @@
 import { AuthProvider } from '@/contexts/AuthContext/AuthProvider';
 import { FontProvider } from '@/providers/FontProvider';
 import '@/styles/globals.css';
+import { ProvidersWrapper } from '@/components/ProvidersWrapper';
 
 
 /**
@@ -28,9 +29,9 @@ export default function RootLayout({
       <body className="antialiased">
         <FontProvider>
         {/* Proveedor de autenticación para toda la aplicación */}
-        <AuthProvider>
+        <ProvidersWrapper>
           {children}
-        </AuthProvider>
+        </ProvidersWrapper>
         </FontProvider>
       </body>
     </html>
