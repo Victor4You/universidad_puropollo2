@@ -2,6 +2,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+//  Imports de hooks
+import { useAuth } from '@/hooks/useAuth';
+import { usePermission } from '@/hooks/usePermission';
+
 
 interface Convocatoria {
   id: string;
@@ -108,6 +112,11 @@ const convocatoriasMock: Convocatoria[] = [
 ];
 
 export default function ConvocatoriasPage() {
+    const { user } = useAuth();
+    const { canView, isRole } = usePermission();
+  
+    const canViewButon = canView (['admin', 'teacher']);
+  
   const [convocatorias, setConvocatorias] = useState<Convocatoria[]>([]);
   const [filteredConvocatorias, setFilteredConvocatorias] = useState<Convocatoria[]>([]);
   const [search, setSearch] = useState('');
@@ -313,13 +322,14 @@ export default function ConvocatoriasPage() {
               ))}
             </select>
           </div>
-          
+          {canViewButon && (
           <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center">
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
             Nueva Convocatoria
           </button>
+          )}
         </div>
       </div>
 

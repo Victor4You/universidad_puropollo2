@@ -15,7 +15,7 @@ import { usePermission } from '@/hooks/usePermission';
  * 
  * @component
  */
-export function DashboardContent() {
+export function  DashboardContent() {
   const { user } = useAuth();
   const { canView, isRole } = usePermission();
 

@@ -88,24 +88,6 @@ export default function ExportacionDatosPage() {
         <p className="text-gray-600">Exporta datos e informes de rendimiento académico</p>
       </div>
 
-      {/* Mensaje informativo para administradores y maestros */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-        <div className="flex items-center">
-          <div className="flex-shrink-0">
-            <svg className="h-8 w-8 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-            </svg>
-          </div>
-          <div className="ml-4">
-            <h3 className="text-lg font-medium text-blue-800">Área de Reportes Académicos</h3>
-            <p className="text-blue-700">
-              Esta sección está diseñada para que administradores y maestros puedan visualizar y exportar 
-              reportes detallados del rendimiento académico de los estudiantes.
-            </p>
-          </div>
-        </div>
-      </div>
-
       {/* Panel principal de exportación */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <div className="p-6">
@@ -368,13 +350,13 @@ export default function ExportacionDatosPage() {
                       <div className="flex flex-col items-center w-3/4">
                         {/* Barra de aprobados */}
                         <div 
-                          className="w-full bg-gradient-to-t from-green-500 to-green-400 rounded-t-lg hover:from-green-600 hover:to-green-500 transition-all"
+                          className="w-full bg-linear-to-t from-green-500 to-green-400 rounded-t-lg hover:from-green-600 hover:to-green-500 transition-all"
                           style={{ height: `${curso.aprobados}%` }}
                           title={`${curso.aprobados}% Aprobados`}
                         ></div>
                         {/* Barra de reprobados */}
                         <div 
-                          className="w-full bg-gradient-to-t from-red-500 to-red-400 rounded-b-lg hover:from-red-600 hover:to-red-500 transition-all"
+                          className="w-full bg-linear-to-t from-red-500 to-red-400 rounded-b-lg hover:from-red-600 hover:to-red-500 transition-all"
                           style={{ height: `${curso.reprobados}%` }}
                           title={`${curso.reprobados}% Reprobados`}
                         ></div>

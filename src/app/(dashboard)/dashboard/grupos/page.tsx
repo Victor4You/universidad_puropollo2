@@ -3,6 +3,9 @@
 
 import { useState, useEffect } from 'react';
 
+import { useAuth } from '@/hooks/useAuth';
+import { usePermission } from '@/hooks/usePermission';
+
 interface Estudiante {
   id: string;
   nombre: string;
@@ -134,6 +137,12 @@ const gruposMock: Grupo[] = [
 ];
 
 export default function GruposPage() {
+
+  const { user } = useAuth();
+  const { canView, isRole } = usePermission();
+  
+  const canViewButon = canView (['admin', 'teacher']);
+
   const [grupos, setGrupos] = useState<Grupo[]>([]);
   const [filteredGrupos, setFilteredGrupos] = useState<Grupo[]>([]);
   const [search, setSearch] = useState('');
@@ -154,6 +163,10 @@ export default function GruposPage() {
   const [filterCurso, setFilterCurso] = useState<string>('todos');
 
   const cursosUnicos = Array.from(new Set(gruposMock.map(g => g.curso)));
+
+  // Verificar permisos
+  const canEdit = user?.role === 'admin' || user?.role === 'teacher';
+  const canViewOnly = user?.role === 'student';
 
   useEffect(() => {
     // Simular carga de datos
@@ -392,13 +405,14 @@ export default function GruposPage() {
               ))}
             </select>
           </div>
-          
+          {canViewButon &&(
           <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center">
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
             Nuevo Grupo
           </button>
+          )}
         </div>
       </div>
 
@@ -458,7 +472,7 @@ export default function GruposPage() {
         
         <div className="bg-white p-4 rounded-lg shadow">
           <div className="flex items-center">
-            <div className="flex-shrink-0">
+            <div className="shrink-0">
               <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
                 <svg className="w-6 h-6 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 2a1 1 0 00-1 1v1a1 1 0 002 0V3a1 1 0 00-1-1zM4 4h3a3 3 0 006 0h3a2 2 0 012 2v9a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2zm2.5 7a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm2.45 4a2.5 2.5 0 10-4.9 0h4.9zM12 9a1 1 0 100 2h3a1 1 0 100-2h-3zm-1 4a1 1 0 011-1h2a1 1 0 110 2h-2a1 1 0 01-1-1z" clipRule="evenodd" />
@@ -574,43 +588,54 @@ export default function GruposPage() {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              abrirModalEstadoGrupo(grupo);
-                            }}
-                            className={`px-3 py-1 text-xs font-medium rounded-full border transition-colors hover:opacity-90 ${getEstadoColor(grupo.estado)}`}
-                          >
-                            {getEstadoText(grupo.estado)}
-                            <span className="ml-1 text-xs">✎</span>
-                          </button>
+                          {canViewButon ? (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                abrirModalEstadoGrupo(grupo);
+                              }}
+                              className={`px-3 py-1 text-xs font-medium rounded-full border transition-colors hover:opacity-90 ${getEstadoColor(grupo.estado)}`}
+                              title="Cambiar estado"
+                            >
+                              {getEstadoText(grupo.estado)}
+                              <span className="ml-1 text-xs">✎</span>
+                            </button>
+                          ) : (
+                            <span className={`px-3 py-1 text-xs font-medium rounded-full border ${getEstadoColor(grupo.estado)}`}>
+                              {getEstadoText(grupo.estado)}
+                            </span>
+                          )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <div className="flex space-x-2" onClick={(e) => e.stopPropagation()}>
-                            <button 
-                              className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50 transition-colors" 
-                              title="Editar"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                // Lógica para editar
-                              }}
-                            >
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                              </svg>
-                            </button>
-                            <button 
-                              className="text-green-600 hover:text-green-900 p-1 rounded hover:bg-green-50 transition-colors" 
-                              title="Agregar estudiante"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleAltaBajaEstudiante(grupo.id, '', 'alta');
-                              }}
-                            >
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0z" />
-                              </svg>
-                            </button>
+                            {canViewButon && (
+                              <>
+                                <button 
+                                  className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50 transition-colors" 
+                                  title="Editar"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    // Lógica para editar
+                                  }}
+                                >
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                  </svg>
+                                </button>
+                                <button 
+                                  className="text-green-600 hover:text-green-900 p-1 rounded hover:bg-green-50 transition-colors" 
+                                  title="Agregar estudiante"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleAltaBajaEstudiante(grupo.id, '', 'alta');
+                                  }}
+                                >
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0z" />
+                                  </svg>
+                                </button>
+                              </>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -625,12 +650,14 @@ export default function GruposPage() {
                               {grupo.estudiantesLista.length === 0 ? (
                                 <div className="text-center py-4 text-gray-500">
                                   <p>No hay estudiantes asignados a este grupo</p>
-                                  <button 
-                                    className="mt-2 text-blue-600 hover:text-blue-800 text-sm font-medium"
-                                    onClick={() => handleAltaBajaEstudiante(grupo.id, '', 'alta')}
-                                  >
-                                    + Agregar estudiante
-                                  </button>
+                                  {canViewButon && (
+                                    <button 
+                                      className="mt-2 text-blue-600 hover:text-blue-800 text-sm font-medium"
+                                      onClick={() => handleAltaBajaEstudiante(grupo.id, '', 'alta')}
+                                    >
+                                      + Agregar estudiante
+                                    </button>
+                                  )}
                                 </div>
                               ) : (
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -645,23 +672,31 @@ export default function GruposPage() {
                                         <div className="text-xs text-gray-400 truncate">{estudiante.email}</div>
                                       </div>
                                       <div className="flex items-center space-x-2 ml-3">
-                                        <button
-                                          onClick={() => abrirModalEstadoEstudiante(grupo.id, estudiante)}
-                                          className={`px-2 py-1 text-xs font-medium rounded-full border transition-colors hover:opacity-90 ${getEstadoEstudianteColor(estudiante.estado)}`}
-                                          title="Cambiar estado"
-                                        >
-                                          {getEstadoText(estudiante.estado)}
-                                          <span className="ml-1 text-xs">✎</span>
-                                        </button>
-                                        <button 
-                                          className="text-red-600 hover:text-red-800 p-1 transition-colors"
-                                          onClick={() => handleAltaBajaEstudiante(grupo.id, estudiante.id, 'baja')}
-                                          title="Dar de baja"
-                                        >
-                                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                          </svg>
-                                        </button>
+                                        {canViewButon ? (
+                                          <button
+                                            onClick={() => abrirModalEstadoEstudiante(grupo.id, estudiante)}
+                                            className={`px-2 py-1 text-xs font-medium rounded-full border transition-colors hover:opacity-90 ${getEstadoEstudianteColor(estudiante.estado)}`}
+                                            title="Cambiar estado"
+                                          >
+                                            {getEstadoText(estudiante.estado)}
+                                            <span className="ml-1 text-xs">✎</span>
+                                          </button>
+                                        ) : (
+                                          <span className={`px-2 py-1 text-xs font-medium rounded-full border ${getEstadoEstudianteColor(estudiante.estado)}`}>
+                                            {getEstadoText(estudiante.estado)}
+                                          </span>
+                                        )}
+                                        {canViewButon && (
+                                          <button 
+                                            className="text-red-600 hover:text-red-800 p-1 transition-colors"
+                                            onClick={() => handleAltaBajaEstudiante(grupo.id, estudiante.id, 'baja')}
+                                            title="Eliminar"
+                                          >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                          </button>
+                                        )}
                                       </div>
                                     </div>
                                   ))}
@@ -672,12 +707,14 @@ export default function GruposPage() {
                                 <div className="text-sm text-gray-500">
                                   Capacidad: {grupo.capacidad} estudiantes • Disponibles: {grupo.capacidad - grupo.estudiantes}
                                 </div>
-                                <button 
-                                  className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition-colors"
-                                  onClick={() => handleAltaBajaEstudiante(grupo.id, '', 'alta')}
-                                >
-                                  + Agregar estudiante
-                                </button>
+                                {canViewButon && (
+                                  <button 
+                                    className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition-colors"
+                                    onClick={() => handleAltaBajaEstudiante(grupo.id, '', 'alta')}
+                                  >
+                                    + Agregar estudiante
+                                  </button>
+                                )}
                               </div>
                             </div>
                           </td>
