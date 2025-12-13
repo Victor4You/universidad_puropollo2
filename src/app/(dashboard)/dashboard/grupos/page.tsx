@@ -167,7 +167,7 @@ export default function GruposPage() {
   // Verificar permisos
   const canEdit = user?.role === 'admin' || user?.role === 'teacher';
   const canViewOnly = user?.role === 'student';
-
+ 
   useEffect(() => {
     // Simular carga de datos
     setTimeout(() => {

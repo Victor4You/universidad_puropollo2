@@ -3,6 +3,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import CourseFormModal from '@/components/CourseFormModal';
+import { CourseFormData } from '@/lib/types/form';
 
 // 2. Imports de componentes UI
 import { Loader } from '@/components/ui/Loader/Loader';
@@ -39,12 +41,17 @@ export default function GestionCursosPage() {
 
   const canViewButon = canView (['admin', 'teacher']);
 
+  // TODOS los hooks deben declararse aquí, al inicio del componente
   const [cursos, setCursos] = useState<Curso[]>([]);
   const [filteredCursos, setFilteredCursos] = useState<Curso[]>([]);
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const itemsPerPage = 5;
+
+  // Estados para el modal - DEBEN estar antes de cualquier return
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedCourse, setSelectedCourse] = useState<Curso | null>(null);
 
   useEffect(() => {
     // Simular carga de datos
@@ -65,6 +72,18 @@ export default function GestionCursosPage() {
     setFilteredCursos(filtered);
     setCurrentPage(1);
   }, [search, cursos]);
+
+  // Función para manejar la edición de un curso
+  const handleEditClick = (curso: Curso) => {
+    setSelectedCourse(curso);
+    setIsModalOpen(true);
+  };
+
+  // Función para cerrar el modal
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedCourse(null);
+  };
 
   const totalPages = Math.ceil(filteredCursos.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -88,6 +107,7 @@ export default function GestionCursosPage() {
     }
   };
 
+  // El return condicional debe estar DESPUÉS de todos los hooks
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -200,7 +220,11 @@ export default function GestionCursosPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex space-x-2">
-                        <button className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50 transition-colors">
+                        <button 
+                          onClick={() => handleEditClick(curso)}
+                          className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50 transition-colors"
+                          title="Editar curso"
+                        >
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                           </svg>
@@ -330,6 +354,13 @@ export default function GestionCursosPage() {
           </div>
         </div>
       </div>
+
+      {/* Modal de edición */}
+      <CourseFormModal 
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        courseData={selectedCourse}
+      />
     </div>
   );
 }

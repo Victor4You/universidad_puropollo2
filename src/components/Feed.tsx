@@ -124,22 +124,9 @@ export default function Feed() {
       return;
     }
     
-    setPosts(posts.map(post => {
-      if (post.id === postId) {
-        const newComment = {
-          id: `c${Date.now()}`,
-          user: user!,
-          content,
-          timestamp: new Date().toISOString(),
-          likes: 0,
-          liked: false
-        };
-        return {
-          ...post,
-          comments: [...post.comments, newComment]
-        };
-      }
-      return post;
+    setPosts(posts.map(post => { if (post.id === postId) { const newComment = { id: `c${Date.now()}`, user: user!, content, timestamp: new Date().toISOString(), likes: 0, liked: false };
+      return { ...post, comments: [...post.comments, newComment]}; }
+        return post;
     }));
   };
 
