@@ -1,15 +1,13 @@
-// src/components/Feed.tsx - VERSIÓN SIMPLIFICADA
+// src/components/Feed.tsx - VERSIÓN RESPONSIVA
 'use client';
 
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Post } from '@/lib/types/post.types';
 import CreatePost from '@/components/posts/CreatePost/CreatePost';
 import PostCard from '@/components/posts/PostCard/PostCard';
 import { Carousel } from '@/components/ui/Carousel/Carousel';
-import Image from 'next/image';
- 
+
 // imagenes carrusel
 const carouselImages = [
   {
@@ -99,9 +97,21 @@ const mockPosts: Post[] = [
 ]; 
 
 export default function Feed() {
-  
   const { user, isAuthenticated } = useAuth();
   const [posts, setPosts] = useState<Post[]>(mockPosts);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detectar tamaño de pantalla
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024); // lg breakpoint
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const addPost = (newPost: Post) => {
     setPosts([newPost, ...posts]);
@@ -109,7 +119,7 @@ export default function Feed() {
 
   const handleLike = (postId: string) => {
     if (!isAuthenticated) {
-      return; // Silenciosamente no hacer nada
+      return;
     }
     
     setPosts(posts.map(post => 
@@ -124,9 +134,19 @@ export default function Feed() {
       return;
     }
     
-    setPosts(posts.map(post => { if (post.id === postId) { const newComment = { id: `c${Date.now()}`, user: user!, content, timestamp: new Date().toISOString(), likes: 0, liked: false };
-      return { ...post, comments: [...post.comments, newComment]}; }
-        return post;
+    setPosts(posts.map(post => { 
+      if (post.id === postId) { 
+        const newComment = { 
+          id: `c${Date.now()}`, 
+          user: user!, 
+          content, 
+          timestamp: new Date().toISOString(), 
+          likes: 0, 
+          liked: false 
+        };
+        return { ...post, comments: [...post.comments, newComment]}; 
+      }
+      return post;
     }));
   };
 
@@ -149,159 +169,186 @@ export default function Feed() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-4">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">
-          Feed Universitario
-        </h1>
-        {isAuthenticated && user ? (
-          <p className="text-gray-600 mt-2">
-            Bienvenido, {user.name}. Comparte y descubre contenido académico.
-          </p>
-        ) : (
-          <p className="text-gray-600 mt-2">
-            Explora contenido académico. Inicia sesión para interactuar.
-          </p>
-        )}
-      </div>
-      
-       {/* Layout de tres columnas */}
-      <div className="flex flex-col lg:flex-row gap-8">
-
-        {/* Columna izquierda - Imagen estática vertical (15% del ancho), Feed principal (70-80% del ancho) */}
-        <div className="lg:w-1/6">
-        <div className="sticky top-6">
-          {/* Imagen estática vertical */}
-            <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-4">
-              <div className="relative h-96">
-                <img
-                  src="https://images.unsplash.com/photo-1523050854058-8df90110c9f1?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80"
-                  alt="Universidad PuroPolio"
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/60 to-transparent p-4">
-                  <p className="text-white font-semibold">Universidad PuroPollo</p>
-                  <p className="text-white/90 text-sm">Excelencia Educativa</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Logo ESR */}
-            <div className="bg-lienar-to-r from-green-50 to-emerald-50 rounded-xl shadow-lg p-6 text-center">
-              <div className="mb-4">
-                <div className="w-16 h-16 mx-auto bg-linear-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center">
-                  <span className="text-white font-bold text-xl">ESR</span>
-                </div>
-              </div>
-              <h4 className="font-bold text-gray-800 mb-2">Empresa Socialmente Responsable</h4>
-              <p className="text-sm text-gray-600">
-                Comprometidos con el desarrollo sostenible y la responsabilidad social
+    <div className="min-h-screen bg-gray-50">
+      {/* Header para móviles */}
+      {isMobile && (
+        <div className="sticky top-0 z-40 bg-white border-b border-gray-200 lg:hidden">
+          <div className="px-4 py-3">
+            <h1 className="text-xl font-bold text-gray-900 truncate">
+              Feed Universitario
+            </h1>
+            {isAuthenticated && user ? (
+              <p className="text-sm text-gray-600 mt-1 truncate">
+                Bienvenido, {user.name}
               </p>
-              <div className="mt-4 pt-4 border-t border-green-200">
-                <p className="text-xs text-green-700">
-                  Certificación ESR 2024
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-        {/* Columna central - Feed principal (60% del ancho) */}
-      {/* Formulario para crear publicación - SOLO si usuario autenticado */}
-        <div className="lg:w-3/5">
-     
-      {isAuthenticated && user && canCreatePost () && (
-        <div className="mb-8">
-          <h2 className="text-xl font-semibold mb-4 text-gray-800">
-            ¿Qué quieres compartir, {user.name}?
-          </h2>
-          <CreatePost 
-            currentUser={user}
-            onPostCreated={addPost} 
-          />
-        </div>
-      )}
-
-      {/* Mensaje sutil para usuarios no autenticados */}
-      {!isAuthenticated && (
-        <div className="mb-6 p-4 bg-blue-50 border border-blue-100 rounded-lg">
-          <div className="flex items-start">
-            <div className="mr-3 text-blue-500">💡</div>
-            <div>
-              <p className="text-blue-700 text-sm">
-                <strong>Inicia sesión</strong> para poder dar like, comentar, compartir y crear publicaciones
+            ) : (
+              <p className="text-sm text-gray-600 mt-1">
+                Explora contenido académico
               </p>
-            </div>
+            )}
           </div>
         </div>
       )}
 
-      {/* Lista de publicaciones - VISIBLE PARA TODOS */}
-      <div className="space-y-6">
-        {posts.map((post) => (
-          <PostCard
-            key={post.id}
-            post={post}
-            onLike={handleLike}
-            onComment={handleComment}
-            onShare={handleShare}
-          />
-        ))}
-        
-        {posts.length === 0 && (
-          <div className="text-center py-12">
-            <h3 className="text-xl font-semibold text-gray-700 mb-2">
-              No hay publicaciones aún
-            </h3>
-            <p className="text-gray-500">
-              Sé el primero en compartir algo con la comunidad universitaria.
-            </p>
-            {!isAuthenticated && (
-              <p className="text-blue-600 mt-3">
-                Inicia sesión para crear la primera publicación
+      <div className={`${isMobile ? 'p-3' : 'max-w-7xl mx-auto p-4 lg:p-6'}`}>
+        {/* Header para desktop */}
+        {!isMobile && (
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900">
+              Feed Universitario
+            </h1>
+            {isAuthenticated && user ? (
+              <p className="text-gray-600 mt-2">
+                Bienvenido, {user.name}. Comparte y descubre contenido académico.
+              </p>
+            ) : (
+              <p className="text-gray-600 mt-2">
+                Explora contenido académico. Inicia sesión para interactuar.
               </p>
             )}
           </div>
         )}
-      </div>
-    </div>
+        
+        {/* Layout de tres columnas en desktop, una en móvil */}
+        <div className="flex flex-col lg:flex-row gap-4 lg:gap-8">
+          
+          {/* Columna izquierda - Ocultar en móvil, mostrar en desktop */}
+          <div className="hidden lg:block lg:w-1/6">
+            <div className="sticky top-6 space-y-6">
+              {/* Imagen estática vertical */}
+              <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+                <div className="relative h-96">
+                  <img
+                    src="https://images.unsplash.com/photo-1523050854058-8df90110c9f1?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80"
+                    alt="Universidad PuroPolio"
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
+                    <p className="text-white font-semibold">Universidad PuroPollo</p>
+                    <p className="text-white/90 text-sm">Excelencia Educativa</p>
+                  </div>
+                </div>
+              </div>
 
-      {/* Columna derecha - Carrusel (25% del ancho) */}
-        <div className="lg:w-1/4">
-          <div className="sticky top-6 space-y-6">
-            {/* Carrusel */}
-            <div className="bg-white rounded-xl shadow-lg p-4">
-              <h3 className="font-bold text-gray-800 mb-4 flex items-center">
-                <span className="mr-2">📸</span> Galería Universitaria
-              </h3>
-              <Carousel 
-                images={carouselImages}
-                autoPlay={true}
-                interval={4000}
-                showControls={true}
-                showIndicators={true}
-              />
+              {/* Logo ESR */}
+              <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl shadow-lg p-4 lg:p-6 text-center">
+                <div className="mb-4">
+                  <div className="w-16 h-16 mx-auto bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center">
+                    <span className="text-white font-bold text-xl">ESR</span>
+                  </div>
+                </div>
+                <h4 className="font-bold text-gray-800 mb-2 text-sm lg:text-base">Empresa Socialmente Responsable</h4>
+                <p className="text-xs lg:text-sm text-gray-600">
+                  Comprometidos con el desarrollo sostenible
+                </p>
+                <div className="mt-4 pt-4 border-t border-green-200">
+                  <p className="text-xs text-green-700">
+                    Certificación ESR 2024
+                  </p>
+                </div>
+              </div>
             </div>
+          </div>
 
-            {/* Eventos próximos */}
-            <div className="bg-white rounded-xl shadow-lg p-4">
-              <h3 className="font-bold text-gray-800 mb-4 flex items-center">
-                <span className="mr-2">📅</span> Próximos Eventos
-              </h3>
+          {/* Columna central - Feed principal */}
+          <div className="lg:w-3/5">
+            {/* Formulario para crear publicación */}
+            {isAuthenticated && user && canCreatePost() && (
+              <div className="mb-6">
+                {!isMobile && (
+                  <h2 className="text-xl font-semibold mb-4 text-gray-800">
+                    ¿Qué quieres compartir, {user.name}?
+                  </h2>
+                )}
+                <CreatePost 
+                  currentUser={user}
+                  onPostCreated={addPost} 
+                />
+              </div>
+            )}
+
+            {/* Mensaje sutil para usuarios no autenticados */}
+            {!isAuthenticated && (
+              <div className="mb-6 p-3 lg:p-4 bg-blue-50 border border-blue-100 rounded-lg">
+                <div className="flex items-start">
+                  <div className="mr-3 text-blue-500 text-lg">💡</div>
+                  <div>
+                    <p className="text-blue-700 text-sm lg:text-base">
+                      <strong>Inicia sesión</strong> para interactuar con las publicaciones
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Lista de publicaciones */}
+            <div className="space-y-4 lg:space-y-6">
+              {posts.map((post) => (
+                <PostCard
+                  key={post.id}
+                  post={post}
+                  onLike={handleLike}
+                  onComment={handleComment}
+                  onShare={handleShare}
+                />
+              ))}
               
-              <div className="space-y-3">
-                <div className="p-3 bg-blue-50 rounded-lg">
-                  <p className="font-medium text-blue-800">Conferencia: IA en Educación</p>
-                  <p className="text-sm text-blue-600">25 Enero, 4:00 PM</p>
+              {posts.length === 0 && (
+                <div className="text-center py-8 lg:py-12">
+                  <h3 className="text-lg lg:text-xl font-semibold text-gray-700 mb-2">
+                    No hay publicaciones aún
+                  </h3>
+                  <p className="text-gray-500 text-sm lg:text-base">
+                    Sé el primero en compartir algo con la comunidad universitaria.
+                  </p>
+                  {!isAuthenticated && (
+                    <p className="text-blue-600 mt-3 text-sm lg:text-base">
+                      Inicia sesión para crear la primera publicación
+                    </p>
+                  )}
                 </div>
+              )}
+            </div>
+          </div>
+
+          {/* Columna derecha - Carrusel y eventos */}
+          <div className={`${isMobile ? 'w-full mt-6' : 'lg:w-1/4'}`}>
+            <div className={`${isMobile ? 'space-y-4' : 'sticky top-6 space-y-6'}`}>
+              {/* Carrusel - Responsivo */}
+              <div className="bg-white rounded-lg lg:rounded-xl shadow-lg p-3 lg:p-4">
+                <h3 className="font-bold text-gray-800 mb-3 lg:mb-4 flex items-center text-sm lg:text-base">
+                  <span className="mr-2">📸</span> Galería Universitaria
+                </h3>
+                <Carousel 
+                  images={carouselImages}
+                  autoPlay={true}
+                  interval={4000}
+                  showControls={!isMobile}
+                  showIndicators={true}
+                />
+              </div>
+
+              {/* Eventos próximos */}
+              <div className="bg-white rounded-lg lg:rounded-xl shadow-lg p-3 lg:p-4">
+                <h3 className="font-bold text-gray-800 mb-3 lg:mb-4 flex items-center text-sm lg:text-base">
+                  <span className="mr-2">📅</span> Próximos Eventos
+                </h3>
                 
-                <div className="p-3 bg-green-50 rounded-lg">
-                  <p className="font-medium text-green-800">Feria de Empleo</p>
-                  <p className="text-sm text-green-600">30 Enero, 9:00 AM</p>
-                </div>
-                
-                <div className="p-3 bg-purple-50 rounded-lg">
-                  <p className="font-medium text-purple-800">Taller de Programación</p>
-                  <p className="text-sm text-purple-600">1 Febrero, 3:00 PM</p>
+                <div className="space-y-2 lg:space-y-3">
+                  <div className="p-2 lg:p-3 bg-blue-50 rounded-lg">
+                    <p className="font-medium text-blue-800 text-sm lg:text-base">Conferencia: IA en Educación</p>
+                    <p className="text-xs lg:text-sm text-blue-600">25 Enero, 4:00 PM</p>
+                  </div>
+                  
+                  <div className="p-2 lg:p-3 bg-green-50 rounded-lg">
+                    <p className="font-medium text-green-800 text-sm lg:text-base">Feria de Empleo</p>
+                    <p className="text-xs lg:text-sm text-green-600">30 Enero, 9:00 AM</p>
+                  </div>
+                  
+                  <div className="p-2 lg:p-3 bg-purple-50 rounded-lg">
+                    <p className="font-medium text-purple-800 text-sm lg:text-base">Taller de Programación</p>
+                    <p className="text-xs lg:text-sm text-purple-600">1 Febrero, 3:00 PM</p>
+                  </div>
                 </div>
               </div>
             </div>

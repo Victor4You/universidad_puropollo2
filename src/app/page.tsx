@@ -1,11 +1,11 @@
-// src/app/page.tsx - VERSIÓN SIMPLIFICADA
+// src/app/page.tsx - VERSIÓN RESPONSIVA (CORREGIDA)
 'use client';
 
-import { useAuth } from '@/hooks/useAuth';
+import { useState, useEffect } from 'react'; // ← CORREGIDO AQUÍ
+import { useAuth } from '@/hooks/useAuth'; // ← SOLO useAuth
 import { Loader } from '@/components/ui/Loader/Loader';
 import { UserDropdown } from '@/components/auth/UserDropdown/UserDropdown';
 import Link from 'next/link';
-import { PUBLIC_ROUTES } from '@/lib/constants/routes';
 import dynamic from 'next/dynamic';
 
 // Cargar Feed dinámicamente
@@ -16,6 +16,19 @@ const Feed = dynamic(() => import('@/components/Feed'), {
 
 export default function HomePage() {
   const { isLoading } = useAuth();
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detectar tamaño de pantalla
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024); // lg breakpoint
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   if (isLoading) {
     return (
@@ -27,29 +40,33 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header simplificado - SOLO con logo y UserDropdown */}
+      {/* Header responsivo */}
       <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            {/* Logo */}
-            <Link href="/" className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
-                <span className="text-white font-bold text-lg">U</span>
+        <div className={`${isMobile ? 'px-3' : 'max-w-7xl mx-auto px-4 lg:px-8'}`}>
+          <div className="flex justify-between items-center h-14 lg:h-16">
+            {/* Logo responsivo */}
+            <Link href="/" className="flex items-center space-x-2 lg:space-x-3">
+              <div className="w-8 h-8 lg:w-10 lg:h-10 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                <span className="text-white font-bold text-sm lg:text-lg">U</span>
               </div>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">Universidad PuroPolio</h1>
-                <p className="text-sm text-gray-500">Plataforma Educativa</p>
-              </div>
+              {!isMobile && (
+                <div>
+                  <h1 className="text-lg lg:text-xl font-bold text-gray-900">Universidad PuroPolio</h1>
+                  <p className="text-xs lg:text-sm text-gray-500 hidden lg:block">Plataforma Educativa</p>
+                </div>
+              )}
             </Link>
 
-            {/* UserDropdown manejará login/registro automáticamente */}
-            <UserDropdown />
+            {/* UserDropdown */}
+            <div className="flex-shrink-0">
+              <UserDropdown />
+            </div>
           </div>
         </div>
       </header>
 
-      {/* Dejar que Feed maneje todo el contenido */}
-      <main className="max-w-7xl mx-auto">
+      {/* Contenido principal */}
+      <main className={`${isMobile ? '' : 'max-w-7xl mx-auto'}`}>
         <Feed />
       </main>
     </div>
