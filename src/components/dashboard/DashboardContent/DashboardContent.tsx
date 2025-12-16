@@ -32,7 +32,7 @@ export function  DashboardContent() {
   return (
     <>
       {/* Widgets Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:flex-row">
         {/* Widget: Estadísticas Generales */}
         <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow duration-200">
           <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
@@ -49,7 +49,7 @@ export function  DashboardContent() {
             
             {/* Estudiantes Activos - Solo Admin y Teachers */}
             {canViewReports && (
-              <div className="flex justify-between items-center py-2 border-b border-gray-100">
+              <div className="flex justify-between items-center py-2 border-b border-gray-100 ">
                 <span className="text-gray-600">Estudiantes Activos</span>
                 <span className="font-semibold text-green-600">156</span>
               </div>

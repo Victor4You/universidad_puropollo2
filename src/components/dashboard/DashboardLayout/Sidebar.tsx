@@ -1,17 +1,17 @@
 // src/components/dashboard/DashboardLayout/Sidebar.tsx
 // =============================================
-// BARRA LATERAL DEL DASHBOARD
+// BARRA LATERAL DEL DASHBOARD (ACTUALIZADO RESPONSIVO)
 // =============================================
 
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Avatar } from '@/components/ui/Avatar/Avatar';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermission } from '@/hooks/usePermission';
 import { UserDropdown } from '@/components/auth/UserDropdown/UserDropdown';
 import Link from 'next/link'; 
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 
 /**
  * Props para el componente Sidebar
@@ -32,10 +32,11 @@ interface SidebarProps {
 export function Sidebar({ onMenuToggle, openMenu }: SidebarProps) {
   const { user } = useAuth();
   const { canView } = usePermission();
-  const pathname = usePathname(); // Para detectar ruta activa
+  const pathname = usePathname();
+  const router = useRouter();
 
   // =============================================
-  // MANEJADORES DE MENÚ
+  // FUNCIONES AUXILIARES
   // =============================================
   const handleMenuClick = (menuName: string) => {
     onMenuToggle(openMenu === menuName ? null : menuName);
@@ -44,15 +45,26 @@ export function Sidebar({ onMenuToggle, openMenu }: SidebarProps) {
   const isMenuOpen = (menuName: string) => {
     return openMenu === menuName || (openMenu && openMenu.startsWith(`${menuName}.`));
   };
-    // Función para verificar si una ruta está activa
-    const isActive = (route: string) => {
+
+  const isActive = (route: string) => {
     return pathname === route || pathname?.startsWith(route + '/');
-    };
+  };
+
+  // Cerrar sidebar en móvil al navegar
+  const handleNavigation = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    // Solo cerrar en móvil
+    if (window.innerWidth < 1024) {
+      e.preventDefault();
+      router.push(href);
+      // El sidebar se cerrará por el efecto en DashboardLayout
+    }
+  };
+
   // =============================================
   // RENDERIZADO
   // =============================================
   return (
-    <aside className="w-64 bg-gray-800 text-white flex flex-col">
+     <aside className="h-full w-64 bg-gray-800 text-white flex flex-col overflow-y-auto">
       {/* Encabezado del Sidebar */}
       <div className="flex items-center space-x-3 p-4 border-b border-gray-700">
         <Avatar 
@@ -61,9 +73,9 @@ export function Sidebar({ onMenuToggle, openMenu }: SidebarProps) {
           size="md"
           fallbackLetter={user?.name?.charAt(0) || 'U'}
         />
-        <div>
-          <h2 className="text-xl font-semibold">Dashboard</h2>
-          <p className="text-sm text-gray-400 capitalize">{user?.role}</p>
+        <div className="flex-1 min-w-0">
+          <h2 className="text-lg lg:text-xl font-semibold truncate">Dashboard</h2>
+          <p className="text-xs lg:text-sm text-gray-400 capitalize truncate">{user?.role}</p>
         </div>
       </div>
       
@@ -72,33 +84,34 @@ export function Sidebar({ onMenuToggle, openMenu }: SidebarProps) {
         {/* Inicio - Accesible para todos */}
         <Link 
           href="/dashboard"
-          className={`flex items-center py-2 px-4 rounded-md hover:bg-gray-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-            isActive('/dashboard') ? 'bg-blue-600 text-white' : 'hover:bg-gray-700'}`}
-                    >
-          <svg className="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
+          onClick={(e) => handleNavigation(e, '/dashboard')}
+          className={`flex items-center py-3 px-4 rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+            isActive('/dashboard') ? 'bg-blue-600 text-white' : 'hover:bg-gray-700'
+          }`}
+        >
+          <svg className="w-5 h-5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
             <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
           </svg>
-          <span>Inicio</span>
+          <span className="truncate">Inicio</span>
         </Link>
 
         {/* Administración - Con submenús */}
         <div>
           <button
             onClick={() => handleMenuClick('administracion')}
-            className={`w-full flex items-center justify-between py-2 px-4 rounded-md hover:bg-gray-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              ${
+            className={`w-full flex items-center justify-between py-3 px-4 rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
               isMenuOpen('administracion') ? 'bg-gray-700' : 'hover:bg-gray-700'
-                  }`}
-            aria-expanded={isMenuOpen('administracion') || undefined}
+            }`}
+            aria-expanded={isMenuOpen('administracion')}
             aria-controls="administracion-submenu"
           >
             <div className="flex items-center">
-              <svg className="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-5 h-5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
               </svg>
-              <span>Administración</span>
+              <span className="truncate">Administración</span>
             </div>
-            <span className="text-xs transform transition-transform duration-200">
+            <span className="text-xs transform transition-transform duration-200 flex-shrink-0">
               {isMenuOpen('administracion') ? '▲' : '▼'}
             </span>
           </button>
@@ -106,32 +119,52 @@ export function Sidebar({ onMenuToggle, openMenu }: SidebarProps) {
           {isMenuOpen('administracion') && (
             <div 
               id="administracion-submenu"
-              className="ml-10 mt-1 space-y-1 border-l border-gray-600 pl-4"
+              className="ml-8 lg:ml-10 mt-1 space-y-1 border-l border-gray-600 pl-3 lg:pl-4"
               role="region"
               aria-label="Submenú de Administración"
             >
-              <Link href="/dashboard/gestion-cursos" className={`block py-2 text-sm transition-colors ${ isActive('/dashboard/gestion-cursos') 
+              <Link 
+                href="/dashboard/gestion-cursos" 
+                onClick={(e) => handleNavigation(e, '/dashboard/gestion-cursos')}
+                className={`block py-2 text-sm transition-colors truncate ${
+                  isActive('/dashboard/gestion-cursos') 
                     ? 'text-blue-300 font-medium' 
                     : 'hover:text-blue-300'
-                }`}>
+                }`}
+              >
                 Gestión de cursos
               </Link>
-              <Link href="/dashboard/instructores" className={`block py-2 text-sm transition-colors ${ isActive('/dashboard/instructores') 
+              <Link 
+                href="/dashboard/instructores" 
+                onClick={(e) => handleNavigation(e, '/dashboard/instructores')}
+                className={`block py-2 text-sm transition-colors truncate ${
+                  isActive('/dashboard/instructores') 
                     ? 'text-blue-300 font-medium' 
                     : 'hover:text-blue-300'
-                }`}>
+                }`}
+              >
                 Instructores
               </Link>
-              <Link href="/dashboard/grupos" className={`block py-2 text-sm transition-colors ${ isActive('/dashboard/grupos') 
+              <Link 
+                href="/dashboard/grupos" 
+                onClick={(e) => handleNavigation(e, '/dashboard/grupos')}
+                className={`block py-2 text-sm transition-colors truncate ${
+                  isActive('/dashboard/grupos') 
                     ? 'text-blue-300 font-medium' 
                     : 'hover:text-blue-300'
-                }`}>
+                }`}
+              >
                 Grupos
               </Link>
-              <Link href="/dashboard/convocatorias" className={`block py-2 text-sm transition-colors ${ isActive('/dashboard/convocatorias') 
+              <Link 
+                href="/dashboard/convocatorias" 
+                onClick={(e) => handleNavigation(e, '/dashboard/convocatorias')}
+                className={`block py-2 text-sm transition-colors truncate ${
+                  isActive('/dashboard/convocatorias') 
                     ? 'text-blue-300 font-medium' 
                     : 'hover:text-blue-300'
-                }`}>
+                }`}
+              >
                 Convocatorias
               </Link>
               
@@ -140,29 +173,39 @@ export function Sidebar({ onMenuToggle, openMenu }: SidebarProps) {
                 <div>
                   <button 
                     onClick={() => handleMenuClick('administracion.reportes')}
-                    className={`w-full flex items-center justify-between py-2 text-sm transition-colors focus:text-blue-300 focus:outline-none ${
+                    className={`w-full flex items-center justify-between py-2 text-sm transition-colors focus:text-blue-300 focus:outline-none truncate ${
                       isActive('/dashboard/reportes') ? 'text-blue-300' : 'hover:text-blue-300'
                     }`}
-                    aria-expanded={isMenuOpen('administracion') || undefined}
+                    aria-expanded={isMenuOpen('administracion.reportes')}
                   >
                     <span>Reportes</span>
-                    <span className="text-xs">
+                    <span className="text-xs flex-shrink-0">
                       {isMenuOpen('administracion.reportes') ? '▲' : '▼'}
                     </span>
                   </button>
                   
                   {isMenuOpen('administracion.reportes') && (
-                    <div className="ml-4 mt-1 space-y-1 border-l border-gray-600 pl-4">
-                      <Link href="/dashboard/reportes/generacion-indicadores"
-                        className={`block py-2 text-xs transition-colors ${
-                          isActive('/dashboard/reportes/generacion-indicadores') ? 'text-blue-200' : 'hover:text-blue-200'
-                        }`}>
+                    <div className="ml-3 lg:ml-4 mt-1 space-y-1 border-l border-gray-600 pl-3 lg:pl-4">
+                      <Link 
+                        href="/dashboard/reportes/generacion-indicadores"
+                        onClick={(e) => handleNavigation(e, '/dashboard/reportes/generacion-indicadores')}
+                        className={`block py-2 text-xs transition-colors truncate ${
+                          isActive('/dashboard/reportes/generacion-indicadores') 
+                            ? 'text-blue-200' 
+                            : 'hover:text-blue-200'
+                        }`}
+                      >
                         Generación de indicadores
                       </Link>
-                      <Link href="/dashboard/reportes/exportacion-datos"
-                        className={`block py-2 text-xs transition-colors ${
-                          isActive('/dashboard/reportes/exportacion-datos') ? 'text-blue-200' : 'hover:text-blue-200'
-                        }`}>
+                      <Link 
+                        href="/dashboard/reportes/exportacion-datos"
+                        onClick={(e) => handleNavigation(e, '/dashboard/reportes/exportacion-datos')}
+                        className={`block py-2 text-xs transition-colors truncate ${
+                          isActive('/dashboard/reportes/exportacion-datos') 
+                            ? 'text-blue-200' 
+                            : 'hover:text-blue-200'
+                        }`}
+                      >
                         Exportación de datos
                       </Link>
                     </div>
@@ -173,18 +216,19 @@ export function Sidebar({ onMenuToggle, openMenu }: SidebarProps) {
           )}
         </div>
 
-        {/* Enlace para volver al Feed */}
+        {/* Separador y enlace para volver al Feed */}
         <div className="mt-8 pt-4 border-t border-gray-600">
-          <a 
+          <Link 
             href="/" 
-            className="flex items-center py-2 px-4 rounded-md hover:bg-gray-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            onClick={(e) => handleNavigation(e, '/')}
+            className="flex items-center py-3 px-4 rounded-md hover:bg-gray-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <svg className="w-5 h-5 mr-3 transform rotate-180" fill="currentColor" viewBox="0 0 20 20">
+            <svg className="w-5 h-5 mr-3 flex-shrink-0 transform rotate-180" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M10.293 15.707a1 1 0 010-1.414L14.586 10l-4.293-4.293a1 1 0 111.414-1.414l5 5a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0z" clipRule="evenodd" />
               <path fillRule="evenodd" d="M4.293 15.707a1 1 0 010-1.414L8.586 10 4.293 5.707a1 1 0 011.414-1.414l5 5a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0z" clipRule="evenodd" />
             </svg>
-            <span>Volver al Feed</span>
-          </a>
+            <span className="truncate">Volver al Feed</span>
+          </Link>
         </div>
       </nav>
 
