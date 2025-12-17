@@ -37,3 +37,28 @@ export interface CourseFormData {
   pdfs: PDFResource[];
   questions: Question[];
 }
+
+export interface InstructorFormData {
+  nombre: string;
+  especialidad: string;
+  email: string;
+  telefono: string;
+  experiencia: number;
+}
+
+export interface GrupoFormData {
+  nombre: string;
+  curso: string;
+  codigo: string;
+  instructor: string;
+  capacidad: number;
+  horario: string;
+  aula: string;
+}
+
+export interface EstudianteFormData {
+  nombre: string;
+  matricula: string;
+  email: string;
+  telefono: string;
+}
