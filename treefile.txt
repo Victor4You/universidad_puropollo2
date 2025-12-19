@@ -162,12 +162,37 @@ C:.
 ¦       ¦   ¦   ¦       ¦           server-reference-manifest.json
 ¦       ¦   ¦   ¦       ¦           
 ¦       ¦   ¦   ¦       +---page
-¦       ¦   ¦   ¦               app-paths-manifest.json
-¦       ¦   ¦   ¦               build-manifest.json
-¦       ¦   ¦   ¦               next-font-manifest.json
-¦       ¦   ¦   ¦               react-loadable-manifest.json
-¦       ¦   ¦   ¦               server-reference-manifest.json
-¦       ¦   ¦   ¦               
+¦       ¦   ¦   ¦       ¦       app-paths-manifest.json
+¦       ¦   ¦   ¦       ¦       build-manifest.json
+¦       ¦   ¦   ¦       ¦       next-font-manifest.json
+¦       ¦   ¦   ¦       ¦       react-loadable-manifest.json
+¦       ¦   ¦   ¦       ¦       server-reference-manifest.json
+¦       ¦   ¦   ¦       ¦       
+¦       ¦   ¦   ¦       +---reportes
+¦       ¦   ¦   ¦           +---exportacion-datos
+¦       ¦   ¦   ¦           ¦   ¦   page.js
+¦       ¦   ¦   ¦           ¦   ¦   page.js.map
+¦       ¦   ¦   ¦           ¦   ¦   page_client-reference-manifest.js
+¦       ¦   ¦   ¦           ¦   ¦   
+¦       ¦   ¦   ¦           ¦   +---page
+¦       ¦   ¦   ¦           ¦           app-paths-manifest.json
+¦       ¦   ¦   ¦           ¦           build-manifest.json
+¦       ¦   ¦   ¦           ¦           next-font-manifest.json
+¦       ¦   ¦   ¦           ¦           react-loadable-manifest.json
+¦       ¦   ¦   ¦           ¦           server-reference-manifest.json
+¦       ¦   ¦   ¦           ¦           
+¦       ¦   ¦   ¦           +---generacion-indicadores
+¦       ¦   ¦   ¦               ¦   page.js
+¦       ¦   ¦   ¦               ¦   page.js.map
+¦       ¦   ¦   ¦               ¦   page_client-reference-manifest.js
+¦       ¦   ¦   ¦               ¦   
+¦       ¦   ¦   ¦               +---page
+¦       ¦   ¦   ¦                       app-paths-manifest.json
+¦       ¦   ¦   ¦                       build-manifest.json
+¦       ¦   ¦   ¦                       next-font-manifest.json
+¦       ¦   ¦   ¦                       react-loadable-manifest.json
+¦       ¦   ¦   ¦                       server-reference-manifest.json
+¦       ¦   ¦   ¦                       
 ¦       ¦   ¦   +---page
 ¦       ¦   ¦   ¦       app-paths-manifest.json
 ¦       ¦   ¦   ¦       build-manifest.json
@@ -189,12 +214,18 @@ C:.
 ¦       ¦   ¦               
 ¦       ¦   +---chunks
 ¦       ¦   ¦   +---ssr
+¦       ¦   ¦           bec2d_app_(dashboard)_dashboard_reportes_exportacion-datos_page_actions_e20d3190.js
+¦       ¦   ¦           bec2d_app_(dashboard)_dashboard_reportes_exportacion-datos_page_actions_e20d3190.js.map
+¦       ¦   ¦           bec2d_app_(dashboard)_dashboard_reportes_generacion-indicadores_page_actions_c93ff3df.js
+¦       ¦   ¦           bec2d_app_(dashboard)_dashboard_reportes_generacion-indicadores_page_actions_c93ff3df.js.map
 ¦       ¦   ¦           ce889_server_app_(dashboard)_dashboard_convocatorias_page_actions_6ddd2c0d.js
 ¦       ¦   ¦           ce889_server_app_(dashboard)_dashboard_convocatorias_page_actions_6ddd2c0d.js.map
 ¦       ¦   ¦           ce889_server_app_(dashboard)_dashboard_gestion-cursos_page_actions_3b2c3d7f.js
 ¦       ¦   ¦           ce889_server_app_(dashboard)_dashboard_gestion-cursos_page_actions_3b2c3d7f.js.map
 ¦       ¦   ¦           ce889_server_app_(dashboard)_dashboard_instructores_page_actions_a7745894.js
 ¦       ¦   ¦           ce889_server_app_(dashboard)_dashboard_instructores_page_actions_a7745894.js.map
+¦       ¦   ¦           node_modules_05c3622d._.js
+¦       ¦   ¦           node_modules_05c3622d._.js.map
 ¦       ¦   ¦           node_modules_186c80ea._.js
 ¦       ¦   ¦           node_modules_186c80ea._.js.map
 ¦       ¦   ¦           node_modules_2e7fb87a._.js
@@ -217,6 +248,8 @@ C:.
 ¦       ¦   ¦           node_modules_d8e0cb6a._.js.map
 ¦       ¦   ¦           node_modules_ed59a21d._.js
 ¦       ¦   ¦           node_modules_ed59a21d._.js.map
+¦       ¦   ¦           node_modules_f07dbf37._.js
+¦       ¦   ¦           node_modules_f07dbf37._.js.map
 ¦       ¦   ¦           node_modules_f12f393c._.js
 ¦       ¦   ¦           node_modules_f12f393c._.js.map
 ¦       ¦   ¦           node_modules_f7fa0560._.js
@@ -235,6 +268,10 @@ C:.
 ¦       ¦   ¦           node_modules_next_dist_3f3010d4._.js.map
 ¦       ¦   ¦           node_modules_next_dist_54f82a17._.js
 ¦       ¦   ¦           node_modules_next_dist_54f82a17._.js.map
+¦       ¦   ¦           node_modules_next_dist_6def1099._.js
+¦       ¦   ¦           node_modules_next_dist_6def1099._.js.map
+¦       ¦   ¦           node_modules_next_dist_92dbc490._.js
+¦       ¦   ¦           node_modules_next_dist_92dbc490._.js.map
 ¦       ¦   ¦           node_modules_next_dist_95f1ca52._.js
 ¦       ¦   ¦           node_modules_next_dist_95f1ca52._.js.map
 ¦       ¦   ¦           node_modules_next_dist_984e1326._.js
@@ -265,10 +302,16 @@ C:.
 ¦       ¦   ¦           src_180892f3._.js.map
 ¦       ¦   ¦           src_1b0d0e80._.js
 ¦       ¦   ¦           src_1b0d0e80._.js.map
+¦       ¦   ¦           src_1d684f1a._.js
+¦       ¦   ¦           src_1d684f1a._.js.map
+¦       ¦   ¦           src_3172a1a3._.js
+¦       ¦   ¦           src_3172a1a3._.js.map
 ¦       ¦   ¦           src_32b5137b._.js
 ¦       ¦   ¦           src_32b5137b._.js.map
 ¦       ¦   ¦           src_72f3a551._.js
 ¦       ¦   ¦           src_72f3a551._.js.map
+¦       ¦   ¦           src_7bd2563e._.js
+¦       ¦   ¦           src_7bd2563e._.js.map
 ¦       ¦   ¦           src_a95a8962._.js
 ¦       ¦   ¦           src_a95a8962._.js.map
 ¦       ¦   ¦           src_app_(auth)_changepass_layout_tsx_7ba6104d._.js
@@ -283,14 +326,26 @@ C:.
 ¦       ¦   ¦           src_app_(dashboard)_dashboard_instructores_page_tsx_7edc8ad5._.js.map
 ¦       ¦   ¦           src_app_(dashboard)_dashboard_layout_tsx_43682d09._.js
 ¦       ¦   ¦           src_app_(dashboard)_dashboard_layout_tsx_43682d09._.js.map
+¦       ¦   ¦           src_app_(dashboard)_dashboard_reportes_exportacion-datos_page_tsx_faa73a5f._.js
+¦       ¦   ¦           src_app_(dashboard)_dashboard_reportes_exportacion-datos_page_tsx_faa73a5f._.js.map
+¦       ¦   ¦           src_app_(dashboard)_dashboard_reportes_generacion-indicadores_page_tsx_668b8dc1._.js
+¦       ¦   ¦           src_app_(dashboard)_dashboard_reportes_generacion-indicadores_page_tsx_668b8dc1._.js.map
 ¦       ¦   ¦           src_app_5b2047f8._.js
 ¦       ¦   ¦           src_app_5b2047f8._.js.map
 ¦       ¦   ¦           src_be276ea3._.js
 ¦       ¦   ¦           src_be276ea3._.js.map
+¦       ¦   ¦           src_d490afaf._.js
+¦       ¦   ¦           src_d490afaf._.js.map
 ¦       ¦   ¦           src_dc0715f1._.js
 ¦       ¦   ¦           src_dc0715f1._.js.map
 ¦       ¦   ¦           src_dccf18d5._.js
 ¦       ¦   ¦           src_dccf18d5._.js.map
+¦       ¦   ¦           src_e98cea3e._.js
+¦       ¦   ¦           src_e98cea3e._.js.map
+¦       ¦   ¦           src_f7ba4c52._.js
+¦       ¦   ¦           src_f7ba4c52._.js.map
+¦       ¦   ¦           src_f932e6c8._.js
+¦       ¦   ¦           src_f932e6c8._.js.map
 ¦       ¦   ¦           src_fdf35e12._.js
 ¦       ¦   ¦           src_fdf35e12._.js.map
 ¦       ¦   ¦           [externals]_next_dist_shared_lib_no-fallback-error_external_59b92b38.js
@@ -333,8 +388,12 @@ C:.
 ¦       ¦   ¦           [root-of-the-server]__a8ab9a0d._.js.map
 ¦       ¦   ¦           [root-of-the-server]__b8386117._.js
 ¦       ¦   ¦           [root-of-the-server]__b8386117._.js.map
+¦       ¦   ¦           [root-of-the-server]__bdd1f8e7._.js
+¦       ¦   ¦           [root-of-the-server]__bdd1f8e7._.js.map
 ¦       ¦   ¦           [root-of-the-server]__c80f7c8f._.js
 ¦       ¦   ¦           [root-of-the-server]__c80f7c8f._.js.map
+¦       ¦   ¦           [root-of-the-server]__d3f7ecf1._.js
+¦       ¦   ¦           [root-of-the-server]__d3f7ecf1._.js.map
 ¦       ¦   ¦           [root-of-the-server]__e3a5129d._.js
 ¦       ¦   ¦           [root-of-the-server]__e3a5129d._.js.map
 ¦       ¦   ¦           [root-of-the-server]__e6a4d965._.js
@@ -395,10 +454,14 @@ C:.
 ¦       ¦   ¦   ¦   node_modules_17888f79._.js.map
 ¦       ¦   ¦   ¦   node_modules_416396d1._.js
 ¦       ¦   ¦   ¦   node_modules_416396d1._.js.map
+¦       ¦   ¦   ¦   node_modules_485b8a3b._.js
+¦       ¦   ¦   ¦   node_modules_485b8a3b._.js.map
 ¦       ¦   ¦   ¦   node_modules_67ecd18f._.js
 ¦       ¦   ¦   ¦   node_modules_67ecd18f._.js.map
 ¦       ¦   ¦   ¦   node_modules_9435b0de._.js
 ¦       ¦   ¦   ¦   node_modules_9435b0de._.js.map
+¦       ¦   ¦   ¦   node_modules_94d271a3._.js
+¦       ¦   ¦   ¦   node_modules_94d271a3._.js.map
 ¦       ¦   ¦   ¦   node_modules_@swc_helpers_cjs_d80fb378._.js
 ¦       ¦   ¦   ¦   node_modules_@swc_helpers_cjs_d80fb378._.js.map
 ¦       ¦   ¦   ¦   node_modules_b369b58e._.js
@@ -453,6 +516,8 @@ C:.
 ¦       ¦   ¦   ¦   pages__error_3124a9b7._.js.map
 ¦       ¦   ¦   ¦   src_057f077a._.js
 ¦       ¦   ¦   ¦   src_057f077a._.js.map
+¦       ¦   ¦   ¦   src_066f937d._.js
+¦       ¦   ¦   ¦   src_066f937d._.js.map
 ¦       ¦   ¦   ¦   src_4693fdf4._.js
 ¦       ¦   ¦   ¦   src_4693fdf4._.js.map
 ¦       ¦   ¦   ¦   src_5088c8a0._.js
@@ -463,6 +528,8 @@ C:.
 ¦       ¦   ¦   ¦   src_6b9cf92d._.js.map
 ¦       ¦   ¦   ¦   src_7a67313a._.js
 ¦       ¦   ¦   ¦   src_7a67313a._.js.map
+¦       ¦   ¦   ¦   src_7f90ba22._.js
+¦       ¦   ¦   ¦   src_7f90ba22._.js.map
 ¦       ¦   ¦   ¦   src_92806c7d._.js
 ¦       ¦   ¦   ¦   src_92806c7d._.js.map
 ¦       ¦   ¦   ¦   src_adf49e95._.js
@@ -489,9 +556,17 @@ C:.
 ¦       ¦   ¦   ¦   src_app_(dashboard)_dashboard_instructores_page_tsx_3582f10b._.js
 ¦       ¦   ¦   ¦   src_app_(dashboard)_dashboard_layout_tsx_34c428ed._.js
 ¦       ¦   ¦   ¦   src_app_(dashboard)_dashboard_page_tsx_3582f10b._.js
+¦       ¦   ¦   ¦   src_app_(dashboard)_dashboard_reportes_exportacion-datos_page_tsx_3582f10b._.js
+¦       ¦   ¦   ¦   src_app_(dashboard)_dashboard_reportes_exportacion-datos_page_tsx_fb0562fb._.js
+¦       ¦   ¦   ¦   src_app_(dashboard)_dashboard_reportes_exportacion-datos_page_tsx_fb0562fb._.js.map
+¦       ¦   ¦   ¦   src_app_(dashboard)_dashboard_reportes_generacion-indicadores_page_tsx_0eb31f67._.js
+¦       ¦   ¦   ¦   src_app_(dashboard)_dashboard_reportes_generacion-indicadores_page_tsx_0eb31f67._.js.map
+¦       ¦   ¦   ¦   src_app_(dashboard)_dashboard_reportes_generacion-indicadores_page_tsx_3582f10b._.js
 ¦       ¦   ¦   ¦   src_app_favicon_ico_mjs_a4dcd48c._.js
 ¦       ¦   ¦   ¦   src_app_layout_tsx_78cdd4a3._.js
 ¦       ¦   ¦   ¦   src_app_page_tsx_34c428ed._.js
+¦       ¦   ¦   ¦   src_c61c0544._.js
+¦       ¦   ¦   ¦   src_c61c0544._.js.map
 ¦       ¦   ¦   ¦   src_components_dd30f7d6._.js
 ¦       ¦   ¦   ¦   src_components_dd30f7d6._.js.map
 ¦       ¦   ¦   ¦   src_components_Feed_tsx_56274655._.js
@@ -504,8 +579,16 @@ C:.
 ¦       ¦   ¦   ¦   src_components_Feed_tsx_9ea865b3._.js.map
 ¦       ¦   ¦   ¦   src_components_Feed_tsx_e3135115._.js
 ¦       ¦   ¦   ¦   src_components_Feed_tsx_e3135115._.js.map
+¦       ¦   ¦   ¦   src_d2f8d1be._.js
+¦       ¦   ¦   ¦   src_d2f8d1be._.js.map
+¦       ¦   ¦   ¦   src_d3ef33d6._.js
+¦       ¦   ¦   ¦   src_d3ef33d6._.js.map
 ¦       ¦   ¦   ¦   src_dbb8a294._.js
 ¦       ¦   ¦   ¦   src_dbb8a294._.js.map
+¦       ¦   ¦   ¦   src_e5891580._.js
+¦       ¦   ¦   ¦   src_e5891580._.js.map
+¦       ¦   ¦   ¦   src_ee97d024._.js
+¦       ¦   ¦   ¦   src_ee97d024._.js.map
 ¦       ¦   ¦   ¦   src_styles_globals_css_bad6b30c._.single.css
 ¦       ¦   ¦   ¦   src_styles_globals_css_bad6b30c._.single.css.map
 ¦       ¦   ¦   ¦   turbopack-pages__app_f542a708._.js
@@ -36666,6 +36749,9 @@ C:.
     ¦   ¦       ¦   layout.tsx
     ¦   ¦       ¦   page.tsx
     ¦   ¦       ¦   
+    ¦   ¦       +---aniversarios
+    ¦   ¦       ¦       page.tsx
+    ¦   ¦       ¦       
     ¦   ¦       +---convocatorias
     ¦   ¦       ¦       page.tsx
     ¦   ¦       ¦       
@@ -36724,6 +36810,12 @@ C:.
     ¦   ¦           DashboardLayout.types.ts
     ¦   ¦           Sidebar.tsx
     ¦   ¦           
+    ¦   +---Forms
+    ¦   ¦       EstudianteForm.tsx
+    ¦   ¦       GenericForm.tsx
+    ¦   ¦       GrupoForm.tsx
+    ¦   ¦       InstructorForm.tsx
+    ¦   ¦       
     ¦   +---layout
     ¦   ¦   +---Header
     ¦   ¦           Header.tsx
@@ -36761,14 +36853,6 @@ C:.
     ¦       +---Avatar
     ¦       ¦       Avatar.tsx
     ¦       ¦       Avatar.types.ts
-    ¦       ¦       
-    ¦       +---Button
-    ¦       ¦       Button.tsx
-    ¦       ¦       Button.types.ts
-    ¦       ¦       
-    ¦       +---Card
-    ¦       ¦       Card.tsx
-    ¦       ¦       Card.types.ts
     ¦       ¦       
     ¦       +---Carousel
     ¦       ¦       Carousel.tsx

@@ -198,6 +198,17 @@ export function Sidebar({ onMenuToggle, openMenu }: SidebarProps) {
                         Generación de indicadores
                       </Link>
                       <Link 
+                        href="/dashboard/reportes/aniversarios"
+                        onClick={(e) => handleNavigation(e, '/dashboard/reportes/aniversarios')}
+                        className={`block py-2 text-xs transition-colors truncate ${
+                          isActive('/dashboard/reportes/aniversarios') 
+                            ? 'text-blue-200' 
+                            : 'hover:text-blue-200'
+                        }`}
+                      >
+                        Aniversarios
+                      </Link>
+                      <Link 
                         href="/dashboard/reportes/exportacion-datos"
                         onClick={(e) => handleNavigation(e, '/dashboard/reportes/exportacion-datos')}
                         className={`block py-2 text-xs transition-colors truncate ${

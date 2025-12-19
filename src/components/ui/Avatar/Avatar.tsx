@@ -22,6 +22,7 @@ const Avatar = ({ src, alt, size = 'w-12 h-12' }: AvatarProps) => {
           width={48}
           height={48}
           className="w-full h-full object-cover"
+          unoptimized
         />
       ) : (
         <span className="text-gray-600 text-sm font-semibold">
