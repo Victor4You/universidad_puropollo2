@@ -15,8 +15,8 @@ export default function AniversariosPage() {
   const [cargando, setCargando] = useState(false);
 
   const mockUsers: UserProfile[] = [
-    { id: '1', name: 'Carlos Pérez', role: 'Director de Arte', email: 'c@p.com', avatar: null, createdAt: '2020-01-15' },
-    { id: '2', name: 'Ana Gómez', role: 'Software Engineer', email: 'a@g.com', avatar: null, createdAt: '2022-06-10' },
+    { id: '1', name: 'Carlos Pérez', department: 'Director de Arte', role: 'admin' , email: 'c@p.com', avatar: null, createdAt: '2020-01-15' },
+    { id: '2', name: 'Ana Gómez', department: 'Software Engineer', role: 'admin' , email: 'a@g.com', avatar: null, createdAt: '2022-06-10' },
   ];
 
   const manejarGenerar = () => {

@@ -27,8 +27,8 @@ const form = useForm({
     return(
         <Card>
         <CardHeader>
-            <CardTitle>Card Title</CardTitle>
-                <CardDescription>Card Description</CardDescription>
+            <CardTitle>Cambiar contraseña</CardTitle>
+                <CardDescription>Cambio de contraseña</CardDescription>
         </CardHeader>
             <CardContent>
             <form onSubmit={form.handleSubmit(onSubmit)}>
@@ -55,7 +55,7 @@ const form = useForm({
                     )} />
                     <Controller name="confirmpassword" control={form.control} render={({field, fieldState}) =>(
                      <Field>
-                        <FieldLabel>Email </FieldLabel>
+                        <FieldLabel>Confirmar password </FieldLabel>
                         <Input aria-invalid={fieldState.invalid}
                         placeholder="confirm password" type="confirmpassword" {...field} />
                         {fieldState.invalid &&

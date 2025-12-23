@@ -37,7 +37,7 @@ export interface LoginCredentials {
  * Estado de autenticación en la aplicación
  */
 export interface AuthState {
-  user: UserRole | null;
+  user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
 }
@@ -49,5 +49,5 @@ export interface AuthState {
 export interface AuthContextType extends AuthState {
   login: (credentials: LoginCredentials) => Promise<boolean>;
   logout: () => void;
-  updateUser: (user: UserRole) => void;
+  updateUser: (user: User) => void;
 }

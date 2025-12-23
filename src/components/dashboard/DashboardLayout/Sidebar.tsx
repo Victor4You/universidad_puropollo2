@@ -102,7 +102,7 @@ export function Sidebar({ onMenuToggle, openMenu }: SidebarProps) {
             className={`w-full flex items-center justify-between py-3 px-4 rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
               isMenuOpen('administracion') ? 'bg-gray-700' : 'hover:bg-gray-700'
             }`}
-            aria-expanded={isMenuOpen('administracion')}
+            aria-expanded={isMenuOpen('administracion') ? "true" : "false"}
             aria-controls="administracion-submenu"
           >
             <div className="flex items-center">
@@ -176,7 +176,7 @@ export function Sidebar({ onMenuToggle, openMenu }: SidebarProps) {
                     className={`w-full flex items-center justify-between py-2 text-sm transition-colors focus:text-blue-300 focus:outline-none truncate ${
                       isActive('/dashboard/reportes') ? 'text-blue-300' : 'hover:text-blue-300'
                     }`}
-                    aria-expanded={isMenuOpen('administracion.reportes')}
+                    aria-expanded={isMenuOpen('administracion.reportes') ? "true" : "false"}
                   >
                     <span>Reportes</span>
                     <span className="text-xs flex-shrink-0">
