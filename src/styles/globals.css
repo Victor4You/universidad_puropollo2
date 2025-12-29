@@ -79,7 +79,7 @@
   }
 
   /* Tipografía */
-  h1, h2, h3, h4, h5, h6 {
+  h1, h4, h5, h6 {
     font-weight: 600;
     line-height: 1.2;
     color: #111827; /* gray-900 */
@@ -94,7 +94,8 @@
   }
 
   h3 {
-    font-size: 1.5rem; /* text-2xl */
+    font-size: 1.3rem; /* text-2xl */
+    color: #fff;
   }
 
   h4 {

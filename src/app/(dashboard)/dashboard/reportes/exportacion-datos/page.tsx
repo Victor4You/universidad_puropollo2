@@ -400,6 +400,7 @@ export default function ExportacionDatosPage() {
           {/* Gráfico de pastel para distribución de calificaciones */}
           <div className="h-64 flex items-center justify-center">
             <div className="relative w-48 h-48">
+             <svg width="192" height="192" viewBox="0 0 192 192" className="absolute inset-0">
               {/* Segmentos del gráfico */}
               {(() => {
                 let anguloAcumulado = 0;
@@ -435,7 +436,7 @@ export default function ExportacionDatosPage() {
                       d={pathData}
                       fill={item.color}
                       className="hover:opacity-90 transition-opacity cursor-pointer"
-                      title={`${item.rango}: ${item.cantidad} calificaciones (${item.porcentaje}%)`}
+                      data-title={`${item.rango}: ${item.cantidad} calificaciones (${item.porcentaje}%)`}
                     />
                   );
                 });
@@ -445,6 +446,7 @@ export default function ExportacionDatosPage() {
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="w-24 h-24 rounded-full bg-white"></div>
               </div>
+              </svg>
               
               {/* Texto central */}
               <div className="absolute inset-0 flex flex-col items-center justify-center">

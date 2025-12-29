@@ -135,17 +135,17 @@ export default function InstructoresPage() {
         </div>
         
         {/* Solo un botón aquí: Nuevo Instructor */}
-        {canEditPermission && (
-          <Button 
-            onClick={() => setShowInstructorModal(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white flex items-center shadow-sm"
-          >
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Nuevo Instructor
-          </Button>
-        )}
+      {canEditPermission && (
+      <button
+      onClick={() => setShowInstructorModal(true)}
+      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg flex items-center shadow-sm transition-colors font-medium"
+      >
+      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+      </svg>
+        Nuevo Instructor
+      </button>
+      )}
       </div>
 
       {/* Cards de instructores */}
@@ -230,40 +230,52 @@ export default function InstructoresPage() {
 
       {/* Paginación */}
       {totalPages > 1 && (
-        <div className="bg-white rounded-lg shadow px-6 py-4 flex items-center justify-between">
-          <p className="text-sm text-gray-700">
-            Mostrando <span className="font-medium">{startIndex + 1}</span> a <span className="font-medium">{Math.min(startIndex + itemsPerPage, filteredInstructores.length)}</span> de <span className="font-medium">{filteredInstructores.length}</span>
-          </p>
-          <div className="flex space-x-1">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              disabled={currentPage === 1}
-              onClick={() => handlePageChange(currentPage - 1)}
-            >
-              Anterior
-            </Button>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-              <Button
-                key={page}
-                variant={currentPage === page ? "default" : "outline"}
-                size="sm"
-                onClick={() => handlePageChange(page)}
-              >
-                {page}
-              </Button>
-            ))}
-            <Button 
-              variant="outline" 
-              size="sm" 
-              disabled={currentPage === totalPages}
-              onClick={() => handlePageChange(currentPage + 1)}
-            >
-              Siguiente
-            </Button>
-          </div>
-        </div>
-      )}
+  <div className="bg-white rounded-lg shadow px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+    <p className="text-sm text-gray-700">
+      Mostrando <span className="font-medium">{startIndex + 1}</span> a{" "}
+      <span className="font-medium">
+        {Math.min(startIndex + itemsPerPage, filteredInstructores.length)}
+      </span>{" "}
+      de <span className="font-medium">{filteredInstructores.length}</span>
+    </p>
+    <div className="flex items-center space-x-2">
+      {/* Botón Anterior */}
+      <button
+        className="px-3 py-2 text-sm font-medium rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        disabled={currentPage === 1}
+        onClick={() => handlePageChange(currentPage - 1)}
+      >
+        Anterior
+      </button>
+
+      {/* Números de página */}
+      <div className="flex items-center space-x-1">
+        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+          <button
+            key={page}
+            className={`min-w-[2.5rem] px-3 py-2 text-sm font-medium rounded-md ${
+              currentPage === page
+                ? "bg-blue-600 text-white border border-blue-600"
+                : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
+            } transition-colors`}
+            onClick={() => handlePageChange(page)}
+          >
+            {page}
+          </button>
+        ))}
+      </div>
+
+      {/* Botón Siguiente */}
+      <button
+        className="px-3 py-2 text-sm font-medium rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        disabled={currentPage === totalPages}
+        onClick={() => handlePageChange(currentPage + 1)}
+      >
+        Siguiente
+      </button>
+    </div>
+  </div>
+)}
 
       {/* Estadísticas */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

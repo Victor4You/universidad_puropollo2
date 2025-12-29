@@ -17,4 +17,10 @@ export interface UserProfile {
   bio?: string;
   createdAt: string;
   lastLogin?: string;
+
+ // IDs de cursos que el alumno ya terminó satisfactoriamente
+  completedCourses?: string[]; 
+  // ID del curso que está cursando actualmente (opcional)
+  currentCourseId?: string;
 }
+

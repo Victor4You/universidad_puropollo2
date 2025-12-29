@@ -1,19 +1,10 @@
-// src/app/(dashboard)/dashboard/grupos/page.tsx
 'use client';
-// Nota: He añadido React.Fragment para manejar el despliegue de filas en la tabla sin romper la estructura de HTML.
-import React from 'react';
 
-import { useState, useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import React, { useState, useEffect, useMemo } from 'react';
 import { usePermission } from '@/hooks/usePermission';
-
-// Importación de componentes UI
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-
-// Importación de los Formularios
 import { GrupoForm } from "@/components/Forms/GrupoForm";
-import { EstudianteForm } from "@/components/Forms/EstudianteForm";
 
 interface Estudiante {
   id: string;
@@ -33,254 +24,271 @@ interface Grupo {
   estudiantes: number;
   estado: 'activo' | 'inactivo';
   capacidad: number;
-  horario: string;
-  aula: string;
-  fechaInicio: string;
-  fechaFin: string;
   estudiantesLista: Estudiante[];
 }
 
-// Datos de ejemplo
+// Datos de ejemplo extendidos para probar la paginación de la tabla
 const estudiantesMock: Estudiante[] = [
-  { id: '1', nombre: 'Juan Pérez', matricula: '20230001', email: 'juan.perez@universidad.edu', telefono: '+51 999 111 222', estado: 'activo' },
-  { id: '2', nombre: 'María López', matricula: '20230002', email: 'maria.lopez@universidad.edu', telefono: '+51 999 111 223', estado: 'activo' },
-  { id: '3', nombre: 'Carlos Sánchez', matricula: '20230003', email: 'carlos.sanchez@universidad.edu', telefono: '+51 999 111 224', estado: 'activo' },
-  { id: '4', nombre: 'Ana Rodríguez', matricula: '20230004', email: 'ana.rodriguez@universidad.edu', telefono: '+51 999 111 225', estado: 'inactivo' },
+  { id: '1', nombre: 'Juan Pérez', matricula: '20230001', email: 'juan.perez@edu.com', telefono: '+51 999', estado: 'activo' },
+  { id: '2', nombre: 'María López', matricula: '20230002', email: 'maria.lopez@edu.com', telefono: '+51 998', estado: 'activo' },
+  { id: '3', nombre: 'Carlos Sánchez', matricula: '20230003', email: 'carlos.sanchez@edu.com', telefono: '+51 997', estado: 'activo' },
+  { id: '4', nombre: 'Ana Rodríguez', matricula: '20230004', email: 'ana.rodriguez@edu.com', telefono: '+51 996', estado: 'inactivo' },
+  { id: '5', nombre: 'Luis Garcia', matricula: '20230005', email: 'luis.garcia@edu.com', telefono: '+51 995', estado: 'activo' },
 ];
 
-const gruposMock: Grupo[] = Array.from({ length: 10 }).map((_, i) => ({
+const gruposMock: Grupo[] = Array.from({ length: 15 }).map((_, i) => ({
   id: `${i + 1}`,
-  nombre: `Grupo ${String.fromCharCode(65 + i)} - Curso ${i + 1}`,
+  nombre: `Grupo ${String.fromCharCode(65 + i)} - ${i % 2 === 0 ? 'Matemáticas' : 'Programación'}`,
   curso: i % 2 === 0 ? 'Matemáticas' : 'Programación',
   codigo: `GRP-00${i + 1}`,
   instructor: 'Carlos Mendoza',
-  estudiantes: 4,
+  estudiantes: 5,
   capacidad: 30,
   estado: i % 3 === 0 ? 'inactivo' : 'activo',
-  horario: 'Lun/Mié/Vie 8:00-10:00',
-  aula: 'Aula 301',
-  fechaInicio: '15/01/2024',
-  fechaFin: '15/06/2024',
   estudiantesLista: estudiantesMock
 }));
 
 export default function GruposPage() {
-  const { canView } = usePermission();
-  const canEdit = canView(['admin', 'teacher']);
+  const { userRole } = usePermission();
+  const canEdit = userRole === 'admin' || userRole === 'teacher';
 
   const [grupos, setGrupos] = useState<Grupo[]>([]);
-  const [filteredGrupos, setFilteredGrupos] = useState<Grupo[]>([]);
   const [search, setSearch] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [expandedRows, setExpandedRows] = useState<string[]>([]);
-  const itemsPerPage = 5;
+  
+  // PAGINACIÓN TABLA PRINCIPAL (GRUPOS)
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6; // Grupos por página
 
-  // ESTADOS PARA FORMULARIOS
+  // PAGINACIÓN INTERNA (ESTUDIANTES)
+  const [studentPages, setStudentPages] = useState<Record<string, number>>({});
+  const studentsPerPage = 3;
+
   const [showGrupoForm, setShowGrupoForm] = useState(false);
-  const [showEstudianteForm, setShowEstudianteForm] = useState(false);
-
-  // ESTADOS PARA CAMBIO DE ESTADO (MODAL)
   const [showEstadoModal, setShowEstadoModal] = useState<{ open: boolean; type: 'grupo' | 'estudiante'; data: any }>({
-    open: false,
-    type: 'grupo',
-    data: null
+    open: false, type: 'grupo', data: null
   });
   const [nuevoEstado, setNuevoEstado] = useState<string>('');
 
   useEffect(() => {
     setTimeout(() => {
       setGrupos(gruposMock);
-      setFilteredGrupos(gruposMock);
       setIsLoading(false);
     }, 800);
   }, []);
 
-  useEffect(() => {
-    const filtered = grupos.filter(g =>
+  // Lógica de filtrado y paginación de grupos
+  const filteredGrupos = useMemo(() => {
+    return grupos.filter(g =>
       g.nombre.toLowerCase().includes(search.toLowerCase()) ||
       g.codigo.toLowerCase().includes(search.toLowerCase())
     );
-    setFilteredGrupos(filtered);
-    setCurrentPage(1); // Reiniciar a la primera página en cada búsqueda
   }, [search, grupos]);
 
-  // Lógica de Paginación
   const totalPages = Math.ceil(filteredGrupos.length / itemsPerPage);
   const currentGrupos = filteredGrupos.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const toggleRow = (grupoId: string) => {
     setExpandedRows(prev => prev.includes(grupoId) ? prev.filter(id => id !== grupoId) : [...prev, grupoId]);
-  };
-
-  const getEstadoColor = (estado: string) => {
-    return estado === 'activo' ? 'bg-green-100 text-green-800 border-green-200' : 'bg-red-100 text-red-800 border-red-200';
+    if (!studentPages[grupoId]) setStudentPages(prev => ({ ...prev, [grupoId]: 1 }));
   };
 
   const manejarCambioEstado = () => {
     if (!showEstadoModal.data) return;
-
     if (showEstadoModal.type === 'grupo') {
       setGrupos(prev => prev.map(g => g.id === showEstadoModal.data.id ? { ...g, estado: nuevoEstado as any } : g));
     } else {
       const { grupoId, estudianteId } = showEstadoModal.data;
-      setGrupos(prev => prev.map(g => {
-        if (g.id === grupoId) {
-          return {
-            ...g,
-            estudiantesLista: g.estudiantesLista.map(e => e.id === estudianteId ? { ...e, estado: nuevoEstado as any } : e)
-          };
-        }
-        return g;
-      }));
+      setGrupos(prev => prev.map(g => g.id === grupoId ? {
+        ...g, estudiantesLista: g.estudiantesLista.map(e => e.id === estudianteId ? { ...e, estado: nuevoEstado as any } : e)
+      } : g));
     }
     setShowEstadoModal({ open: false, type: 'grupo', data: null });
   };
 
-  if (isLoading) return <div className="p-10 text-center animate-pulse text-gray-500">Cargando grupos...</div>;
+  if (isLoading) return <div className="p-10 text-center animate-pulse text-gray-500 font-medium">Cargando grupos...</div>;
 
   return (
     <div className="space-y-6 pb-10">
-      {/* Header Responsivo */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Gestión de Grupos</h1>
           <p className="text-sm text-gray-600">Administra tus clases y estudiantes matriculados</p>
         </div>
         {canEdit && (
-          <Button className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700" onClick={() => setShowGrupoForm(true)}>
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-            Nuevo Grupo
+          <Button className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 shadow-md" onClick={() => setShowGrupoForm(true)}>
+            + Nuevo Grupo
           </Button>
         )}
       </div>
 
-      {/* Buscador */}
       <div className="relative w-full max-w-md">
-        <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-        </span>
-        <Input className="pl-10" placeholder="Buscar por nombre o código..." value={search} onChange={(e) => setSearch(e.target.value)} />
+        <Input 
+          className="pl-4 shadow-sm" 
+          placeholder="Buscar por nombre o código..." 
+          value={search} 
+          onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }} 
+        />
       </div>
 
-      {/* Tabla Responsiva (Scroll horizontal en móviles) */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Grupo</th>
-                <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Curso</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Estudiantes</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Estado</th>
-                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Acciones</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Grupo</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Curso</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Estudiantes</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Estado</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {currentGrupos.map((grupo) => (
-                <React.Fragment key={grupo.id}>
-                  <tr className="hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => toggleRow(grupo.id)}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <svg className={`w-4 h-4 mr-2 transition-transform ${expandedRows.includes(grupo.id) ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                        <div>
-                          <div className="text-sm font-bold text-gray-900">{grupo.nombre}</div>
-                          <div className="text-xs text-gray-500">{grupo.codigo}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-600">{grupo.curso}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{grupo.estudiantes}/{grupo.capacidad}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); setShowEstadoModal({ open: true, type: 'grupo', data: grupo }); setNuevoEstado(grupo.estado); }}
-                        className={`px-3 py-1 text-[10px] font-bold rounded-full border ${getEstadoColor(grupo.estado)}`}
-                      >
-                        {grupo.estado.toUpperCase()} ✎
-                      </button>
-                    </td>
-                    <td className="px-6 py-4 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                      <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-800" onClick={() => setShowEstudianteForm(true)}>
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-                      </Button>
-                    </td>
-                  </tr>
-                  {expandedRows.includes(grupo.id) && (
-                    <tr className="bg-gray-50/50">
-                      <td colSpan={5} className="px-6 py-4">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                          {grupo.estudiantesLista.map(est => (
-                            <div key={est.id} className="bg-white p-3 rounded-lg border border-gray-200 flex justify-between items-center shadow-sm">
-                              <div>
-                                <div className="text-sm font-semibold">{est.nombre}</div>
-                                <div className="text-[10px] text-gray-400">{est.matricula}</div>
-                              </div>
-                              <button 
-                                onClick={() => { setShowEstadoModal({ open: true, type: 'estudiante', data: { grupoId: grupo.id, estudianteId: est.id } }); setNuevoEstado(est.estado); }}
-                                className={`text-[9px] px-2 py-0.5 rounded-full border font-bold ${getEstadoColor(est.estado)}`}
-                              >
-                                {est.estado.toUpperCase()}
-                              </button>
-                            </div>
-                          ))}
+              {currentGrupos.length > 0 ? (
+                currentGrupos.map((grupo) => (
+                  <React.Fragment key={grupo.id}>
+                    <tr className="hover:bg-blue-50/30 transition-colors cursor-pointer" onClick={() => toggleRow(grupo.id)}>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center">
+                          <span className={`mr-3 text-blue-600 transition-transform duration-200 ${expandedRows.includes(grupo.id) ? 'rotate-180' : ''}`}>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
+                          </span>
+                          <div>
+                            <div className="text-sm font-bold text-gray-900">{grupo.nombre}</div>
+                            <div className="text-[11px] text-gray-400 font-mono">{grupo.codigo}</div>
+                          </div>
                         </div>
                       </td>
+                      <td className="px-6 py-4 text-sm text-gray-600 font-medium">{grupo.curso}</td>
+                      <td className="px-6 py-4 text-sm text-gray-700 font-semibold">{grupo.estudiantes}/{grupo.capacidad}</td>
+                      <td className="px-6 py-4">
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); setShowEstadoModal({ open: true, type: 'grupo', data: grupo }); setNuevoEstado(grupo.estado); }}
+                          className={`px-3 py-1 text-[10px] font-bold rounded-full border transition-all hover:scale-105 ${
+                            grupo.estado === 'activo' ? 'bg-green-100 text-green-800 border-green-200' : 'bg-red-100 text-red-800 border-red-200'
+                          }`}
+                        >
+                          {grupo.estado.toUpperCase()} ✎
+                        </button>
+                      </td>
                     </tr>
-                  )}
-                </React.Fragment>
-              ))}
+                    {expandedRows.includes(grupo.id) && (
+                      <tr className="bg-gray-50/80">
+                        <td colSpan={4} className="px-8 py-6">
+                          <div className="flex justify-between items-center mb-4">
+                            <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest">Lista de Estudiantes</h4>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-5">
+                            {grupo.estudiantesLista
+                              .slice(((studentPages[grupo.id] || 1) - 1) * studentsPerPage, (studentPages[grupo.id] || 1) * studentsPerPage)
+                              .map(est => (
+                                <div key={est.id} className="bg-white p-4 rounded-xl border border-gray-200 flex justify-between items-center shadow-sm hover:shadow-md transition-shadow">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs">
+                                      {est.nombre.charAt(0)}
+                                    </div>
+                                    <div>
+                                      <div className="text-sm font-bold text-gray-800">{est.nombre}</div>
+                                      <div className="text-[10px] text-gray-500 font-mono">{est.matricula}</div>
+                                    </div>
+                                  </div>
+                                  <button 
+                                    onClick={() => { setShowEstadoModal({ open: true, type: 'estudiante', data: { grupoId: grupo.id, estudianteId: est.id } }); setNuevoEstado(est.estado); }}
+                                    className={`text-[9px] px-2 py-0.5 rounded-full border font-bold ${est.estado === 'activo' ? 'bg-green-100 text-green-800 border-green-200' : 'bg-red-100 text-red-800 border-red-200'}`}
+                                  >
+                                    {est.estado.toUpperCase()}
+                                  </button>
+                                </div>
+                              ))}
+                          </div>
+                          
+                          {/* Mini-Paginación Estudiantes */}
+                          <div className="flex justify-center items-center gap-2">
+                            {Array.from({ length: Math.ceil(grupo.estudiantesLista.length / studentsPerPage) }).map((_, idx) => (
+                              <button
+                                key={idx}
+                                onClick={() => setStudentPages(prev => ({ ...prev, [grupo.id]: idx + 1 }))}
+                                className={`w-6 h-6 flex items-center justify-center text-[10px] rounded-md border font-bold transition-all ${
+                                  studentPages[grupo.id] === idx + 1 ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-white text-gray-400 hover:bg-gray-100'
+                                }`}
+                              >
+                                {idx + 1}
+                              </button>
+                            ))}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={4} className="px-6 py-10 text-center text-gray-500 italic">No se encontraron grupos con esos criterios.</td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
 
-        {/* PAGINACIÓN RESPONSIVA */}
-        <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
-          <div className="flex-1 flex justify-between sm:hidden">
-            <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>Anterior</Button>
-            <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>Siguiente</Button>
-          </div>
-          <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm text-gray-700">
-                Mostrando <span className="font-medium">{(currentPage - 1) * itemsPerPage + 1}</span> a <span className="font-medium">{Math.min(currentPage * itemsPerPage, filteredGrupos.length)}</span> de <span className="font-medium">{filteredGrupos.length}</span> resultados
-              </p>
-            </div>
-            <div className="flex gap-2">
-              {Array.from({ length: totalPages }).map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setCurrentPage(i + 1)}
-                  className={`px-3 py-1 text-sm rounded-md border ${currentPage === i + 1 ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
-                >
-                  {i + 1}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
+{/* CONTROLES DE PAGINACIÓN TABLA DE GRUPOS - CORREGIDO */}
+<div className="bg-white px-6 py-4 flex items-center justify-between border-t border-gray-200">
+  <div className="text-sm text-gray-500 font-medium">
+    Mostrando <span className="text-gray-900 font-bold">{currentGrupos.length}</span> de <span className="text-gray-900 font-bold">{filteredGrupos.length}</span> grupos
+  </div>
+  
+  <div className="flex items-center gap-4">
+    <span className="text-xs text-gray-500 font-bold">Página {currentPage} de {totalPages}</span>
+    
+    <div className="flex gap-2">
+      <Button 
+        variant="outline" 
+        size="sm" 
+        className={`h-9 w-9 p-0 border-gray-300 hover:bg-gray-100 flex items-center justify-center ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : 'text-blue-600'}`}
+        onClick={() => setCurrentPage(p => Math.max(1, p - 1))} 
+        disabled={currentPage === 1}
+      >
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+        </svg>
+      </Button>
+
+      <Button 
+        variant="outline" 
+        size="sm" 
+        className={`h-9 w-9 p-0 border-gray-300 hover:bg-gray-100 flex items-center justify-center ${currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : 'text-blue-600'}`}
+        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} 
+        disabled={currentPage === totalPages}
+      >
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+        </svg>
+      </Button>
+    </div>
+  </div>
+</div>
       </div>
 
-      {/* RENDERIZADO DE FORMULARIOS INTEGRADOS */}
       {showGrupoForm && <GrupoForm onClose={() => setShowGrupoForm(false)} />}
-      {showEstudianteForm && <EstudianteForm onClose={() => setShowEstudianteForm(false)} />}
 
-      {/* MODAL PARA CAMBIO DE ESTADO */}
+      {/* MODAL PARA CAMBIO DE ESTADO (GRUPOS Y ALUMNOS) */}
       {showEstadoModal.open && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[100] p-4">
-          <div className="bg-white p-6 rounded-xl shadow-2xl w-full max-w-xs animate-in fade-in zoom-in duration-200">
-            <h3 className="text-lg font-bold text-gray-900 mb-1">Actualizar Estado</h3>
-            <p className="text-xs text-gray-500 mb-4">Selecciona el nuevo estado para el registro.</p>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+          <div className="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-xs transform transition-all animate-in fade-in zoom-in duration-200">
+            <div className="text-center mb-4">
+              <h3 className="text-lg font-extrabold text-gray-900">Actualizar Estado</h3>
+              <p className="text-xs text-gray-400 font-medium">Cambia la disponibilidad del registro</p>
+            </div>
             <select 
-              className="w-full p-2.5 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none mb-4"
+              className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none mb-6 text-gray-700"
               value={nuevoEstado}
               onChange={(e) => setNuevoEstado(e.target.value)}
             >
-              <option value="activo">Activo</option>
-              <option value="inactivo">Inactivo</option>
+              <option value="activo">ACTIVO</option>
+              <option value="inactivo">INACTIVO</option>
             </select>
             <div className="flex flex-col gap-2">
-              <Button className="w-full bg-blue-600 hover:bg-blue-700" onClick={manejarCambioEstado}>Guardar cambios</Button>
-              <Button variant="ghost" className="w-full text-gray-500" onClick={() => setShowEstadoModal({ open: false, type: 'grupo', data: null })}>Cancelar</Button>
+              <Button className="w-full bg-blue-600 hover:bg-blue-700 font-bold py-5 rounded-xl" onClick={manejarCambioEstado}>Confirmar</Button>
+              <Button variant="ghost" className="w-full text-gray-400 font-bold" onClick={() => setShowEstadoModal({ open: false, type: 'grupo', data: null })}>Cancelar</Button>
             </div>
           </div>
         </div>
