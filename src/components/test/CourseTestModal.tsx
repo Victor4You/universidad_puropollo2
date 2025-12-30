@@ -1,10 +1,8 @@
-// components/CourseTestModal.tsx
 'use client';
 
 import { Fragment, useState, useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 
-// ... (Todos tus componentes de iconos SVG se mantienen idénticos)
 const XMarkIcon = () => (
   <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -36,7 +34,6 @@ const ClockIcon = () => (
   </svg>
 );
 
-// ... (Interfaces se mantienen idénticas)
 interface VideoItem { id: string; title: string; fileUrl: string; duration?: number; watched: boolean; }
 interface PDFItem { id: string; title: string; fileUrl: string; viewed: boolean; }
 interface Question { id: string; title: string; type: 'open' | 'closed'; question: string; answer?: string; options?: string[]; userAnswer?: string; isCorrect?: boolean; }
@@ -44,7 +41,7 @@ interface Question { id: string; title: string; type: 'open' | 'closed'; questio
 interface CourseTestModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess?: () => void; // AJUSTE FUNCIONAL: Se añade la prop onSuccess
+  onSuccess?: () => void;
   courseData: {
     id: string;
     codigo: string;
@@ -58,12 +55,10 @@ interface CourseTestModalProps {
   };
 }
 
-// AJUSTE FUNCIONAL: Se recibe la prop onSuccess
 export default function CourseTestModal({ isOpen, onClose, onSuccess, courseData }: CourseTestModalProps) {
-  // ... (Estados iniciales de videos, pdfs y questions se mantienen idénticos)
   const [videos, setVideos] = useState<VideoItem[]>([
-    { id: '1', title: 'Como tratar a un cliente enojado', fileUrl: 'https://api.ppollo.org/uploads/cursos/019962e9-a583-741d-968f-890747dc4434.mp4', duration: 180, watched: false },
-    { id: '2', title: 'Ejemplo de Buena y Mala atención al cliente', fileUrl: 'https://api.ppollo.org/uploads/cursos/019962eb-7141-717b-b95a-8271d8da1566.mp4', duration: 240, watched: false }
+    { id: '1', title: 'Como tratar a un cliente enojado', fileUrl: 'https://api.ppollo.org/uploads/cursos/019962e9-a583-741d-968f-890747dc4434.mp4', duration: 540, watched: false },
+    { id: '2', title: 'Ejemplo de Buena y Mala atención al cliente', fileUrl: 'https://api.ppollo.org/uploads/cursos/019962eb-7141-717b-b95a-8271d8da1566.mp4', duration: 387, watched: false }
   ]);
 
   const [pdfs, setPdfs] = useState<PDFItem[]>([
@@ -84,7 +79,11 @@ export default function CourseTestModal({ isOpen, onClose, onSuccess, courseData
   const [quizSubmitted, setQuizSubmitted] = useState(false);
   const [score, setScore] = useState(0);
 
-  // Temporizador y Handlers se mantienen igual
+  const totalContent = videos.length + pdfs.length;
+  const completedContent = videos.filter(v => v.watched).length + pdfs.filter(p => p.viewed).length;
+  const progress = totalContent > 0 ? (completedContent / totalContent) * 100 : 0;
+  const allContentWatched = videos.every(v => v.watched) && pdfs.every(p => p.viewed);
+
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (currentStep === 'quiz' && quizTimeLeft > 0 && !quizSubmitted) {
@@ -117,10 +116,7 @@ export default function CourseTestModal({ isOpen, onClose, onSuccess, courseData
   };
 
   const handleStartQuiz = () => {
-    const allContentWatched = videos.every(v => v.watched) && pdfs.every(p => p.viewed);
-    if (!allContentWatched) {
-      if (!confirm('Aún no has visto todo el contenido. ¿Deseas comenzar el cuestionario de todas formas?')) return;
-    }
+    if (!allContentWatched) return;
     setCurrentStep('quiz');
     setQuizTimeLeft(courseData.duracionExamen ? courseData.duracionExamen * 60 : 1800);
   };
@@ -145,7 +141,6 @@ export default function CourseTestModal({ isOpen, onClose, onSuccess, courseData
     setQuizSubmitted(true);
     setCurrentStep('results');
 
-    // AJUSTE FUNCIONAL: Si aprueba (ej: score >= 70), ejecutamos onSuccess para desbloquear el siguiente curso
     if (finalScore >= 70 && onSuccess) {
       onSuccess();
     }
@@ -158,17 +153,12 @@ export default function CourseTestModal({ isOpen, onClose, onSuccess, courseData
     setCurrentStep('content');
   };
 
-  const totalContent = videos.length + pdfs.length;
-  const completedContent = videos.filter(v => v.watched).length + pdfs.filter(p => p.viewed).length;
-  const progress = totalContent > 0 ? (completedContent / totalContent) * 100 : 0;
-
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // RENDERIZADO: Se mantiene exactamente igual a tu diseño original
   return (
     <Transition appear show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-50" onClose={onClose}>
@@ -180,7 +170,6 @@ export default function CourseTestModal({ isOpen, onClose, onSuccess, courseData
           <div className="flex min-h-full items-center justify-center p-4">
             <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 scale-95" enterTo="opacity-100 scale-100" leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95">
               <Dialog.Panel className="w-full max-w-6xl transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
-                {/* Header idéntico */}
                 <div className="flex justify-between items-center mb-6">
                   <div>
                     <Dialog.Title as="h3" className="text-2xl font-bold text-gray-900">
@@ -196,7 +185,6 @@ export default function CourseTestModal({ isOpen, onClose, onSuccess, courseData
                   <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><XMarkIcon /></button>
                 </div>
 
-                {/* Barra de progreso idéntica */}
                 <div className="mb-6">
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-sm font-medium text-gray-700">Progreso del curso: {completedContent}/{totalContent}</span>
@@ -207,18 +195,26 @@ export default function CourseTestModal({ isOpen, onClose, onSuccess, courseData
                   </div>
                 </div>
 
-                {/* Navegación idéntica */}
                 <div className="mb-8">
                   <nav className="flex space-x-4">
                     <button onClick={() => setCurrentStep('content')} className={`px-4 py-2 rounded-lg font-medium ${currentStep === 'content' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>Contenido del Curso</button>
-                    <button onClick={handleStartQuiz} disabled={currentStep === 'quiz' || currentStep === 'results'} className={`px-4 py-2 rounded-lg font-medium ${currentStep === 'quiz' || currentStep === 'results' ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'} ${currentStep === 'quiz' || currentStep === 'results' ? '' : 'disabled:opacity-50'}`}>Cuestionario</button>
+                    <button 
+                      onClick={handleStartQuiz} 
+                      disabled={!allContentWatched || currentStep === 'results'} 
+                      className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                        currentStep === 'quiz' || currentStep === 'results' 
+                        ? 'bg-green-600 text-white' 
+                        : allContentWatched ? 'bg-gray-100 text-gray-700 hover:bg-gray-200' : 'bg-gray-50 text-gray-400 cursor-not-allowed opacity-60'
+                      }`}
+                    >
+                      Cuestionario {!allContentWatched && '🔒'}
+                    </button>
                     {quizSubmitted && (
                       <button onClick={() => setCurrentStep('results')} className={`px-4 py-2 rounded-lg font-medium ${currentStep === 'results' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>Resultados</button>
                     )}
                   </nav>
                 </div>
 
-                {/* Contenido principal idéntico */}
                 <div className="max-h-[60vh] overflow-y-auto pr-4">
                   {currentStep === 'content' && (
                     <div className="space-y-8">
@@ -265,13 +261,22 @@ export default function CourseTestModal({ isOpen, onClose, onSuccess, courseData
                       <div className="pt-6 border-t">
                         <div className="flex justify-between items-center">
                           <p className="text-gray-600">{completedContent === totalContent ? '¡Has completado todo el contenido!' : `Te faltan ${totalContent - completedContent} elementos por revisar.`}</p>
-                          <button onClick={handleStartQuiz} className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">Comenzar Cuestionario</button>
+                          <button 
+                            onClick={handleStartQuiz} 
+                            disabled={!allContentWatched}
+                            className={`px-6 py-3 rounded-lg transition-colors font-medium ${
+                              allContentWatched 
+                              ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-md' 
+                              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            }`}
+                          >
+                            Comenzar Cuestionario
+                          </button>
                         </div>
                       </div>
                     </div>
                   )}
 
-                  {/* Cuestionario idéntico */}
                   {currentStep === 'quiz' && (
                     <div className="space-y-6">
                       <div className="flex justify-between items-center p-4 bg-yellow-50 rounded-lg border border-yellow-200">
@@ -304,7 +309,6 @@ export default function CourseTestModal({ isOpen, onClose, onSuccess, courseData
                     </div>
                   )}
 
-                  {/* Resultados idéntico */}
                   {currentStep === 'results' && (
                     <div className="space-y-8">
                       <div className="text-center py-8">
@@ -312,7 +316,6 @@ export default function CourseTestModal({ isOpen, onClose, onSuccess, courseData
                         <h3 className="text-2xl font-bold text-gray-900 mb-2">{score >= 70 ? '¡Felicidades!' : 'Necesitas mejorar'}</h3>
                         <p className="text-gray-600 max-w-md mx-auto">{score >= 70 ? 'Has aprobado el cuestionario del curso. ¡Excelente trabajo!' : 'No has alcanzado la puntuación mínima. Revisa el contenido y vuelve a intentarlo.'}</p>
                       </div>
-                      {/* ... (Detalles de respuestas y Resumen estadístico idénticos) */}
                       <div className="flex justify-center gap-4 pt-6 border-t">
                         <button onClick={handleRetakeQuiz} className="px-6 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors">Volver a Intentar</button>
                         <button onClick={() => setCurrentStep('content')} className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">Revisar Contenido</button>
@@ -322,9 +325,8 @@ export default function CourseTestModal({ isOpen, onClose, onSuccess, courseData
                   )}
                 </div>
 
-                {/* Modales de Video y PDF idénticos */}
                 {currentVideo && (
-                  <div className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4">
+                  <div className="fixed inset-0 bg-black bg-opacity-75 z-[60] flex items-center justify-center p-4">
                     <div className="bg-white rounded-lg w-full max-w-4xl">
                       <div className="p-4 border-b flex justify-between items-center"><h3 className="text-lg font-semibold">{currentVideo.title}</h3><button onClick={() => setCurrentVideo(null)} className="p-2 hover:bg-gray-100 rounded-full"><XMarkIcon /></button></div>
                       <div className="p-4"><div className="aspect-video bg-black rounded-lg overflow-hidden"><video controls className="w-full h-full" onEnded={() => setCurrentVideo(null)}><source src={currentVideo.fileUrl} type="video/mp4" />Tu navegador no soporta el elemento de video.</video></div></div>
@@ -332,7 +334,7 @@ export default function CourseTestModal({ isOpen, onClose, onSuccess, courseData
                   </div>
                 )}
                 {currentPDF && (
-                  <div className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4">
+                  <div className="fixed inset-0 bg-black bg-opacity-75 z-[60] flex items-center justify-center p-4">
                     <div className="bg-white rounded-lg w-full max-w-6xl h-[80vh] flex flex-col">
                       <div className="p-4 border-b flex justify-between items-center"><h3 className="text-lg font-semibold">{currentPDF.title}</h3><button onClick={() => setCurrentPDF(null)} className="p-2 hover:bg-gray-100 rounded-full"><XMarkIcon /></button></div>
                       <div className="flex-1 p-4"><iframe src={`${currentPDF.fileUrl}#view=fitH`} className="w-full h-full rounded-lg border" title={currentPDF.title} /><div className="mt-4 text-center"><a href={currentPDF.fileUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"><DocumentIcon />Descargar PDF</a></div></div>
