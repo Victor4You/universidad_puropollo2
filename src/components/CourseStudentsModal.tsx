@@ -96,4 +96,4 @@ export default function CourseStudentsModal({ isOpen, onClose, courseName }: Cou
       </Dialog>
     </Transition>
   );
-}
+} 

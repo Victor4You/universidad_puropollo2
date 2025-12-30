@@ -105,7 +105,7 @@ export function UserDropdown() {
           src={user.avatar}
           alt={user.name}
           size="sm"
-          fallbackLetter={user.name.charAt(0)}
+          fallbackLetter={user?.name?.charAt(0) || 'U'}
           bordered
         />
         <div className="flex-1 text-left">
