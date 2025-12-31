@@ -3,10 +3,14 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { 
+  Plus, Search, Edit2, Trash2, Users, 
+  ChevronLeft, ChevronRight, MoreVertical, CheckCircle2,
+  BookOpen
+} from 'lucide-react';
 import CourseFormModal from '@/components/CourseFormModal';
 import CourseStudentsModal from '@/components/CourseStudentsModal';
 import CourseTestModal from '@/components/test/CourseTestModal';
-import { CourseFormData } from '@/lib/types/form';
 import { Loader } from '@/components/ui/Loader/Loader';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermission } from '@/hooks/usePermission';
@@ -28,15 +32,17 @@ const cursosMock: Curso[] = [
   { id: '2', codigo: 'FIS201', nombre: 'Física General', creditos: 5, semestre: '2024-I', profesor: 'Ana López', estado: 'activo', estudiantes: 38, completado: false },
   { id: '3', codigo: 'PROG301', nombre: 'Programación I', creditos: 4, semestre: '2024-I', profesor: 'Roberto Gómez', estado: 'activo', estudiantes: 30, completado: false },
   { id: '4', codigo: 'QUIM401', nombre: 'Química Orgánica', creditos: 4, semestre: '2024-I', profesor: 'Elena Torres', estado: 'inactivo', estudiantes: 25, completado: false },
+  { id: '5', codigo: 'HIS102', nombre: 'Historia Universal', creditos: 2, semestre: '2024-I', profesor: 'Luis Rivas', estado: 'activo', estudiantes: 50, completado: false },
+  { id: '6', codigo: 'BIO101', nombre: 'Biología Celular', creditos: 4, semestre: '2024-I', profesor: 'Martha Soto', estado: 'activo', estudiantes: 42, completado: false },
 ];
 
 export default function GestionCursosPage() {
-  const router = useRouter();
-  const { user, isLoading: authLoading } = useAuth();
-  const { canView, userRole } = usePermission();
+  const { isLoading: authLoading } = useAuth();
+  const { userRole } = usePermission();
 
   const [cursos, setCursos] = useState<Curso[]>(cursosMock);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCurso, setSelectedCurso] = useState<Curso | null>(null);
   const [showStudentsModal, setShowStudentsModal] = useState(false);
@@ -44,10 +50,26 @@ export default function GestionCursosPage() {
   const [showEstadoCursoModal, setShowEstadoCursoModal] = useState(false);
   const [nuevoEstado, setNuevoEstado] = useState<string>('');
 
+  // Paginación
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
+
   useEffect(() => {
     const timer = setTimeout(() => { setLoading(false); }, 1000);
     return () => clearTimeout(timer);
   }, []);
+
+  const esAdminOProfesor = userRole === 'admin' || userRole === 'teacher';
+
+  const filteredCursos = cursos.filter(curso =>
+    curso.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    curso.codigo.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredCursos.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredCursos.length / itemsPerPage);
 
   const handleTestSuccess = (courseId: string) => {
     setCursos(prevCursos => 
@@ -55,172 +77,196 @@ export default function GestionCursosPage() {
     );
   };
 
-  if (authLoading || loading) {
-    return <div className="flex justify-center items-center min-h-[400px]"><Loader /></div>;
-  }
-
-  const esAdminOProfesor = userRole === 'admin' || userRole === 'teacher';
-
-  const handleEdit = (curso: Curso) => { setSelectedCurso(curso); setIsModalOpen(true); };
-  const handleStudents = (curso: Curso) => { setSelectedCurso(curso); setShowStudentsModal(true); };
-  const handleTest = (curso: Curso) => { setSelectedCurso(curso); setShowTestModal(true); };
-  
-  const openEstadoModal = (curso: Curso) => {
-    if (!esAdminOProfesor) return; 
-    setSelectedCurso(curso);
-    setNuevoEstado(curso.estado);
-    setShowEstadoCursoModal(true);
-  };
-
   const cambiarEstadoCurso = () => {
     if (selectedCurso && nuevoEstado) {
       setCursos(prevCursos => 
-        prevCursos.map(c => 
-          c.id === selectedCurso.id 
-            ? { ...c, estado: nuevoEstado as 'activo' | 'inactivo' } 
-            : c
-        )
+        prevCursos.map(c => c.id === selectedCurso.id ? { ...c, estado: nuevoEstado as 'activo' | 'inactivo' } : c)
       );
-      
       setShowEstadoCursoModal(false);
-      setSelectedCurso(null);
-      setNuevoEstado('');
     }
   };
 
+  if (authLoading || loading) return <div className="flex justify-center items-center min-h-[400px]"><Loader /></div>;
+
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
+    <div className="p-6 bg-gray-50 min-h-screen">
+      {/* Encabezado */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Gestión de Cursos</h1>
-          <p className="text-gray-600">Administra y supervisa los cursos de la plataforma</p>
+          <h1 className="text-3xl font-bold text-gray-900">Gestión de Cursos</h1>
+          <p className="text-gray-500">Administra y supervisa los cursos de la plataforma</p>
         </div>
         {esAdminOProfesor && (
-          <button onClick={() => { setSelectedCurso(null); setIsModalOpen(true); }} className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
-            <span className="text-xl">+</span> Nuevo Curso
+          <button 
+            onClick={() => { setSelectedCurso(null); setIsModalOpen(true); }} 
+            className="flex items-center justify-center px-5 py-2.5 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all active:scale-95"
+          >
+            <Plus className="w-5 h-5 mr-2" /> Nuevo Curso
           </button>
         )}
       </div>
 
-      <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Código</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Semestre</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Profesor</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {cursos.map((curso, index) => {
-              const estaHabilitado = esAdminOProfesor || (index === 0 || !!cursos[index - 1].completado);
-
-              return (
-                <tr key={curso.id} className={`hover:bg-gray-50 transition-colors ${!estaHabilitado ? 'opacity-50' : ''}`}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{curso.codigo}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{curso.nombre}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{curso.semestre}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{curso.profesor}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <span 
-                      onClick={() => esAdminOProfesor && openEstadoModal(curso)}
-                      className={`px-2 py-1 text-xs rounded-full transition-opacity ${
-                        esAdminOProfesor ? 'cursor-pointer hover:opacity-80' : 'cursor-default'
-                      } ${
-                        curso.estado === 'activo' ? 'bg-green-100 text-green-800' :
-                        curso.estado === 'inactivo' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
-                      }`}
-                    >
-                      {curso.estado.charAt(0).toUpperCase() + curso.estado.slice(1)}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex justify-end space-x-2">
-                      <button
-                        onClick={() => estaHabilitado && handleTest(curso)}
-                        disabled={!estaHabilitado}
-                        className={`p-1 rounded-md transition-colors ${estaHabilitado ? 'text-purple-600 hover:bg-purple-50' : 'text-gray-300 cursor-not-allowed'}`}
-                      >
-                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                        </svg>
-                      </button>
-
-                      {esAdminOProfesor && (
-                        <>
-                          <button onClick={() => handleStudents(curso)} className="p-1 text-green-600 hover:bg-green-50 rounded-md transition-colors">
-                            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-                          </button>
-                          <button onClick={() => handleEdit(curso)} className="p-1 text-blue-600 hover:bg-blue-50 rounded-md transition-colors">
-                            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+      {/* Buscador */}
+      <div className="relative mb-8 max-w-md">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+        <input
+          type="text"
+          placeholder="Buscar curso..."
+          className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-2xl shadow-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+          value={searchTerm}
+          onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+        />
       </div>
 
-      {/* MODAL DE ESTADO: Se mantiene tu HTML, solo se asegura interactividad con clases de Tailwind */}
-      {showEstadoCursoModal && selectedCurso && (
-        <div className="fixed inset-0 z-[100] overflow-y-auto">
-          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-            {/* Overlay: clickable para cerrar */}
-            <div className="fixed inset-0 transition-opacity" onClick={() => setShowEstadoCursoModal(false)}>
-              <div className="fixed inset-0 bg-black opacity-30"></div>
+      {/* Grid de Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
+        {currentItems.map((curso, index) => {
+          // Mantengo tu lógica de habilitación original
+          const globalIndex = indexOfFirstItem + index;
+          const estaHabilitado = esAdminOProfesor || (globalIndex === 0 || !!cursos[globalIndex - 1].completado);
+
+          return (
+            <div 
+              key={curso.id} 
+              className={`bg-white rounded-2xl border border-gray-100 shadow-sm transition-all flex flex-col overflow-hidden ${!estaHabilitado ? 'opacity-50 grayscale-[0.5]' : 'hover:shadow-md'}`}
+            >
+              <div className="p-6 flex-grow">
+                <div className="flex justify-between items-start mb-4">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 bg-gray-50 px-2 py-1 rounded">
+                    {curso.codigo}
+                  </span>
+                  <span 
+                    onClick={() => esAdminOProfesor && (setSelectedCurso(curso), setNuevoEstado(curso.estado), setShowEstadoCursoModal(true))}
+                    className={`px-2.5 py-1 rounded-full text-xs font-bold transition-colors ${
+                      esAdminOProfesor ? 'cursor-pointer hover:opacity-80' : ''
+                    } ${curso.estado === 'activo' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}
+                  >
+                    {curso.estado.charAt(0).toUpperCase() + curso.estado.slice(1)}
+                  </span>
+                </div>
+                
+                <h3 className="text-lg font-bold text-gray-900 mb-1 leading-tight">{curso.nombre}</h3>
+                <p className="text-gray-500 text-sm mb-4 flex items-center">
+                  <Users className="w-4 h-4 mr-1.5" /> {curso.profesor}
+                </p>
+
+                <div className="flex items-center gap-3">
+                  <div className="text-[11px] font-bold text-gray-500 bg-gray-50 px-2 py-1 rounded border border-gray-100">
+                    {curso.creditos} CRÉDITOS
+                  </div>
+                  <div className="text-[11px] font-bold text-gray-500 bg-gray-50 px-2 py-1 rounded border border-gray-100">
+                    {curso.semestre}
+                  </div>
+                </div>
+              </div>
+
+              {/* Acciones del Card */}
+              <div className="px-6 py-4 bg-gray-50/50 border-t border-gray-100 flex justify-between items-center">
+                <div className="flex space-x-1">
+                  <button
+                    onClick={() => estaHabilitado && (setSelectedCurso(curso), setShowTestModal(true))}
+                    disabled={!estaHabilitado}
+                    className={`p-2 rounded-lg transition-colors ${estaHabilitado ? 'text-purple-600 hover:bg-purple-100' : 'text-gray-300'}`}
+                  >
+                    <BookOpen className="w-5 h-5" />
+                  </button>
+
+                  {esAdminOProfesor && (
+                    <>
+                      <button onClick={() => (setSelectedCurso(curso), setShowStudentsModal(true))} className="p-2 text-green-600 hover:bg-green-100 rounded-lg">
+                        <Users className="w-5 h-5" />
+                      </button>
+                      <button onClick={() => (setSelectedCurso(curso), setIsModalOpen(true))} className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg">
+                        <Edit2 className="w-5 h-5" />
+                      </button>
+                    </>
+                  )}
+                </div>
+                
+                {curso.completado && <CheckCircle2 className="w-6 h-6 text-green-500" />}
+              </div>
             </div>
+          );
+        })}
+      </div>
+
+      {/* Paginación */}
+      <div className="flex items-center justify-between bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+        <p className="text-sm text-gray-500 hidden sm:block">
+          Mostrando página <span className="font-bold text-gray-900">{currentPage}</span> de {totalPages}
+        </p>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+            className="p-2 rounded-xl border border-gray-200 disabled:opacity-20 hover:bg-gray-50"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          
+          <div className="flex space-x-1">
+            {[...Array(totalPages)].map((_, i) => (
+              <button
+                key={i + 1}
+                onClick={() => setCurrentPage(i + 1)}
+                className={`w-10 h-10 rounded-xl text-sm font-bold transition-all ${
+                  currentPage === i + 1 ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-500 hover:bg-gray-50'
+                }`}
+              >
+                {i + 1}
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+            disabled={currentPage === totalPages}
+            className="p-2 rounded-xl border border-gray-200 disabled:opacity-20 hover:bg-gray-50"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Modal de Estado adaptado para que sea interactivo */}
+      {showEstadoCursoModal && selectedCurso && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 animate-in fade-in zoom-in duration-200">
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Estado del Curso</h3>
+            <p className="text-sm text-gray-500 mb-6">{selectedCurso.nombre}</p>
             
-            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-            
-            {/* Contenido del modal: se agrega relative y z-index para que reciba clics */}
-            <div className="relative z-[110] inline-block align-bottom bg-white rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full p-6">
-              <h3 className="text-xl font-bold text-gray-900 mb-4">Cambiar Estado del Curso</h3>
-              
-              <div className="space-y-3 mb-6">
-                {[
-                  { id: 'activo', label: 'Activo', color: 'bg-green-100 text-green-800' },
-                  { id: 'inactivo', label: 'Inactivo', color: 'bg-red-100 text-red-800' }
-                ].map((opt) => (
-                  <label key={opt.id} className={`flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50 ${nuevoEstado === opt.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}>
-                    <input 
-                      type="radio" 
-                      name="estado_curso" 
-                      checked={nuevoEstado === opt.id} 
-                      onChange={() => setNuevoEstado(opt.id)} 
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500" 
-                    />
-                    <span className={`ml-3 px-2 py-1 text-xs rounded-full ${opt.color}`}>{opt.label}</span>
-                  </label>
-                ))}
-              </div>
-              
-              <div className="flex justify-end space-x-3">
-                <button 
-                  onClick={() => setShowEstadoCursoModal(false)} 
-                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+            <div className="space-y-3 mb-8">
+              {[{ id: 'activo', label: 'Activo', color: 'text-green-700 bg-green-100' }, 
+                { id: 'inactivo', label: 'Inactivo', color: 'text-red-700 bg-red-100' }].map((opt) => (
+                <label 
+                  key={opt.id} 
+                  className={`flex items-center p-4 rounded-2xl border-2 cursor-pointer transition-all ${
+                    nuevoEstado === opt.id ? 'border-blue-600 bg-blue-50' : 'border-gray-100 hover:bg-gray-50'
+                  }`}
                 >
-                  Cancelar
-                </button>
-                <button 
-                  onClick={cambiarEstadoCurso} 
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors"
-                >
-                  Guardar Cambios
-                </button>
-              </div>
+                  <input 
+                    type="radio" 
+                    className="hidden" 
+                    checked={nuevoEstado === opt.id} 
+                    onChange={() => setNuevoEstado(opt.id)} 
+                  />
+                  <div className={`w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center ${nuevoEstado === opt.id ? 'border-blue-600' : 'border-gray-300'}`}>
+                    {nuevoEstado === opt.id && <div className="w-2.5 h-2.5 bg-blue-600 rounded-full" />}
+                  </div>
+                  <span className={`px-2 py-0.5 rounded-md text-xs font-bold ${opt.color}`}>{opt.label}</span>
+                </label>
+              ))}
+            </div>
+
+            <div className="flex gap-3">
+              <button onClick={() => setShowEstadoCursoModal(false)} className="flex-1 py-3 text-gray-500 font-bold hover:bg-gray-100 rounded-xl">Cancelar</button>
+              <button onClick={cambiarEstadoCurso} className="flex-1 py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-100 hover:bg-blue-700">Guardar</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Modales adicionales */}
+      {/* Modales originales */}
       {isModalOpen && <CourseFormModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} courseData={selectedCurso} />}
       {showStudentsModal && selectedCurso && <CourseStudentsModal isOpen={showStudentsModal} onClose={() => setShowStudentsModal(false)} {...(selectedCurso as any)} />}
       {showTestModal && selectedCurso && <CourseTestModal isOpen={showTestModal} onClose={() => setShowTestModal(false)} courseData={selectedCurso as any} onSuccess={() => { handleTestSuccess(selectedCurso!.id); setShowTestModal(false); }} />}
