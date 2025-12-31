@@ -1,12 +1,13 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://192.168.13.87:3001/v1',
+  // CAMBIO: Usa la URL que te dio Vercel al desplegar tu BACKEND
+  baseURL: 'backend-universidad.vercel.app', 
   headers: {
     'Content-Type': 'application/json',
+    'Bypass-Tunnel-Reminder': 'true',
   },
-  // Esto ayudará a diagnosticar si es un problema de tiempo de espera
-  timeout: 10000, 
+  timeout: 15000, // Aumentamos un poco el tiempo por la latencia del túnel
 });
 
 api.interceptors.request.use((config) => {
