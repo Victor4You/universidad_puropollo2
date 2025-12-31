@@ -2,10 +2,9 @@ import axios from 'axios';
 
 const api = axios.create({
   // Asegúrate de que esta URL sea la de tu BACKEND en Vercel
-  baseURL: 'https://backend-universidad.vercel.app/v1', 
+  baseURL: 'https://backend-universidad-puropollo2.vercel.app/v1',
   headers: {
     'Content-Type': 'application/json',
-    // ESTA LÍNEA ES LA QUE SOLUCIONA EL ERROR DE CONEXIÓN
     'Bypass-Tunnel-Reminder': 'true', 
   },
   timeout: 15000, 
