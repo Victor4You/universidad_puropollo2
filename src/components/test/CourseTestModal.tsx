@@ -41,7 +41,7 @@ interface Question { id: string; title: string; type: 'open' | 'closed'; questio
 interface CourseTestModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess?: () => void;
+  onSuccess?: (score: number) => void;
   courseData: {
     id: string;
     codigo: string;
@@ -142,7 +142,7 @@ export default function CourseTestModal({ isOpen, onClose, onSuccess, courseData
     setCurrentStep('results');
 
     if (finalScore >= 70 && onSuccess) {
-      onSuccess();
+      onSuccess(finalScore);
     }
   };
 

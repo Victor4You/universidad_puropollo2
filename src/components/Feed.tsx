@@ -17,12 +17,12 @@ import CourseStudentsModal from '@/components/CourseStudentsModal';
 
 // --- DATOS MOCK ---
 const CURSOS_BASE = [
-  { id: '1', codigo: 'MAT101', nombre: 'Matemáticas Básicas', creditos: 4, semestre: '2024-I', profesor: 'Carlos Mendoza', estado: 'activo', estudiantes: 45, completado: false },
-  { id: '2', codigo: 'FIS201', nombre: 'Física General', creditos: 5, semestre: '2024-I', profesor: 'Ana López', estado: 'activo', estudiantes: 38, completado: false },
-  { id: '3', codigo: 'PROG301', nombre: 'Programación I', creditos: 4, semestre: '2024-I', profesor: 'Roberto Gómez', estado: 'activo', estudiantes: 50, completado: false },
-  { id: '4', codigo: 'QUIM401', nombre: 'Química Orgánica', creditos: 4, semestre: '2024-I', profesor: 'Elena Torres', estado: 'inactivo', estudiantes: 30, completado: false },
-  { id: '5', codigo: 'HIS102', nombre: 'Historia Universal', creditos: 2, semestre: '2024-I', profesor: 'Luis Rivas', estado: 'activo', estudiantes: 25, completado: false },
-  { id: '6', codigo: 'BIO101', nombre: 'Biología Celular', creditos: 4, semestre: '2024-I', profesor: 'Martha Soto', estado: 'activo', estudiantes: 12, completado: false },
+ { id: '1', codigo: 'MAT101', nombre: 'TALLER ATENCION Y SERVICIO AL CLIENTE', creditos: 4, semestre: '2024-I', profesor: 'Carlos Mendoza', estado: 'activo', estudiantes: 45, completado: false },
+  { id: '2', codigo: 'FIS201', nombre: 'INDUCCIÓN A LAS BUENAS PRACTICAS DE MANUFACTURA', creditos: 5, semestre: '2024-I', profesor: 'Ana López', estado: 'activo', estudiantes: 38, completado: false },
+  { id: '3', codigo: 'PROG301', nombre: 'TALLER DE ATENCIÓN Y SERVICIO PARA CALL CENTER', creditos: 4, semestre: '2024-I', profesor: 'Roberto Gómez', estado: 'activo', estudiantes: 30, completado: false },
+  { id: '4', codigo: 'QUIM401', nombre: 'CAPACITACIÓN EN SERVICIOS DE VENTAS', creditos: 4, semestre: '2024-I', profesor: 'Elena Torres', estado: 'inactivo', estudiantes: 25, completado: false },
+  { id: '5', codigo: 'HIS102', nombre: 'SEGURIDAD Y PROTECCION EN EL TRABAJO', creditos: 2, semestre: '2024-I', profesor: 'Luis Rivas', estado: 'activo', estudiantes: 50, completado: false },
+  { id: '6', codigo: 'BIO101', nombre: 'LIDERAZGO', creditos: 4, semestre: '2024-I', profesor: 'Martha Soto', estado: 'activo', estudiantes: 42, completado: false },
 ];
 
 const carouselImages = [

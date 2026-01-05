@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { 
   Plus, Search, Edit2, Trash2, Users, 
   ChevronLeft, ChevronRight, MoreVertical, CheckCircle2,
-  BookOpen
+  BookOpen, Star
 } from 'lucide-react';
 import CourseFormModal from '@/components/CourseFormModal';
 import CourseStudentsModal from '@/components/CourseStudentsModal';
@@ -25,15 +25,16 @@ interface Curso {
   estado: 'activo' | 'inactivo';
   estudiantes: number;
   completado?: boolean;
+  calificacion?: number; // Añadido para guardar la nota
 }
 
 const cursosMock: Curso[] = [
-  { id: '1', codigo: 'MAT101', nombre: 'Matemáticas Básicas', creditos: 4, semestre: '2024-I', profesor: 'Carlos Mendoza', estado: 'activo', estudiantes: 45, completado: false },
-  { id: '2', codigo: 'FIS201', nombre: 'Física General', creditos: 5, semestre: '2024-I', profesor: 'Ana López', estado: 'activo', estudiantes: 38, completado: false },
-  { id: '3', codigo: 'PROG301', nombre: 'Programación I', creditos: 4, semestre: '2024-I', profesor: 'Roberto Gómez', estado: 'activo', estudiantes: 30, completado: false },
-  { id: '4', codigo: 'QUIM401', nombre: 'Química Orgánica', creditos: 4, semestre: '2024-I', profesor: 'Elena Torres', estado: 'inactivo', estudiantes: 25, completado: false },
-  { id: '5', codigo: 'HIS102', nombre: 'Historia Universal', creditos: 2, semestre: '2024-I', profesor: 'Luis Rivas', estado: 'activo', estudiantes: 50, completado: false },
-  { id: '6', codigo: 'BIO101', nombre: 'Biología Celular', creditos: 4, semestre: '2024-I', profesor: 'Martha Soto', estado: 'activo', estudiantes: 42, completado: false },
+  { id: '1', codigo: 'MAT101', nombre: 'TALLER ATENCION Y SERVICIO AL CLIENTE', creditos: 4, semestre: '2024-I', profesor: 'Carlos Mendoza', estado: 'activo', estudiantes: 45, completado: false },
+  { id: '2', codigo: 'FIS201', nombre: 'INDUCCIÓN A LAS BUENAS PRACTICAS DE MANUFACTURA', creditos: 5, semestre: '2024-I', profesor: 'Ana López', estado: 'activo', estudiantes: 38, completado: false },
+  { id: '3', codigo: 'PROG301', nombre: 'TALLER DE ATENCIÓN Y SERVICIO PARA CALL CENTER', creditos: 4, semestre: '2024-I', profesor: 'Roberto Gómez', estado: 'activo', estudiantes: 30, completado: false },
+  { id: '4', codigo: 'QUIM401', nombre: 'CAPACITACIÓN EN SERVICIOS DE VENTAS', creditos: 4, semestre: '2024-I', profesor: 'Elena Torres', estado: 'inactivo', estudiantes: 25, completado: false },
+  { id: '5', codigo: 'HIS102', nombre: 'SEGURIDAD Y PROTECCION EN EL TRABAJO', creditos: 2, semestre: '2024-I', profesor: 'Luis Rivas', estado: 'activo', estudiantes: 50, completado: false },
+  { id: '6', codigo: 'BIO101', nombre: 'LIDERAZGO', creditos: 4, semestre: '2024-I', profesor: 'Martha Soto', estado: 'activo', estudiantes: 42, completado: false },
 ];
 
 export default function GestionCursosPage() {
@@ -55,6 +56,19 @@ export default function GestionCursosPage() {
   const itemsPerPage = 6;
 
   useEffect(() => {
+    // Cargar progreso guardado al iniciar
+    const savedProgress = localStorage.getItem('progreso_academico');
+    if (savedProgress) {
+      try {
+        const progreso = JSON.parse(savedProgress); // { "cursoId": score }
+        setCursos(prev => prev.map(c => ({
+          ...c,
+          completado: progreso[c.id] !== undefined,
+          calificacion: progreso[c.id]
+        })));
+      } catch (e) { console.error("Error al cargar progreso", e); }
+    }
+
     const timer = setTimeout(() => { setLoading(false); }, 1000);
     return () => clearTimeout(timer);
   }, []);
@@ -71,10 +85,23 @@ export default function GestionCursosPage() {
   const currentItems = filteredCursos.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(filteredCursos.length / itemsPerPage);
 
-  const handleTestSuccess = (courseId: string) => {
-    setCursos(prevCursos => 
-      prevCursos.map(c => c.id === courseId ? { ...c, completado: true } : c)
+  const handleTestSuccess = (courseId: string, score: number) => {
+    // Actualizar estado local
+    const nuevosCursos = cursos.map(c => 
+      c.id === courseId ? { ...c, completado: true, calificacion: score } : c
     );
+    setCursos(nuevosCursos);
+
+    // Persistir calificaciones (para esta página)
+    const saved = JSON.parse(localStorage.getItem('progreso_academico') || '{}');
+    saved[courseId] = score;
+    localStorage.setItem('progreso_academico', JSON.stringify(saved));
+
+    // Persistir IDs completados (para el Feed)
+    const idsCompletados = nuevosCursos.filter(c => c.completado).map(c => c.id);
+    localStorage.setItem('progreso_cursos', JSON.stringify(idsCompletados));
+    
+    setShowTestModal(false);
   };
 
   const cambiarEstadoCurso = () => {
@@ -150,6 +177,14 @@ export default function GestionCursosPage() {
                   <Users className="w-4 h-4 mr-1.5" /> {curso.profesor}
                 </p>
 
+                {/* Mostrar Calificación si está completado */}
+                {curso.completado && curso.calificacion !== undefined && (
+                  <div className="mb-4 flex items-center gap-2 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-100 w-fit">
+                    <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+                    <span className="text-sm font-bold text-amber-700">Nota: {curso.calificacion}/10</span>
+                  </div>
+                )}
+
                 <div className="flex items-center gap-3">
                   <div className="text-[11px] font-bold text-gray-500 bg-gray-50 px-2 py-1 rounded border border-gray-100">
                     {curso.creditos} CRÉDITOS
@@ -164,9 +199,9 @@ export default function GestionCursosPage() {
               <div className="px-6 py-4 bg-gray-50/50 border-t border-gray-100 flex justify-between items-center">
                 <div className="flex space-x-1">
                   <button
-                    onClick={() => estaHabilitado && (setSelectedCurso(curso), setShowTestModal(true))}
-                    disabled={!estaHabilitado}
-                    className={`p-2 rounded-lg transition-colors ${estaHabilitado ? 'text-purple-600 hover:bg-purple-100' : 'text-gray-300'}`}
+                    onClick={() => estaHabilitado && !curso.completado && (setSelectedCurso(curso), setShowTestModal(true))}
+                    disabled={!estaHabilitado || curso.completado}
+                    className={`p-2 rounded-lg transition-colors ${estaHabilitado && !curso.completado ? 'text-purple-600 hover:bg-purple-100' : 'text-gray-300'}`}
                   >
                     <BookOpen className="w-5 h-5" />
                   </button>
@@ -269,7 +304,14 @@ export default function GestionCursosPage() {
       {/* Modales originales */}
       {isModalOpen && <CourseFormModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} courseData={selectedCurso} />}
       {showStudentsModal && selectedCurso && <CourseStudentsModal isOpen={showStudentsModal} onClose={() => setShowStudentsModal(false)} {...(selectedCurso as any)} />}
-      {showTestModal && selectedCurso && <CourseTestModal isOpen={showTestModal} onClose={() => setShowTestModal(false)} courseData={selectedCurso as any} onSuccess={() => { handleTestSuccess(selectedCurso!.id); setShowTestModal(false); }} />}
+      {showTestModal && selectedCurso && (
+        <CourseTestModal 
+          isOpen={showTestModal} 
+          onClose={() => setShowTestModal(false)} 
+          courseData={selectedCurso as any} 
+          onSuccess={(score: number) => handleTestSuccess(selectedCurso!.id, score)} 
+        />
+      )}
     </div>
   );
 }
