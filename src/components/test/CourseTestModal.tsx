@@ -1,157 +1,90 @@
+// components/test/CourseTestModal.tsx
 'use client';
 
-import { Fragment, useState, useEffect } from 'react';
+import { Fragment, useState, useEffect, useCallback } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 
-const XMarkIcon = () => (
-  <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-  </svg>
-);
+// TUS ÍCONOS ORIGINALES
+const XMarkIcon = () => (<svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>);
+const PlayIcon = () => (<svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>);
+const DocumentIcon = () => (<svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>);
+const CheckIcon = () => (<svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>);
+const ClockIcon = () => (<svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>);
 
-const PlayIcon = () => (
-  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-  </svg>
-);
-
-const DocumentIcon = () => (
-  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-  </svg>
-);
-
-const CheckIcon = () => (
-  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-  </svg>
-);
-
-const ClockIcon = () => (
-  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-  </svg>
-);
-
-interface VideoItem { id: string; title: string; fileUrl: string; duration?: number; watched: boolean; }
-interface PDFItem { id: string; title: string; fileUrl: string; viewed: boolean; }
-interface Question { id: string; title: string; type: 'open' | 'closed'; question: string; answer?: string; options?: string[]; userAnswer?: string; isCorrect?: boolean; }
-
-interface CourseTestModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSuccess?: (score: number) => void;
-  courseData: {
-    id: string;
-    codigo: string;
-    nombre: string;
-    creditos: number;
-    semestre: string;
-    profesor: string;
-    estado: 'activo' | 'inactivo' | 'pendiente';
-    estudiantes: number;
-    duracionExamen?: number;
-  };
-}
-
-export default function CourseTestModal({ isOpen, onClose, onSuccess, courseData }: CourseTestModalProps) {
-  const [videos, setVideos] = useState<VideoItem[]>([
-    { id: '1', title: 'Como tratar a un cliente enojado', fileUrl: 'https://api.ppollo.org/uploads/cursos/019962e9-a583-741d-968f-890747dc4434.mp4', duration: 540, watched: false },
-    { id: '2', title: 'Ejemplo de Buena y Mala atención al cliente', fileUrl: 'https://api.ppollo.org/uploads/cursos/019962eb-7141-717b-b95a-8271d8da1566.mp4', duration: 387, watched: false }
-  ]);
-
-  const [pdfs, setPdfs] = useState<PDFItem[]>([
-    { id: '1', title: 'SERVICIOS DE VENTAS_PP (1)', fileUrl: 'https://api.ppollo.org/uploads/cursos/01968d05-284c-76ee-b042-2c602654e427.pdf', viewed: false },
-    { id: '2', title: 'SERVICIO AL CLIENTE', fileUrl: 'https://api.ppollo.org/uploads/cursos/019972b8-1fc0-76be-ab69-033eba22f7d5.pdf', viewed: false }
-  ]);
-
-  const [questions, setQuestions] = useState<Question[]>([
-    { id: '1', title: 'Pregunta #1', type: 'closed', question: '¿Qué es el servicio al cliente?', answer: 'c) Las acciones que tomamos antes, durante y después de la venta', options: ['a) Solo atender quejas', 'b) Vender productos', 'c) Las acciones que tomamos antes, durante y después de la venta', 'd) Cobrar facturas'] },
-    { id: '2', title: 'Pregunta #2', type: 'open', question: 'Explica brevemente la importancia de la comunicación en el servicio al cliente.' },
-    { id: '3', title: 'Pregunta #3', type: 'closed', question: '¿Cuál NO es una habilidad esencial para el servicio al cliente?', answer: 'd) Ser agresivo con los clientes difíciles', options: ['a) Empatía', 'b) Comunicación efectiva', 'c) Resolución de problemas', 'd) Ser agresivo con los clientes difíciles'] }
-  ]);
-
+export default function CourseTestModal({ isOpen, onClose, onSuccess, courseData }: any) {
   const [currentStep, setCurrentStep] = useState<'content' | 'quiz' | 'results'>('content');
-  const [currentVideo, setCurrentVideo] = useState<VideoItem | null>(null);
-  const [currentPDF, setCurrentPDF] = useState<PDFItem | null>(null);
+  const [currentVideo, setCurrentVideo] = useState<any>(null);
+  const [currentPDF, setCurrentPDF] = useState<any>(null);
   const [quizTimeLeft, setQuizTimeLeft] = useState<number>(1800);
-  const [quizSubmitted, setQuizSubmitted] = useState(false);
   const [score, setScore] = useState(0);
+  const [userAnswers, setUserAnswers] = useState<Record<string, string>>({});
 
-  const totalContent = videos.length + pdfs.length;
-  const completedContent = videos.filter(v => v.watched).length + pdfs.filter(p => p.viewed).length;
-  const progress = totalContent > 0 ? (completedContent / totalContent) * 100 : 0;
-  const allContentWatched = videos.every(v => v.watched) && pdfs.every(p => p.viewed);
+  const [viewedVideos, setViewedVideos] = useState<Set<string>>(new Set());
+  const [viewedPdfs, setViewedPdfs] = useState<Set<string>>(new Set());
+
+  const totalVideos = courseData?.videos?.length || 0;
+  const totalPdfs = courseData?.pdfs?.length || 0;
+  const allWatched = viewedVideos.size === totalVideos && viewedPdfs.size === totalPdfs;
+
+  // Reset completo al abrir el modal
+  useEffect(() => {
+    if (isOpen) {
+      setCurrentStep('content');
+      handleRetry(); // Inicializa el estado del quiz
+      setViewedVideos(new Set());
+      setViewedPdfs(new Set());
+    }
+  }, [isOpen, courseData]);
+
+  // Función para reintentar (Limpia respuestas y reinicia tiempo)
+  const handleRetry = () => {
+    setScore(0);
+    setUserAnswers({});
+    setCurrentStep('quiz');
+    const tiempoMinutos = courseData.duracionExamen || 30;
+    setQuizTimeLeft(tiempoMinutos * 60);
+  };
+
+  const handleFinishExam = useCallback(() => {
+    const questions = courseData.questions || [];
+    if (questions.length === 0) return;
+
+    let correctas = 0;
+    questions.forEach((q: any) => {
+      if (userAnswers[q.id] === q.answer) {
+        correctas++;
+      }
+    });
+
+    const notaFinal = Math.round((correctas / questions.length) * 100);
+    setScore(notaFinal);
+    setCurrentStep('results');
+    
+    // Solo notificamos éxito si es 100%
+    if (onSuccess && notaFinal === 100) onSuccess(notaFinal);
+  }, [courseData.questions, userAnswers, onSuccess]);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
-    if (currentStep === 'quiz' && quizTimeLeft > 0 && !quizSubmitted) {
+    if (currentStep === 'quiz' && quizTimeLeft > 0) {
       timer = setInterval(() => {
         setQuizTimeLeft(prev => {
           if (prev <= 1) {
-            clearInterval(timer);
-            handleSubmitQuiz();
+            handleFinishExam();
             return 0;
           }
           return prev - 1;
         });
       }, 1000);
     }
-    return () => { if (timer) clearInterval(timer); };
-  }, [currentStep, quizTimeLeft, quizSubmitted]);
+    return () => clearInterval(timer);
+  }, [currentStep, quizTimeLeft, handleFinishExam]);
 
-  const handleVideoClick = (video: VideoItem) => {
-    setCurrentVideo(video);
-    setVideos(prev => prev.map(v => v.id === video.id ? { ...v, watched: true } : v));
+  const handleOptionSelect = (qId: string, option: string) => {
+    setUserAnswers(prev => ({ ...prev, [qId]: option }));
   };
 
-  const handlePDFClick = (pdf: PDFItem) => {
-    setCurrentPDF(pdf);
-    setPdfs(prev => prev.map(p => p.id === pdf.id ? { ...p, viewed: true } : p));
-  };
-
-  const handleAnswerChange = (questionId: string, answer: string) => {
-    setQuestions(prev => prev.map(q => q.id === questionId ? { ...q, userAnswer: answer } : q));
-  };
-
-  const handleStartQuiz = () => {
-    if (!allContentWatched) return;
-    setCurrentStep('quiz');
-    setQuizTimeLeft(courseData.duracionExamen ? courseData.duracionExamen * 60 : 1800);
-  };
-
-  const handleSubmitQuiz = () => {
-    if (quizSubmitted) return;
-    let correctAnswers = 0;
-    const updatedQuestions = questions.map(question => {
-      let isCorrect = false;
-      if (question.type === 'closed' && question.answer && question.userAnswer) {
-        isCorrect = question.userAnswer.trim() === question.answer.trim();
-        if (isCorrect) correctAnswers++;
-      } else if (question.type === 'open') {
-        isCorrect = !!question.userAnswer && question.userAnswer.trim().length > 0;
-        if (isCorrect) correctAnswers++;
-      }
-      return { ...question, isCorrect };
-    });
-    const finalScore = Math.round((correctAnswers / questions.length) * 100);
-    setQuestions(updatedQuestions);
-    setScore(finalScore);
-    setQuizSubmitted(true);
-    setCurrentStep('results');
-
-    if (finalScore >= 70 && onSuccess) {
-      onSuccess(finalScore);
-    }
-  };
-
-  const handleRetakeQuiz = () => {
-    setQuestions(prev => prev.map(q => ({ ...q, userAnswer: undefined, isCorrect: undefined })));
-    setQuizSubmitted(false);
-    setScore(0);
-    setCurrentStep('content');
-  };
+  const isComplete = courseData.questions?.every((q: any) => userAnswers[q.id]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -162,187 +95,130 @@ export default function CourseTestModal({ isOpen, onClose, onSuccess, courseData
   return (
     <Transition appear show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-50" onClose={onClose}>
-        <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
-          <div className="fixed inset-0 bg-black/25" />
-        </Transition.Child>
-
+        <div className="fixed inset-0 bg-black/25 backdrop-blur-sm" />
         <div className="fixed inset-0 overflow-y-auto">
           <div className="flex min-h-full items-center justify-center p-4">
-            <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 scale-95" enterTo="opacity-100 scale-100" leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95">
-              <Dialog.Panel className="w-full max-w-6xl transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
-                <div className="flex justify-between items-center mb-6">
-                  <div>
-                    <Dialog.Title as="h3" className="text-2xl font-bold text-gray-900">
-                      {courseData.nombre} - Prueba del Curso
-                    </Dialog.Title>
-                    <div className="flex items-center gap-4 mt-2">
-                      <span className="text-sm text-gray-500">{courseData.codigo} • {courseData.creditos} créditos</span>
-                      <span className="text-sm px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
-                        Profesor: {courseData.profesor}
-                      </span>
+            <Dialog.Panel className="w-full max-w-6xl transform overflow-hidden rounded-2xl bg-white p-8 text-left align-middle shadow-xl transition-all">
+              
+              <div className="flex justify-between items-center mb-6 border-b pb-4">
+                <div>
+                  <Dialog.Title className="text-2xl font-black text-gray-900 uppercase tracking-tighter">
+                    {courseData.nombre}
+                  </Dialog.Title>
+                  <p className="text-sm text-gray-500 font-bold uppercase tracking-widest mt-1">Material de estudio y evaluación</p>
+                </div>
+                <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><XMarkIcon /></button>
+              </div>
+
+              <div className="flex space-x-4 mb-8">
+                <button onClick={() => setCurrentStep('content')} className={`px-6 py-2 rounded-xl font-black text-xs uppercase tracking-widest transition-all ${currentStep === 'content' ? 'bg-black text-white shadow-lg' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}>CONTENIDO</button>
+                <button 
+                  onClick={() => allWatched && setCurrentStep('quiz')} 
+                  disabled={!allWatched} 
+                  className={`px-6 py-2 rounded-xl font-black text-xs uppercase tracking-widest transition-all ${
+                    currentStep === 'quiz' ? 'bg-green-600 text-white shadow-lg' : 
+                    allWatched ? 'bg-gray-100 text-black hover:bg-gray-200' : 'bg-gray-50 text-gray-300 cursor-not-allowed shadow-inner'
+                  }`}
+                >
+                  CUESTIONARIO {!allWatched ? '🔒' : '✅'}
+                </button>
+              </div>
+
+              <div className="max-h-[60vh] overflow-y-auto pr-4 custom-scrollbar">
+                {currentStep === 'content' && (
+                  <div className="grid grid-cols-2 gap-8">
+                    <div className="space-y-4">
+                      <h4 className="font-black text-blue-600 text-xs uppercase tracking-widest">Videos ({viewedVideos.size}/{totalVideos})</h4>
+                      {courseData.videos?.map((video: any) => (
+                        <button key={video.id} onClick={() => { setCurrentVideo(video); setViewedVideos(prev => new Set(prev).add(video.id)); }} className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left ${viewedVideos.has(video.id) ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-transparent hover:border-blue-200'}`}>
+                          <div className={`p-2 rounded-lg ${viewedVideos.has(video.id) ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'}`}><PlayIcon /></div>
+                          <span className="font-bold text-sm">{video.title}</span>
+                        </button>
+                      ))}
+                    </div>
+                    <div className="space-y-4">
+                      <h4 className="font-black text-red-600 text-xs uppercase tracking-widest">PDFs ({viewedPdfs.size}/{totalPdfs})</h4>
+                      {courseData.pdfs?.map((pdf: any) => (
+                        <button key={pdf.id} onClick={() => { setCurrentPDF(pdf); setViewedPdfs(prev => new Set(prev).add(pdf.id)); }} className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left ${viewedPdfs.has(pdf.id) ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-transparent hover:border-red-200'}`}>
+                          <div className={`p-2 rounded-lg ${viewedPdfs.has(pdf.id) ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}><DocumentIcon /></div>
+                          <span className="font-bold text-sm">{pdf.title}</span>
+                        </button>
+                      ))}
                     </div>
                   </div>
-                  <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><XMarkIcon /></button>
-                </div>
+                )}
 
-                <div className="mb-6">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm font-medium text-gray-700">Progreso del curso: {completedContent}/{totalContent}</span>
-                    <span className="text-sm font-medium text-blue-600">{Math.round(progress)}%</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div className="bg-blue-600 h-2 rounded-full transition-all duration-300" style={{ width: `${progress}%` }} />
-                  </div>
-                </div>
+                {currentStep === 'quiz' && (
+                  <div className="space-y-8">
+                    <div className="flex justify-between items-center p-6 bg-black text-white rounded-3xl">
+                      <div className="flex items-center gap-3">
+                        <ClockIcon />
+                        <span className={`text-2xl font-black ${quizTimeLeft < 60 ? 'text-red-500 animate-pulse' : ''}`}>{formatTime(quizTimeLeft)}</span>
+                      </div>
+                      <span className="font-black text-xs uppercase tracking-widest text-gray-400">Puntaje requerido: 100%</span>
+                    </div>
 
-                <div className="mb-8">
-                  <nav className="flex space-x-4">
-                    <button onClick={() => setCurrentStep('content')} className={`px-4 py-2 rounded-lg font-medium ${currentStep === 'content' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>Contenido del Curso</button>
-                    <button 
-                      onClick={handleStartQuiz} 
-                      disabled={!allContentWatched || currentStep === 'results'} 
-                      className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                        currentStep === 'quiz' || currentStep === 'results' 
-                        ? 'bg-green-600 text-white' 
-                        : allContentWatched ? 'bg-gray-100 text-gray-700 hover:bg-gray-200' : 'bg-gray-50 text-gray-400 cursor-not-allowed opacity-60'
-                      }`}
-                    >
-                      Cuestionario {!allContentWatched && '🔒'}
+                    {courseData.questions?.map((q: any, i: number) => (
+                      <div key={q.id} className="p-8 border-2 border-gray-100 rounded-[2rem] bg-gray-50 space-y-6">
+                        <p className="text-xl font-black text-gray-800 italic">{i+1}. {q.question}</p>
+                        <div className="grid grid-cols-1 gap-4">
+                          {q.options?.map((opt: string, idx: number) => (
+                            <label key={idx} className={`flex items-center gap-4 p-5 border-2 rounded-2xl cursor-pointer transition-all ${userAnswers[q.id] === opt ? 'bg-blue-600 border-blue-600 text-white shadow-lg' : 'bg-white border-transparent hover:border-gray-200 text-gray-700'}`}>
+                              <input type="radio" name={`q-${q.id}`} checked={userAnswers[q.id] === opt} onChange={() => handleOptionSelect(q.id, opt)} className="hidden" />
+                              <span className="font-bold">{opt}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                    
+                    <button onClick={handleFinishExam} disabled={!isComplete} className={`w-full py-6 rounded-[2rem] font-black text-xl shadow-xl transition-all ${isComplete ? 'bg-green-600 text-white hover:scale-[1.02]' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>
+                      {isComplete ? 'ENVIAR PARA CALIFICACIÓN' : 'RESPONDE TODO PARA ENVIAR'}
                     </button>
-                    {quizSubmitted && (
-                      <button onClick={() => setCurrentStep('results')} className={`px-4 py-2 rounded-lg font-medium ${currentStep === 'results' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>Resultados</button>
-                    )}
-                  </nav>
-                </div>
+                  </div>
+                )}
 
-                <div className="max-h-[60vh] overflow-y-auto pr-4">
-                  {currentStep === 'content' && (
-                    <div className="space-y-8">
-                      <div className="space-y-4">
-                        <h4 className="text-lg font-semibold text-gray-900">Videos del Curso</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {videos.map((video) => (
-                            <div key={video.id} className={`border rounded-lg p-4 cursor-pointer hover:shadow-md transition-shadow ${video.watched ? 'border-green-300 bg-green-50' : 'border-gray-200'}`} onClick={() => handleVideoClick(video)}>
-                              <div className="flex items-start gap-3">
-                                <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${video.watched ? 'bg-green-100' : 'bg-blue-100'}`}>{video.watched ? <CheckIcon /> : <PlayIcon />}</div>
-                                <div className="flex-1">
-                                  <h5 className="font-medium text-gray-900">{video.title}</h5>
-                                  <div className="flex items-center justify-between mt-2">
-                                    <span className="text-sm text-gray-500">Duración: {video.duration ? Math.floor(video.duration / 60) : 0} min</span>
-                                    <span className={`text-xs px-2 py-1 rounded-full ${video.watched ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>{video.watched ? 'Visto' : 'Por ver'}</span>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="space-y-4">
-                        <h4 className="text-lg font-semibold text-gray-900">Documentos del Curso</h4>
-                        <div className="space-y-3">
-                          {pdfs.map((pdf) => (
-                            <div key={pdf.id} className={`border rounded-lg p-4 cursor-pointer hover:shadow-md transition-shadow ${pdf.viewed ? 'border-green-300 bg-green-50' : 'border-gray-200'}`} onClick={() => handlePDFClick(pdf)}>
-                              <div className="flex items-center gap-3">
-                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${pdf.viewed ? 'bg-green-100' : 'bg-blue-100'}`}><DocumentIcon /></div>
-                                <div className="flex-1">
-                                  <h5 className="font-medium text-gray-900">{pdf.title}</h5>
-                                  <div className="flex items-center justify-between mt-1">
-                                    <span className="text-sm text-gray-500">PDF Document</span>
-                                    <span className={`text-xs px-2 py-1 rounded-full ${pdf.viewed ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>{pdf.viewed ? 'Leído' : 'Por leer'}</span>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="pt-6 border-t">
-                        <div className="flex justify-between items-center">
-                          <p className="text-gray-600">{completedContent === totalContent ? '¡Has completado todo el contenido!' : `Te faltan ${totalContent - completedContent} elementos por revisar.`}</p>
-                          <button 
-                            onClick={handleStartQuiz} 
-                            disabled={!allContentWatched}
-                            className={`px-6 py-3 rounded-lg transition-colors font-medium ${
-                              allContentWatched 
-                              ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-md' 
-                              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                            }`}
-                          >
-                            Comenzar Cuestionario
-                          </button>
-                        </div>
-                      </div>
+                {currentStep === 'results' && (
+                  <div className="text-center py-20 space-y-8">
+                    <div className={`text-[10rem] font-black tracking-tighter leading-none ${score === 100 ? 'text-green-600' : 'text-red-600'}`}>
+                      {score}%
                     </div>
-                  )}
-
-                  {currentStep === 'quiz' && (
-                    <div className="space-y-6">
-                      <div className="flex justify-between items-center p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                        <div className="flex items-center gap-2"><ClockIcon /><span className="font-medium">Tiempo restante:</span><span className={`text-xl font-bold ${quizTimeLeft < 300 ? 'text-red-600' : 'text-gray-900'}`}>{formatTime(quizTimeLeft)}</span></div>
-                        <div><span className="text-gray-600">{questions.filter(q => q.userAnswer).length} de {questions.length} respondidas</span></div>
-                      </div>
-                      <div className="space-y-8">
-                        {questions.map((question) => (
-                          <div key={question.id} className="border border-gray-200 rounded-lg p-6 space-y-4">
-                            <div className="flex items-center justify-between"><h5 className="font-medium text-gray-900">{question.title} ({question.type === 'closed' ? 'Opción múltiple' : 'Respuesta abierta'})</h5>{question.userAnswer && <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full">Respondida</span>}</div>
-                            <div>
-                              <p className="text-lg text-gray-900 mb-4">{question.question}</p>
-                              {question.type === 'closed' ? (
-                                <div className="space-y-3">
-                                  {question.options?.map((option, optIndex) => (
-                                    <label key={optIndex} className={`flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50 ${question.userAnswer === option ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}><input type="radio" name={`question-${question.id}`} value={option} checked={question.userAnswer === option} onChange={(e) => handleAnswerChange(question.id, e.target.value)} className="h-4 w-4 text-blue-600 focus:ring-blue-500" /><span className="ml-3 text-gray-900">{option}</span></label>
-                                  ))}
-                                </div>
-                              ) : (
-                                <div><textarea value={question.userAnswer || ''} onChange={(e) => handleAnswerChange(question.id, e.target.value)} placeholder="Escribe tu respuesta aquí..." rows={4} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" /><p className="text-sm text-gray-500 mt-2">Escribe una respuesta completa y detallada.</p></div>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="flex justify-between items-center pt-6 border-t">
-                        <button onClick={() => setCurrentStep('content')} className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">Volver al Contenido</button>
-                        <button onClick={handleSubmitQuiz} disabled={questions.filter(q => q.userAnswer).length === 0} className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">{quizTimeLeft > 0 ? 'Enviar Cuestionario' : 'Ver Resultados'}</button>
-                      </div>
+                    <div className="space-y-2">
+                      <p className="text-2xl font-black uppercase italic">{score === 100 ? '¡Examen Perfecto!' : 'Aprobación Fallida'}</p>
+                      <p className="text-gray-500 font-bold uppercase tracking-widest text-xs">
+                        {score === 100 ? 'Has completado el curso exitosamente.' : 'Se requiere el 100% de aciertos para aprobar.'}
+                      </p>
                     </div>
-                  )}
-
-                  {currentStep === 'results' && (
-                    <div className="space-y-8">
-                      <div className="text-center py-8">
-                        <div className="inline-flex items-center justify-center w-32 h-32 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 mb-6"><span className="text-4xl font-bold text-white">{score}%</span></div>
-                        <h3 className="text-2xl font-bold text-gray-900 mb-2">{score >= 70 ? '¡Felicidades!' : 'Necesitas mejorar'}</h3>
-                        <p className="text-gray-600 max-w-md mx-auto">{score >= 70 ? 'Has aprobado el cuestionario del curso. ¡Excelente trabajo!' : 'No has alcanzado la puntuación mínima. Revisa el contenido y vuelve a intentarlo.'}</p>
-                      </div>
-                      <div className="flex justify-center gap-4 pt-6 border-t">
-                        <button onClick={handleRetakeQuiz} className="px-6 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors">Volver a Intentar</button>
-                        <button onClick={() => setCurrentStep('content')} className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">Revisar Contenido</button>
-                        <button onClick={onClose} className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">Finalizar</button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {currentVideo && (
-                  <div className="fixed inset-0 bg-black bg-opacity-75 z-[60] flex items-center justify-center p-4">
-                    <div className="bg-white rounded-lg w-full max-w-4xl">
-                      <div className="p-4 border-b flex justify-between items-center"><h3 className="text-lg font-semibold">{currentVideo.title}</h3><button onClick={() => setCurrentVideo(null)} className="p-2 hover:bg-gray-100 rounded-full"><XMarkIcon /></button></div>
-                      <div className="p-4"><div className="aspect-video bg-black rounded-lg overflow-hidden"><video controls className="w-full h-full" onEnded={() => setCurrentVideo(null)}><source src={currentVideo.fileUrl} type="video/mp4" />Tu navegador no soporta el elemento de video.</video></div></div>
+                    <div className="flex gap-4 justify-center">
+                      {score < 100 && (
+                        <button onClick={handleRetry} className="px-10 py-4 bg-black text-white rounded-2xl font-black hover:scale-105 transition-all">REINTENTAR AHORA</button>
+                      )}
+                      <button onClick={onClose} className={`px-10 py-4 rounded-2xl font-black transition-all ${score === 100 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-400'}`}>
+                        {score === 100 ? 'FINALIZAR' : 'CERRAR'}
+                      </button>
                     </div>
                   </div>
                 )}
-                {currentPDF && (
-                  <div className="fixed inset-0 bg-black bg-opacity-75 z-[60] flex items-center justify-center p-4">
-                    <div className="bg-white rounded-lg w-full max-w-6xl h-[80vh] flex flex-col">
-                      <div className="p-4 border-b flex justify-between items-center"><h3 className="text-lg font-semibold">{currentPDF.title}</h3><button onClick={() => setCurrentPDF(null)} className="p-2 hover:bg-gray-100 rounded-full"><XMarkIcon /></button></div>
-                      <div className="flex-1 p-4"><iframe src={`${currentPDF.fileUrl}#view=fitH`} className="w-full h-full rounded-lg border" title={currentPDF.title} /><div className="mt-4 text-center"><a href={currentPDF.fileUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"><DocumentIcon />Descargar PDF</a></div></div>
-                    </div>
+              </div>
+
+              {/* VISORES */}
+              {currentVideo && (
+                <div className="fixed inset-0 bg-black/95 z-[70] flex items-center justify-center p-8">
+                  <div className="w-full max-w-5xl aspect-video relative">
+                    <button onClick={() => setCurrentVideo(null)} className="absolute -top-12 right-0 text-white flex items-center gap-2 font-black tracking-widest text-xs uppercase"><XMarkIcon /> CERRAR VIDEO</button>
+                    <video controls autoPlay className="w-full h-full rounded-3xl bg-black"><source src={currentVideo.fileUrl} type="video/mp4" /></video>
                   </div>
-                )}
-              </Dialog.Panel>
-            </Transition.Child>
+                </div>
+              )}
+              {currentPDF && (
+                <div className="fixed inset-0 bg-black/95 z-[70] flex items-center justify-center p-8">
+                  <div className="w-full max-w-6xl h-full relative flex flex-col">
+                    <button onClick={() => setCurrentPDF(null)} className="absolute -top-12 right-0 text-white flex items-center gap-2 font-black tracking-widest text-xs uppercase"><XMarkIcon /> CERRAR PDF</button>
+                    <iframe title={currentPDF.title} src={currentPDF.fileUrl} className="w-full flex-1 rounded-3xl bg-white" />
+                  </div>
+                </div>
+              )}
+            </Dialog.Panel>
           </div>
         </div>
       </Dialog>

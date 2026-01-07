@@ -51,7 +51,7 @@ export default function HomePage() {
               </div>
               {!isMobile && (
                 <div>
-                  <h1 className="text-lg lg:text-xl font-bold text-gray-900">Universidad PuroPolio</h1>
+                  <h1 className="text-lg lg:text-xl font-bold text-gray-900">Universidad PuroPollo</h1>
                   <p className="text-xs lg:text-sm text-gray-500 hidden lg:block">Plataforma Educativa</p>
                 </div>
               )}

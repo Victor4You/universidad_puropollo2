@@ -9,21 +9,11 @@ import { Post } from '@/lib/types/post.types';
 import CreatePost from '@/components/posts/CreatePost/CreatePost';
 import PostCard from '@/components/posts/PostCard/PostCard';
 import { Carousel } from '@/components/ui/Carousel/Carousel';
-import { ChevronLeft, ChevronRight, BookOpen, Users, Edit2, Trash2, CheckCircle2, Lock } from 'lucide-react';
+import { ChevronLeft, ChevronRight, BookOpen, Users, Edit2, CheckCircle2, Lock } from 'lucide-react';
 
 // Modales de gestión
 import CourseFormModal from '@/components/CourseFormModal';
 import CourseStudentsModal from '@/components/CourseStudentsModal';
-
-// --- DATOS MOCK ---
-const CURSOS_BASE = [
- { id: '1', codigo: 'MAT101', nombre: 'TALLER ATENCION Y SERVICIO AL CLIENTE', creditos: 4, semestre: '2024-I', profesor: 'Carlos Mendoza', estado: 'activo', estudiantes: 45, completado: false },
-  { id: '2', codigo: 'FIS201', nombre: 'INDUCCIÓN A LAS BUENAS PRACTICAS DE MANUFACTURA', creditos: 5, semestre: '2024-I', profesor: 'Ana López', estado: 'activo', estudiantes: 38, completado: false },
-  { id: '3', codigo: 'PROG301', nombre: 'TALLER DE ATENCIÓN Y SERVICIO PARA CALL CENTER', creditos: 4, semestre: '2024-I', profesor: 'Roberto Gómez', estado: 'activo', estudiantes: 30, completado: false },
-  { id: '4', codigo: 'QUIM401', nombre: 'CAPACITACIÓN EN SERVICIOS DE VENTAS', creditos: 4, semestre: '2024-I', profesor: 'Elena Torres', estado: 'inactivo', estudiantes: 25, completado: false },
-  { id: '5', codigo: 'HIS102', nombre: 'SEGURIDAD Y PROTECCION EN EL TRABAJO', creditos: 2, semestre: '2024-I', profesor: 'Luis Rivas', estado: 'activo', estudiantes: 50, completado: false },
-  { id: '6', codigo: 'BIO101', nombre: 'LIDERAZGO', creditos: 4, semestre: '2024-I', profesor: 'Martha Soto', estado: 'activo', estudiantes: 42, completado: false },
-];
 
 const carouselImages = [
   { id: '1', src: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80', alt: 'Campus universitario', title: 'Nuestro Campus', description: 'Instalaciones modernas para una educación de excelencia' },
@@ -34,7 +24,7 @@ const mockPosts: Post[] = [
   {
     id: '1',
     user: { id: '1', name: 'Admin Universidad', username: 'admin', role: 'admin', avatar: null, email: 'admin@universidad.edu', createdAt: '2024-01-01' },
-    content: '¡Bienvenidos al nuevo sistema de la Universidad PuroPolio!',
+    content: '¡Bienvenidos al nuevo sistema de la Universidad PuroPollo!',
     timestamp: '2024-01-15T10:30:00Z',
     likes: 24, liked: false, comments: [], shares: 5, shared: false
   },
@@ -55,20 +45,36 @@ export default function Feed() {
   const [isMobile, setIsMobile] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  const [cursos, setCursos] = useState(CURSOS_BASE);
+  // --- LÓGICA DE DATOS REALES (Ajustada para funcionar con tu page.tsx) ---
+  const [cursos, setCursos] = useState<any[]>([]);
   const [selectedCurso, setSelectedCurso] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showStudentsModal, setShowStudentsModal] = useState(false);
 
+  const loadCursos = () => {
+    // Usamos la llave 'lista_cursos_universidad' que definiste en tu page.tsx
+    const savedCursos = localStorage.getItem('lista_cursos_universidad');
+    const savedProgress = localStorage.getItem('progreso_cursos');
+    
+    if (savedCursos) {
+      try {
+        const cursosData = JSON.parse(savedCursos);
+        const completadosIds = savedProgress ? JSON.parse(savedProgress) : [];
+        
+        // Mapeamos el progreso sobre los cursos reales
+        const dataFinal = cursosData.map((c: any) => ({
+          ...c,
+          completado: completadosIds.includes(c.id)
+        }));
+        
+        setCursos(dataFinal);
+      } catch (e) { console.error(e); }
+    }
+  };
+
   useEffect(() => {
     if (isAuthenticated) {
-      const savedProgress = localStorage.getItem('progreso_cursos');
-      if (savedProgress) {
-        try {
-          const completadosIds = JSON.parse(savedProgress);
-          setCursos(CURSOS_BASE.map(c => ({ ...c, completado: completadosIds.includes(c.id) })));
-        } catch (e) { console.error(e); }
-      }
+      loadCursos();
     }
     const checkMobile = () => setIsMobile(window.innerWidth < 1024);
     checkMobile();
@@ -87,9 +93,16 @@ export default function Feed() {
     }
   };
 
+  // Función para guardar cambios si el Admin edita desde el Feed
+  const handleSaveCourse = (updatedCourse: any) => {
+    const updatedList = cursos.map(c => c.id === updatedCourse.id ? updatedCourse : c);
+    setCursos(updatedList);
+    localStorage.setItem('lista_cursos_universidad', JSON.stringify(updatedList));
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header móvil */}
+      {/* Header móvil (Diseño Original) */}
       {isMobile && (
         <div className="sticky top-0 z-40 bg-white border-b border-gray-200 lg:hidden">
           <div className="px-4 py-3">
@@ -113,8 +126,8 @@ export default function Feed() {
           </div>
         )}
 
-        {/* --- SECCIÓN DE CURSOS (SOLO SI ESTÁ AUTENTICADO) --- */}
-        {isAuthenticated && (
+        {/* --- SECCIÓN DE CURSOS (SOLO APARECE SI HAY CURSOS REALES) --- */}
+        {isAuthenticated && cursos.length > 0 && (
           <div className="mb-10 relative">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-gray-800">Cursos disponibles</h2>
@@ -138,9 +151,9 @@ export default function Feed() {
                       <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 bg-gray-50 px-2 py-1 rounded">{curso.codigo}</span>
                       <div className="flex gap-1">
                         {isRole('admin') && (
-                          <>
-                            <button onClick={() => { setSelectedCurso(curso); setIsModalOpen(true); }} className="p-1 hover:bg-blue-50 text-blue-400 rounded transition-colors"><Edit2 size={14} /></button>
-                          </>
+                          <button onClick={() => { setSelectedCurso(curso); setIsModalOpen(true); }} className="p-1 hover:bg-blue-50 text-blue-400 rounded transition-colors">
+                            <Edit2 size={14} />
+                          </button>
                         )}
                       </div>
                     </div>
@@ -173,7 +186,6 @@ export default function Feed() {
         
         {/* Layout de tres columnas original e intacto */}
         <div className="flex flex-col lg:flex-row gap-4 lg:gap-8">
-          
           {/* Columna izquierda: Identidad */}
           <div className="hidden lg:block lg:w-1/6">
             <div className="sticky top-6 space-y-6">
@@ -242,8 +254,21 @@ export default function Feed() {
         </div>
       </div>
 
-      {isModalOpen && <CourseFormModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} courseData={selectedCurso} />}
-      {showStudentsModal && selectedCurso && <CourseStudentsModal isOpen={showStudentsModal} onClose={() => setShowStudentsModal(false)} {...selectedCurso} />}
+      {isModalOpen && (
+        <CourseFormModal 
+          isOpen={isModalOpen} 
+          onClose={() => setIsModalOpen(false)} 
+          courseData={selectedCurso} 
+          onSave={handleSaveCourse} // Conectado para que los cambios se guarden
+        />
+      )}
+      {showStudentsModal && selectedCurso && (
+        <CourseStudentsModal 
+          isOpen={showStudentsModal} 
+          onClose={() => setShowStudentsModal(false)} 
+          courseName={selectedCurso.nombre} // Ajustado a los props del modal
+        />
+      )}
     </div>
   );
 }
