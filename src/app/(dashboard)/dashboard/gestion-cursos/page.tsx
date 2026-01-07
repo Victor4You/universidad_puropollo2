@@ -25,9 +25,12 @@ interface Curso {
   estudiantes: number;
   completado?: boolean;
   calificacion?: number;
+  videos?: any[];
+  pdfs?: any[];
+  questions?: any[];
+  duracionExamen?: number;
 }
 
-// Datos iniciales de referencia
 const cursosMock: Curso[] = [
   { id: '1', codigo: 'ASC-001', nombre: 'TALLER ATENCION Y SERVICIO AL CLIENTE', creditos: 4, semestre: '2024-I', profesor: 'Carlos Mendoza', estado: 'activo', estudiantes: 45, completado: false },
   { id: '2', codigo: 'BPM-002', nombre: 'INDUCCIÓN A LAS BUENAS PRACTICAS DE MANUFACTURA', creditos: 5, semestre: '2024-I', profesor: 'Ana López', estado: 'activo', estudiantes: 38, completado: false },
@@ -41,7 +44,6 @@ export default function GestionCursosPage() {
   const { isLoading: authLoading } = useAuth();
   const { userRole } = usePermission();
 
-  // Estados
   const [cursos, setCursos] = useState<Curso[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -53,7 +55,6 @@ export default function GestionCursosPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
 
-  // Carga inicial y persistencia
   useEffect(() => {
     const savedCursos = localStorage.getItem('lista_cursos_universidad');
     if (savedCursos) {
@@ -65,26 +66,20 @@ export default function GestionCursosPage() {
     setLoading(false);
   }, []);
 
-  // Función para GUARDAR (Crear o Editar)
- const handleSaveCourse = (data: any) => {
-  let nuevosCursos;
-  
-  if (selectedCurso) {
-    // MODO EDICIÓN: Mantenemos el ID y los datos de progreso, actualizamos el resto
-    nuevosCursos = cursos.map(c => c.id === selectedCurso.id ? { ...c, ...data } : c);
-  } else {
-    // MODO CREACIÓN: Nuevo objeto completo
-    const nuevo = { ...data, id: Date.now().toString(), estudiantes: 0, estado: 'activo' };
-    nuevosCursos = [...cursos, nuevo];
-  }
-  
- setCursos(nuevosCursos);
-  localStorage.setItem('lista_cursos_universidad', JSON.stringify(nuevosCursos));
-  setIsModalOpen(false);
-  setSelectedCurso(null);
-};
+  const handleSaveCourse = (data: any) => {
+    let nuevosCursos;
+    if (selectedCurso) {
+      nuevosCursos = cursos.map(c => c.id === selectedCurso.id ? { ...c, ...data } : c);
+    } else {
+      const nuevo = { ...data, id: Date.now().toString(), estudiantes: 0, estado: 'activo' };
+      nuevosCursos = [...cursos, nuevo];
+    }
+    setCursos(nuevosCursos);
+    localStorage.setItem('lista_cursos_universidad', JSON.stringify(nuevosCursos));
+    setIsModalOpen(false);
+    setSelectedCurso(null);
+  };
 
-  // Función para ELIMINAR
   const handleDeleteCourse = (id: string) => {
     if (confirm('¿Estás seguro de que deseas eliminar este curso? Esta acción no se puede deshacer.')) {
       const nuevosCursos = cursos.filter(c => c.id !== id);
@@ -102,10 +97,8 @@ export default function GestionCursosPage() {
     setShowTestModal(false);
   };
 
-  // Verificación de permisos
   const esAdminOProfesor = userRole === 'admin' || userRole === 'teacher';
 
-  // Lógica de filtrado y paginación
   const filteredCursos = cursos.filter(curso =>
     curso.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
     curso.codigo.toLowerCase().includes(searchTerm.toLowerCase())
@@ -120,7 +113,6 @@ export default function GestionCursosPage() {
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
-      {/* Encabezado */}
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Gestión de Cursos</h1>
@@ -136,7 +128,6 @@ export default function GestionCursosPage() {
         )}
       </div>
 
-      {/* Buscador */}
       <div className="relative mb-8 max-w-md">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
         <input
@@ -148,7 +139,6 @@ export default function GestionCursosPage() {
         />
       </div>
 
-      {/* Grid de Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
         {currentItems.map((curso, index) => {
           const globalIndex = indexOfFirstItem + index;
@@ -191,11 +181,15 @@ export default function GestionCursosPage() {
                 </div>
               </div>
 
-              {/* Acciones del Card */}
               <div className="px-6 py-4 bg-gray-50/50 border-t border-gray-100 flex justify-between items-center">
                 <div className="flex space-x-1">
                   <button
-                    onClick={() => estaHabilitado && !curso.completado && (setSelectedCurso(curso), setShowTestModal(true))}
+                    onClick={() => {
+                      if (estaHabilitado && !curso.completado) {
+                        setSelectedCurso(curso);
+                        setShowTestModal(true); // Abre el modal de contenido y evaluación
+                      }
+                    }}
                     disabled={!estaHabilitado || curso.completado}
                     className={`p-2 rounded-lg transition-colors ${estaHabilitado && !curso.completado ? 'text-purple-600 hover:bg-purple-100' : 'text-gray-300'}`}
                   >
@@ -224,7 +218,6 @@ export default function GestionCursosPage() {
         })}
       </div>
 
-      {/* Paginación */}
       <div className="flex items-center justify-between bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
         <p className="text-sm text-gray-500 hidden sm:block">
           Mostrando página <span className="font-bold text-gray-900">{currentPage}</span> de {totalPages}
@@ -240,7 +233,6 @@ export default function GestionCursosPage() {
         </div>
       </div>
 
-      {/* Modales */}
       {isModalOpen && (
         <CourseFormModal 
           isOpen={isModalOpen} 
@@ -253,7 +245,7 @@ export default function GestionCursosPage() {
       {showStudentsModal && selectedCurso && (
         <CourseStudentsModal
           isOpen={showStudentsModal}
-          onClose={() => setShowStudentsModal(false)}
+          onClose={() => { setShowStudentsModal(false); setSelectedCurso(null); }}
           courseName={selectedCurso.nombre}
         />
       )}
@@ -261,7 +253,7 @@ export default function GestionCursosPage() {
       {showTestModal && selectedCurso && (
         <CourseTestModal 
           isOpen={showTestModal} 
-          onClose={() => setShowTestModal(false)} 
+          onClose={() => { setShowTestModal(false); setSelectedCurso(null); }} 
           courseData={selectedCurso as any} 
           onSuccess={(score: number) => handleTestSuccess(selectedCurso.id, score)} 
         />

@@ -8,7 +8,6 @@ import { Dialog, Transition } from '@headlessui/react';
 const XMarkIcon = () => (<svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>);
 const PlayIcon = () => (<svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>);
 const DocumentIcon = () => (<svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>);
-const CheckIcon = () => (<svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>);
 const ClockIcon = () => (<svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>);
 
 export default function CourseTestModal({ isOpen, onClose, onSuccess, courseData }: any) {
@@ -24,30 +23,31 @@ export default function CourseTestModal({ isOpen, onClose, onSuccess, courseData
 
   const totalVideos = courseData?.videos?.length || 0;
   const totalPdfs = courseData?.pdfs?.length || 0;
-  const allWatched = viewedVideos.size === totalVideos && viewedPdfs.size === totalPdfs;
+  
+  // Mejora: Si no hay contenido, se considera "visto" para no bloquear el quiz
+  const allWatched = (totalVideos === 0 || viewedVideos.size === totalVideos) && 
+                     (totalPdfs === 0 || viewedPdfs.size === totalPdfs);
 
-  // Reset completo al abrir el modal
   useEffect(() => {
     if (isOpen) {
       setCurrentStep('content');
-      handleRetry(); // Inicializa el estado del quiz
+      setScore(0);
+      setUserAnswers({});
       setViewedVideos(new Set());
       setViewedPdfs(new Set());
+      const tiempoMinutos = courseData?.duracionExamen || 30;
+      setQuizTimeLeft(tiempoMinutos * 60);
     }
   }, [isOpen, courseData]);
 
-  // Función para reintentar (Limpia respuestas y reinicia tiempo)
-  const handleRetry = () => {
-    setScore(0);
-    setUserAnswers({});
-    setCurrentStep('quiz');
-    const tiempoMinutos = courseData.duracionExamen || 30;
-    setQuizTimeLeft(tiempoMinutos * 60);
-  };
-
   const handleFinishExam = useCallback(() => {
-    const questions = courseData.questions || [];
-    if (questions.length === 0) return;
+    const questions = courseData?.questions || [];
+    if (questions.length === 0) {
+      setScore(100);
+      setCurrentStep('results');
+      if (onSuccess) onSuccess(100);
+      return;
+    }
 
     let correctas = 0;
     questions.forEach((q: any) => {
@@ -60,9 +60,8 @@ export default function CourseTestModal({ isOpen, onClose, onSuccess, courseData
     setScore(notaFinal);
     setCurrentStep('results');
     
-    // Solo notificamos éxito si es 100%
     if (onSuccess && notaFinal === 100) onSuccess(notaFinal);
-  }, [courseData.questions, userAnswers, onSuccess]);
+  }, [courseData, userAnswers, onSuccess]);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -84,7 +83,7 @@ export default function CourseTestModal({ isOpen, onClose, onSuccess, courseData
     setUserAnswers(prev => ({ ...prev, [qId]: option }));
   };
 
-  const isComplete = courseData.questions?.every((q: any) => userAnswers[q.id]);
+  const isComplete = courseData?.questions?.every((q: any) => userAnswers[q.id]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -103,7 +102,7 @@ export default function CourseTestModal({ isOpen, onClose, onSuccess, courseData
               <div className="flex justify-between items-center mb-6 border-b pb-4">
                 <div>
                   <Dialog.Title className="text-2xl font-black text-gray-900 uppercase tracking-tighter">
-                    {courseData.nombre}
+                    {courseData?.nombre}
                   </Dialog.Title>
                   <p className="text-sm text-gray-500 font-bold uppercase tracking-widest mt-1">Material de estudio y evaluación</p>
                 </div>
@@ -126,24 +125,26 @@ export default function CourseTestModal({ isOpen, onClose, onSuccess, courseData
 
               <div className="max-h-[60vh] overflow-y-auto pr-4 custom-scrollbar">
                 {currentStep === 'content' && (
-                  <div className="grid grid-cols-2 gap-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-4">
                       <h4 className="font-black text-blue-600 text-xs uppercase tracking-widest">Videos ({viewedVideos.size}/{totalVideos})</h4>
-                      {courseData.videos?.map((video: any) => (
+                      {courseData?.videos?.map((video: any) => (
                         <button key={video.id} onClick={() => { setCurrentVideo(video); setViewedVideos(prev => new Set(prev).add(video.id)); }} className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left ${viewedVideos.has(video.id) ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-transparent hover:border-blue-200'}`}>
                           <div className={`p-2 rounded-lg ${viewedVideos.has(video.id) ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'}`}><PlayIcon /></div>
                           <span className="font-bold text-sm">{video.title}</span>
                         </button>
                       ))}
+                      {totalVideos === 0 && <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">No hay videos disponibles</p>}
                     </div>
                     <div className="space-y-4">
                       <h4 className="font-black text-red-600 text-xs uppercase tracking-widest">PDFs ({viewedPdfs.size}/{totalPdfs})</h4>
-                      {courseData.pdfs?.map((pdf: any) => (
+                      {courseData?.pdfs?.map((pdf: any) => (
                         <button key={pdf.id} onClick={() => { setCurrentPDF(pdf); setViewedPdfs(prev => new Set(prev).add(pdf.id)); }} className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left ${viewedPdfs.has(pdf.id) ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-transparent hover:border-red-200'}`}>
                           <div className={`p-2 rounded-lg ${viewedPdfs.has(pdf.id) ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}><DocumentIcon /></div>
                           <span className="font-bold text-sm">{pdf.title}</span>
                         </button>
                       ))}
+                      {totalPdfs === 0 && <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">No hay PDFs disponibles</p>}
                     </div>
                   </div>
                 )}
@@ -158,7 +159,7 @@ export default function CourseTestModal({ isOpen, onClose, onSuccess, courseData
                       <span className="font-black text-xs uppercase tracking-widest text-gray-400">Puntaje requerido: 100%</span>
                     </div>
 
-                    {courseData.questions?.map((q: any, i: number) => (
+                    {courseData?.questions?.map((q: any, i: number) => (
                       <div key={q.id} className="p-8 border-2 border-gray-100 rounded-[2rem] bg-gray-50 space-y-6">
                         <p className="text-xl font-black text-gray-800 italic">{i+1}. {q.question}</p>
                         <div className="grid grid-cols-1 gap-4">
@@ -191,7 +192,7 @@ export default function CourseTestModal({ isOpen, onClose, onSuccess, courseData
                     </div>
                     <div className="flex gap-4 justify-center">
                       {score < 100 && (
-                        <button onClick={handleRetry} className="px-10 py-4 bg-black text-white rounded-2xl font-black hover:scale-105 transition-all">REINTENTAR AHORA</button>
+                        <button onClick={() => {setScore(0); setUserAnswers({}); setCurrentStep('quiz'); setQuizTimeLeft((courseData?.duracionExamen || 30) * 60);}} className="px-10 py-4 bg-black text-white rounded-2xl font-black hover:scale-105 transition-all">REINTENTAR AHORA</button>
                       )}
                       <button onClick={onClose} className={`px-10 py-4 rounded-2xl font-black transition-all ${score === 100 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-400'}`}>
                         {score === 100 ? 'FINALIZAR' : 'CERRAR'}
