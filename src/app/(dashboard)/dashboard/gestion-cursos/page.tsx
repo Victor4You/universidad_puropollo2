@@ -6,7 +6,7 @@ import {
   Plus, Search, Edit2, Trash2, Users, 
   ChevronLeft, ChevronRight, CheckCircle2,
   BookOpen, Star
-} from 'lucide-react';
+} from 'lucide-react'; // CORREGIDO: Era lucide-react, no lucide-center
 import CourseFormModal from '@/components/CourseFormModal';
 import CourseStudentsModal from '@/components/CourseStudentsModal';
 import CourseTestModal from '@/components/test/CourseTestModal';
@@ -23,6 +23,7 @@ interface Curso {
   profesor: string;
   estado: 'activo' | 'inactivo';
   estudiantes: number;
+  estudiantesInscritos?: any[]; 
   completado?: boolean;
   calificacion?: number;
   videos?: any[];
@@ -34,15 +35,11 @@ interface Curso {
 const cursosMock: Curso[] = [
   { id: '1', codigo: 'ASC-001', nombre: 'TALLER ATENCION Y SERVICIO AL CLIENTE', creditos: 4, semestre: '2024-I', profesor: 'Carlos Mendoza', estado: 'activo', estudiantes: 45, completado: false },
   { id: '2', codigo: 'BPM-002', nombre: 'INDUCCIÓN A LAS BUENAS PRACTICAS DE MANUFACTURA', creditos: 5, semestre: '2024-I', profesor: 'Ana López', estado: 'activo', estudiantes: 38, completado: false },
-  { id: '3', codigo: 'CALL-003', nombre: 'TALLER DE ATENCIÓN Y SERVICIO PARA CALL CENTER.', creditos: 4, semestre: '2024-I', profesor: 'Roberto Gómez', estado: 'activo', estudiantes: 30, completado: false },
-  { id: '4', codigo: 'VNT-004', nombre: 'CAPACITACIÓN EN SERVICIOS DE VENTAS.', creditos: 4, semestre: '2024-I', profesor: 'Elena Torres', estado: 'activo', estudiantes: 25, completado: false },
-  { id: '5', codigo: 'SEG-005', nombre: 'SEGURIDAD Y PROTECCION EN EL TRABAJO', creditos: 2, semestre: '2024-I', profesor: 'Luis Rivas', estado: 'activo', estudiantes: 50, completado: false },
-  { id: '6', codigo: 'LID-006', nombre: 'LIDERAZGO', creditos: 4, semestre: '2024-I', profesor: 'Martha Soto', estado: 'activo', estudiantes: 42, completado: false },
 ];
 
 export default function GestionCursosPage() {
   const { isLoading: authLoading } = useAuth();
-  const { userRole } = usePermission();
+  const { isRole } = usePermission();
 
   const [cursos, setCursos] = useState<Curso[]>([]);
   const [loading, setLoading] = useState(true);
@@ -71,7 +68,7 @@ export default function GestionCursosPage() {
     if (selectedCurso) {
       nuevosCursos = cursos.map(c => c.id === selectedCurso.id ? { ...c, ...data } : c);
     } else {
-      const nuevo = { ...data, id: Date.now().toString(), estudiantes: 0, estado: 'activo' };
+      const nuevo = { ...data, id: Date.now().toString(), estudiantes: 0, estado: 'activo', estudiantesInscritos: [] };
       nuevosCursos = [...cursos, nuevo];
     }
     setCursos(nuevosCursos);
@@ -80,24 +77,22 @@ export default function GestionCursosPage() {
     setSelectedCurso(null);
   };
 
+  const handleUpdateCourseData = (updatedCourse: Curso) => {
+    const nuevosCursos = cursos.map(c => c.id === updatedCourse.id ? updatedCourse : c);
+    setCursos(nuevosCursos);
+    localStorage.setItem('lista_cursos_universidad', JSON.stringify(nuevosCursos));
+  };
+
   const handleDeleteCourse = (id: string) => {
-    if (confirm('¿Estás seguro de que deseas eliminar este curso? Esta acción no se puede deshacer.')) {
+    if (confirm('¿Estás seguro de que deseas eliminar este curso?')) {
       const nuevosCursos = cursos.filter(c => c.id !== id);
       setCursos(nuevosCursos);
       localStorage.setItem('lista_cursos_universidad', JSON.stringify(nuevosCursos));
     }
   };
 
-  const handleTestSuccess = (courseId: string, score: number) => {
-    const nuevosCursos = cursos.map(c => 
-      c.id === courseId ? { ...c, completado: true, calificacion: score } : c
-    );
-    setCursos(nuevosCursos);
-    localStorage.setItem('lista_cursos_universidad', JSON.stringify(nuevosCursos));
-    setShowTestModal(false);
-  };
-
-  const esAdminOProfesor = userRole === 'admin' || userRole === 'teacher';
+  // CORREGIDO: Se eliminó "profesor" porque tu tipo UserRole solo acepta "teacher"
+  const esAdminOProfesor = isRole('admin') || isRole('teacher');
 
   const filteredCursos = cursos.filter(curso =>
     curso.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -140,122 +135,73 @@ export default function GestionCursosPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
-        {currentItems.map((curso, index) => {
-          const globalIndex = indexOfFirstItem + index;
-          const estaHabilitado = esAdminOProfesor || (globalIndex === 0 || !!cursos[globalIndex - 1].completado);
-
-          return (
-            <div 
-              key={curso.id} 
-              className={`bg-white rounded-2xl border border-gray-100 shadow-sm transition-all flex flex-col overflow-hidden ${!estaHabilitado ? 'opacity-50 grayscale-[0.5]' : 'hover:shadow-md'}`}
-            >
-              <div className="p-6 flex-grow">
-                <div className="flex justify-between items-start mb-4">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 bg-gray-50 px-2 py-1 rounded">
-                    {curso.codigo}
-                  </span>
-                  <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${curso.estado === 'activo' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                    {curso.estado.charAt(0).toUpperCase() + curso.estado.slice(1)}
-                  </span>
-                </div>
-                
-                <h3 className="text-lg font-bold text-gray-900 mb-1 leading-tight">{curso.nombre}</h3>
-                <p className="text-gray-500 text-sm mb-4 flex items-center">
-                  <Users className="w-4 h-4 mr-1.5" /> {curso.profesor}
-                </p>
-
-                {curso.completado && curso.calificacion !== undefined && (
-                  <div className="mb-4 flex items-center gap-2 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-100 w-fit">
-                    <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
-                    <span className="text-sm font-bold text-amber-700">Nota: {curso.calificacion}/100</span>
-                  </div>
-                )}
-
-                <div className="flex items-center gap-3">
-                  <div className="text-[11px] font-bold text-gray-500 bg-gray-50 px-2 py-1 rounded border border-gray-100 uppercase">
-                    {curso.creditos} CRÉDITOS
-                  </div>
-                  <div className="text-[11px] font-bold text-gray-500 bg-gray-50 px-2 py-1 rounded border border-gray-100">
-                    {curso.semestre}
-                  </div>
-                </div>
+        {currentItems.map((curso) => (
+          <div key={curso.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm transition-all flex flex-col overflow-hidden hover:shadow-md">
+            <div className="p-6 flex-grow">
+              <div className="flex justify-between items-start mb-4">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 bg-gray-50 px-2 py-1 rounded">{curso.codigo}</span>
+                <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${curso.estado === 'activo' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>{curso.estado}</span>
               </div>
-
-              <div className="px-6 py-4 bg-gray-50/50 border-t border-gray-100 flex justify-between items-center">
-                <div className="flex space-x-1">
-                  <button
-                    onClick={() => {
-                      if (estaHabilitado && !curso.completado) {
-                        setSelectedCurso(curso);
-                        setShowTestModal(true); // Abre el modal de contenido y evaluación
-                      }
-                    }}
-                    disabled={!estaHabilitado || curso.completado}
-                    className={`p-2 rounded-lg transition-colors ${estaHabilitado && !curso.completado ? 'text-purple-600 hover:bg-purple-100' : 'text-gray-300'}`}
-                  >
-                    <BookOpen className="w-5 h-5" />
-                  </button>
-
-                  {esAdminOProfesor && (
-                    <>
-                      <button onClick={() => { setSelectedCurso(curso); setShowStudentsModal(true); }} className="p-2 text-green-600 hover:bg-green-100 rounded-lg">
-                        <Users className="w-5 h-5" />
-                      </button>
-                      <button onClick={() => { setSelectedCurso(curso); setIsModalOpen(true); }} className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg">
-                        <Edit2 className="w-5 h-5" />
-                      </button>
-                      <button onClick={() => handleDeleteCourse(curso.id)} className="p-2 text-red-600 hover:bg-red-100 rounded-lg">
-                        <Trash2 className="w-5 h-5" />
-                      </button>
-                    </>
-                  )}
+              <h3 className="text-lg font-bold text-gray-900 mb-1 leading-tight">{curso.nombre}</h3>
+              <p className="text-gray-500 text-sm mb-4 flex items-center"><Users className="w-4 h-4 mr-1.5" /> {curso.profesor}</p>
+              
+              <div className="flex items-center gap-3">
+                <div className="text-[11px] font-bold text-gray-500 bg-gray-50 px-2 py-1 rounded border border-gray-100 uppercase">{curso.creditos} CRÉDITOS</div>
+                <div className="text-[11px] font-bold text-gray-500 bg-gray-50 px-2 py-1 rounded border border-gray-100">{curso.semestre}</div>
+                <div className="flex items-center text-[11px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded border border-blue-100 uppercase">
+                  <Users className="w-3 h-3 mr-1" />
+                  {curso.estudiantes || 0} Registrados
                 </div>
-                
-                {curso.completado && <CheckCircle2 className="w-6 h-6 text-green-500" />}
               </div>
             </div>
-          );
-        })}
+
+            <div className="px-6 py-4 bg-gray-50/50 border-t border-gray-100 flex justify-between items-center">
+              <div className="flex space-x-1">
+                <button onClick={() => { setSelectedCurso(curso); setShowTestModal(true); }} className="p-2 text-purple-600 hover:bg-purple-100 rounded-lg"><BookOpen className="w-5 h-5" /></button>
+                {esAdminOProfesor && (
+                  <>
+                    <button onClick={() => { setSelectedCurso(curso); setShowStudentsModal(true); }} className="p-2 text-green-600 hover:bg-green-100 rounded-lg"><Users className="w-5 h-5" /></button>
+                    <button onClick={() => { setSelectedCurso(curso); setIsModalOpen(true); }} className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg"><Edit2 className="w-5 h-5" /></button>
+                    <button onClick={() => handleDeleteCourse(curso.id)} className="p-2 text-red-600 hover:bg-red-100 rounded-lg"><Trash2 className="w-5 h-5" /></button>
+                  </>
+                )}
+              </div>
+              {curso.completado && <CheckCircle2 className="w-6 h-6 text-green-500" />}
+            </div>
+          </div>
+        ))}
       </div>
 
-      <div className="flex items-center justify-between bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
-        <p className="text-sm text-gray-500 hidden sm:block">
-          Mostrando página <span className="font-bold text-gray-900">{currentPage}</span> de {totalPages}
-        </p>
-        <div className="flex items-center space-x-2">
-          <button onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1} className="p-2 rounded-xl border border-gray-200 disabled:opacity-20 hover:bg-gray-50"><ChevronLeft className="w-5 h-5" /></button>
-          <div className="flex space-x-1">
-            {[...Array(totalPages)].map((_, i) => (
-              <button key={i + 1} onClick={() => setCurrentPage(i + 1)} className={`w-10 h-10 rounded-xl text-sm font-bold transition-all ${currentPage === i + 1 ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-500 hover:bg-gray-50'}`}>{i + 1}</button>
-            ))}
-          </div>
-          <button onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages} className="p-2 rounded-xl border border-gray-200 disabled:opacity-20 hover:bg-gray-50"><ChevronRight className="w-5 h-5" /></button>
+      {totalPages > 1 && (
+        <div className="flex justify-center gap-2 mb-10">
+          <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} className="p-2 rounded-lg border hover:bg-white"><ChevronLeft className="w-5 h-5"/></button>
+          <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} className="p-2 rounded-lg border hover:bg-white"><ChevronRight className="w-5 h-5"/></button>
         </div>
-      </div>
+      )}
 
       {isModalOpen && (
         <CourseFormModal 
           isOpen={isModalOpen} 
           onClose={() => { setIsModalOpen(false); setSelectedCurso(null); }} 
           courseData={selectedCurso} 
-          onSave={handleSaveCourse}
+          onSave={handleSaveCourse} 
         />
       )}
-
+      
       {showStudentsModal && selectedCurso && (
-        <CourseStudentsModal
-          isOpen={showStudentsModal}
-          onClose={() => { setShowStudentsModal(false); setSelectedCurso(null); }}
-          courseName={selectedCurso.nombre}
+        <CourseStudentsModal 
+          isOpen={showStudentsModal} 
+          onClose={() => { setShowStudentsModal(false); setSelectedCurso(null); }} 
+          courseData={selectedCurso} 
+          onUpdateCourse={handleUpdateCourseData}
         />
       )}
 
       {showTestModal && selectedCurso && (
-        <CourseTestModal 
-          isOpen={showTestModal} 
-          onClose={() => { setShowTestModal(false); setSelectedCurso(null); }} 
-          courseData={selectedCurso as any} 
-          onSuccess={(score: number) => handleTestSuccess(selectedCurso.id, score)} 
+        <CourseTestModal
+          isOpen={showTestModal}
+          onClose={() => { setShowTestModal(false); setSelectedCurso(null); }}
+          courseData={selectedCurso}
         />
       )}
     </div>
