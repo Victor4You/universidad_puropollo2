@@ -149,13 +149,6 @@ export default function Feed() {
                   <div key={curso.id} className={`min-w-[300px] md:min-w-[320px] bg-white rounded-2xl border border-gray-100 shadow-sm p-6 snap-start transition-all ${!estaHabilitado ? 'opacity-50 grayscale-[0.5]' : 'hover:shadow-md'}`}>
                     <div className="flex justify-between items-start mb-4">
                       <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 bg-gray-50 px-2 py-1 rounded">{curso.codigo}</span>
-                      <div className="flex gap-1">
-                        {isRole('admin') && (
-                          <button onClick={() => { setSelectedCurso(curso); setIsModalOpen(true); }} className="p-1 hover:bg-blue-50 text-blue-400 rounded transition-colors">
-                            <Edit2 size={14} />
-                          </button>
-                        )}
-                      </div>
                     </div>
                     <h3 className="text-lg font-bold text-gray-900 mb-1 leading-tight h-12 line-clamp-2">{curso.nombre}</h3>
                     <div className="flex items-center justify-between mb-4">
