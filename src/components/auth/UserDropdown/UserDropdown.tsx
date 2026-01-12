@@ -1,12 +1,8 @@
 // src/components/auth/UserDropdown/UserDropdown.tsx
-// =============================================
-// MENÚ DESPLEGABLE DE USUARIO (MANTENIENDO DISEÑO ORIGINAL)
-// =============================================
-
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { useRouter } from 'next/navigation'; // Importado para navegación por código
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { Avatar } from '@/components/ui/Avatar/Avatar';
@@ -17,7 +13,7 @@ export function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const [settingsSubmenuOpen, setSettingsSubmenuOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const router = useRouter(); // Inicializado
+  const router = useRouter();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -31,9 +27,6 @@ export function UserDropdown() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // =============================================
-  // MANEJADORES
-  // =============================================
   const toggleDropdown = () => setIsOpen(!isOpen);
 
   const toggleSettingsSubmenu = (e: React.MouseEvent) => {
@@ -41,9 +34,23 @@ export function UserDropdown() {
     setSettingsSubmenuOpen(!settingsSubmenuOpen);
   };
 
-  const handleLogout = () => {
-    logout();
-    setIsOpen(false);
+  // MODIFICACIÓN FINAL PARA LOGOUT
+  const handleLogout = async () => {
+    try {
+      setIsOpen(false);
+      // 1. Ejecutamos el logout del hook
+      await logout();
+      
+      // 2. Usamos window.location.href en lugar de router.push
+      // Esto limpia cualquier rastro de estado de la SPA y asegura 
+      // que entres a la página principal como un usuario nuevo (público)
+      window.location.href = '/';
+      
+    } catch (error) {
+      console.error("Error al cerrar sesión:", error);
+      // Fallback por si falla el logout
+      window.location.href = '/';
+    }
   };
 
   const handleDashboardClick = () => {
@@ -51,13 +58,13 @@ export function UserDropdown() {
     setIsOpen(false);
   }
 
-  // MODIFICADO: Navegación dinámica al ID del usuario usando router
   const handleProfileClick = () => {
-    if (user?.id) {
-      router.push(`/profile/${user.id}`);
-      setIsOpen(false);
-    }
-  };
+  // Verificamos que exista el usuario en el contexto de Auth
+  if (user?.usuario) { // Cambia .id por .usuario para que coincida con tu endpoint 
+    router.push(`/profile/${user.usuario}`);
+    setIsOpen(false);
+  }
+};
 
   const handleSettingsClick = () => {
     router.push('/settings');
@@ -93,7 +100,6 @@ export function UserDropdown() {
 
   return (
     <div className="relative" ref={dropdownRef}>
-      {/* Botón para abrir/cerrar el dropdown (Mismo diseño) */}
       <button
         onClick={toggleDropdown}
         className="flex items-center space-x-3 w-full p-2 rounded-lg hover:bg-gray-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -121,7 +127,6 @@ export function UserDropdown() {
         </svg>
       </button>
 
-      {/* Dropdown Menu (Mismo diseño) */}
       {isOpen && (
         <div
           className="absolute top-full right-0 mt-2 w-64 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50 animate-fadeIn"
@@ -141,7 +146,6 @@ export function UserDropdown() {
           </div>
 
           <div className="py-2">
-            {/* BOTÓN MI PERFIL: Mantiene etiqueta <button> y estilo, ahora con navegación dinámica */}
             <button
               onClick={handleProfileClick}
               className="w-full flex items-center px-4 py-3 text-sm text-gray-300 hover:bg-gray-700 transition-colors duration-150 focus:outline-none focus:bg-gray-700"
@@ -153,7 +157,6 @@ export function UserDropdown() {
               Mi Perfil
             </button>
 
-            {/* Resto de botones originales intactos */}
             <button onClick={handleDashboardClick} className="w-full flex items-center px-4 py-3 text-sm text-gray-300 hover:bg-gray-700 transition-colors duration-150 focus:outline-none focus:bg-gray-700" role="menuitem">
               <svg className="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z" /><path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z" />
@@ -165,7 +168,7 @@ export function UserDropdown() {
               <button onClick={toggleSettingsSubmenu} className="w-full flex items-center justify-between px-4 py-3 text-sm text-gray-300 hover:bg-gray-700 transition-colors duration-150 focus:outline-none focus:bg-gray-700" role="menuitem">
                 <div className="flex items-center">
                   <svg className="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
+                   <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.532 1.532 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106-.54-.886-.061-2.042.947-2.287 1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
                   </svg>
                   Configuración
                 </div>

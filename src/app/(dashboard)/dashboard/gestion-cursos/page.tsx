@@ -30,11 +30,38 @@ interface Curso {
   pdfs?: any[];
   questions?: any[];
   duracionExamen?: number;
+  // Campos añadidos para persistencia de fechas
+  createdAt: string;
+  updatedAt: string;
 }
 
 const cursosMock: Curso[] = [
-  { id: '1', codigo: 'ASC-001', nombre: 'TALLER ATENCION Y SERVICIO AL CLIENTE', creditos: 4, semestre: '2024-I', profesor: 'Carlos Mendoza', estado: 'activo', estudiantes: 45, completado: false },
-  { id: '2', codigo: 'BPM-002', nombre: 'INDUCCIÓN A LAS BUENAS PRACTICAS DE MANUFACTURA', creditos: 5, semestre: '2024-I', profesor: 'Ana López', estado: 'activo', estudiantes: 38, completado: false },
+  { 
+    id: '1', 
+    codigo: 'ASC-001', 
+    nombre: 'TALLER ATENCION Y SERVICIO AL CLIENTE', 
+    creditos: 4, 
+    semestre: '2024-I', 
+    profesor: 'Carlos Mendoza', 
+    estado: 'activo', 
+    estudiantes: 45, 
+    completado: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  { 
+    id: '2', 
+    codigo: 'BPM-002', 
+    nombre: 'INDUCCIÓN A LAS BUENAS PRACTICAS DE MANUFACTURA', 
+    creditos: 5, 
+    semestre: '2024-I', 
+    profesor: 'Ana López', 
+    estado: 'activo', 
+    estudiantes: 38, 
+    completado: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
 ];
 
 export default function GestionCursosPage() {
@@ -51,6 +78,7 @@ export default function GestionCursosPage() {
   
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
+  
 
   useEffect(() => {
     const savedCursos = localStorage.getItem('lista_cursos_universidad');
@@ -65,10 +93,25 @@ export default function GestionCursosPage() {
 
   const handleSaveCourse = (data: any) => {
     let nuevosCursos;
+    const now = new Date().toISOString();
+
     if (selectedCurso) {
-      nuevosCursos = cursos.map(c => c.id === selectedCurso.id ? { ...c, ...data } : c);
+      nuevosCursos = cursos.map(c => 
+        c.id === selectedCurso.id 
+          ? { ...c, ...data, updatedAt: now } 
+          : c
+      );
     } else {
-      const nuevo = { ...data, id: Date.now().toString(), estudiantes: 0, estado: 'activo', estudiantesInscritos: [], completado: false };
+      const nuevo = { 
+        ...data, 
+        id: Date.now().toString(), 
+        estudiantes: 0, 
+        estado: 'activo', 
+        estudiantesInscritos: [], 
+        completado: false,
+        createdAt: now,
+        updatedAt: now
+      };
       nuevosCursos = [...cursos, nuevo];
     }
     setCursos(nuevosCursos);
@@ -135,7 +178,6 @@ export default function GestionCursosPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
         {currentItems.map((curso, index) => {
-          // Lógica de habilitación secuencial
           const estaHabilitado = esAdminOProfesor || index === 0 || !!currentItems[index - 1].completado;
 
           return (
@@ -154,13 +196,19 @@ export default function GestionCursosPage() {
                 <h3 className="text-lg font-bold text-gray-900 mb-1 leading-tight">{curso.nombre}</h3>
                 <p className="text-gray-500 text-sm mb-4 flex items-center"><Users className="w-4 h-4 mr-1.5" /> {curso.profesor}</p>
                 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 mb-4">
                   <div className="text-[11px] font-bold text-gray-500 bg-gray-50 px-2 py-1 rounded border border-gray-100 uppercase">{curso.creditos} CRÉDITOS</div>
                   <div className="text-[11px] font-bold text-gray-500 bg-gray-50 px-2 py-1 rounded border border-gray-100">{curso.semestre}</div>
                   <div className="flex items-center text-[11px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded border border-blue-100 uppercase">
                     <Users className="w-3 h-3 mr-1" />
                     {curso.estudiantes || 0} Registrados
                   </div>
+                </div>
+
+                {/* VISUALIZACIÓN DE FECHAS */}
+                <div className="flex flex-col gap-0.5 mt-2">
+                  <span className="text-[9px] text-gray-400 font-bold uppercase tracking-tighter">Creado: {curso.createdAt ? new Date(curso.createdAt).toLocaleDateString() : '---'}</span>
+                  <span className="text-[9px] text-gray-400 font-bold uppercase tracking-tighter">Modificado: {curso.updatedAt ? new Date(curso.updatedAt).toLocaleDateString() : '---'}</span>
                 </div>
               </div>
 

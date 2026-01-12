@@ -1,8 +1,8 @@
-// src/components/CourseStudentsModal.tsx
 'use client';
 
 import { Fragment, useState, useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
+import { useRouter } from 'next/navigation'; // IMPORTADO
 import axios from 'axios';
 
 const XMarkIcon = () => (<svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>);
@@ -10,42 +10,42 @@ const UserIcon = () => (<svg className="h-5 w-5" fill="none" stroke="currentColo
 const SearchIcon = () => (<svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>);
 
 export default function CourseStudentsModal({ isOpen, onClose, courseData, onUpdateCourse }: any) {
+  const router = useRouter(); // INICIALIZADO
   const [searchTerm, setSearchTerm] = useState('');
   const [inscritos, setInscritos] = useState<any[]>([]);
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
-  // Sincronizar con los datos del curso al abrir
+  // FUNCIÓN PARA REDIRIGIR AL PERFIL
+  const handleSeeStudentProfile = (studentUsername: string) => {
+    onClose(); // Cerramos el modal antes de navegar
+    router.push(`/profile/${studentUsername}`);
+  };
+
   useEffect(() => {
     if (courseData?.estudiantesInscritos) {
       setInscritos(courseData.estudiantesInscritos);
     }
   }, [courseData]);
 
-  // BÚSQUEDA AUTOMÁTICA (DEBOUNCE)
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (searchTerm.trim().length >= 1) { // Empieza a buscar desde la primera letra
+      if (searchTerm.trim().length >= 1) {
         fetchUsers();
       } else {
         setSearchResults([]);
       }
-    }, 300); // Pausa de 300ms para no saturar el backend
-
+    }, 300);
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
   const fetchUsers = async () => {
     setIsSearching(true);
     try {
-      // Llamada a tu backend real (v1/users/user/:username)
       const response = await axios.get(`http://localhost:3001/v1/users/user/${searchTerm}`);
-      
       if (response.data) {
         const foundUser = response.data;
-        // VALIDACIÓN: Solo mostrar si no está ya en la lista de inscritos
         const yaEstaInscrito = inscritos.some(s => s.username === foundUser.usuario);
-        
         if (!yaEstaInscrito) {
           setSearchResults([foundUser]);
         } else {
@@ -60,15 +60,12 @@ export default function CourseStudentsModal({ isOpen, onClose, courseData, onUpd
   };
 
   const handleToggleInscripcion = (user: any) => {
-    // Normalizamos el campo del identificador (tu backend usa 'usuario')
     const userKey = user.usuario || user.username;
     const isAlreadyIn = inscritos.some(s => s.username === userKey);
     
     if (isAlreadyIn) {
-      // ELIMINAR: Filtramos exactamente por el username para no borrar a todos
       setInscritos(prev => prev.filter(s => s.username !== userKey));
     } else {
-      // AÑADIR: Mapeamos los datos de la API universitaria al formato del curso
       const newStudent = {
         id: user.id,
         name: user.name || `${user.nombre} ${user.apellido}`,
@@ -106,7 +103,6 @@ export default function CourseStudentsModal({ isOpen, onClose, courseData, onUpd
                 <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors"><XMarkIcon /></button>
               </div>
 
-              {/* BARRA DE BÚSQUEDA REACTIVA */}
               <div className="relative mb-6">
                 <div className="absolute inset-y-0 left-4 flex items-center text-gray-400">
                   {isSearching ? <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full" /> : <SearchIcon />}
@@ -119,7 +115,6 @@ export default function CourseStudentsModal({ isOpen, onClose, courseData, onUpd
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
                 
-                {/* RESULTADOS PREDICTIVOS */}
                 {searchResults.length > 0 && (
                   <div className="absolute z-20 w-full mt-2 bg-white border-2 border-blue-600 rounded-2xl shadow-xl overflow-hidden">
                     {searchResults.map((user) => (
@@ -139,7 +134,6 @@ export default function CourseStudentsModal({ isOpen, onClose, courseData, onUpd
                 )}
               </div>
 
-              {/* LISTA DE INSCRITOS (CORREGIDA) */}
               <div className="space-y-4">
                 <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-2">Lista Actual ({inscritos.length})</h4>
                 <div className="max-h-[300px] overflow-y-auto space-y-2 pr-2 custom-scrollbar">
@@ -151,11 +145,16 @@ export default function CourseStudentsModal({ isOpen, onClose, courseData, onUpd
                             <UserIcon />
                           </div>
                           <div>
-                            <div className="font-bold text-gray-900 text-sm">{student.name}</div>
+                            {/* NOMBRE CONVERTIDO EN BOTÓN PARA IR AL PERFIL */}
+                            <button 
+                              onClick={() => handleSeeStudentProfile(student.username)}
+                              className="font-bold text-gray-900 text-sm hover:text-blue-600 transition-colors block text-left"
+                            >
+                              {student.name}
+                            </button>
                             <div className="text-[10px] text-gray-500 uppercase font-black">@{student.username}</div>
                           </div>
                         </div>
-                        {/* SWITCH DE ESTADO */}
                         <button 
                           onClick={() => handleToggleInscripcion(student)}
                           className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors bg-green-600"

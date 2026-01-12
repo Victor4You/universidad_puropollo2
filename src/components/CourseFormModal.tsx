@@ -17,6 +17,8 @@ export default function CourseFormModal({ isOpen, onClose, courseData, onSave }:
   const [semestre, setSemestre] = useState('');
   const [estado, setEstado] = useState('activo');
   const [duracion, setDuracion] = useState(30);
+  const [createdAt, setCreatedAt] = useState(new Date().toISOString().split('T')[0]);
+  const [updatedAt, setUpdatedAt] = useState(new Date().toISOString().split('T')[0]);
 
   // ESTADOS PARA CONTENIDO
   const [videos, setVideos] = useState<any[]>([]);
@@ -37,6 +39,8 @@ export default function CourseFormModal({ isOpen, onClose, courseData, onSave }:
         setVideos(courseData.videos || []);
         setPdfs(courseData.pdfs || []);
         setQuestions(courseData.questions || []);
+      setCreatedAt(courseData.createdAt ? courseData.createdAt.split('T')[0] : new Date().toISOString().split('T')[0]);
+      setUpdatedAt(courseData.updatedAt ? courseData.updatedAt.split('T')[0] : new Date().toISOString().split('T')[0]);
       } else {
         setNombre(''); 
         setCodigo('');
@@ -84,7 +88,9 @@ export default function CourseFormModal({ isOpen, onClose, courseData, onSave }:
       duracionExamen: duracion,
       videos,
       pdfs,
-      questions
+      questions,
+      createdAt: new Date(createdAt).toISOString(),
+      updatedAt: new Date().toISOString()
     });
     onClose();
   };
@@ -148,6 +154,16 @@ export default function CourseFormModal({ isOpen, onClose, courseData, onSave }:
                     <div className="space-y-1">
                       <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Tiempo Examen (Minutos)</label>
                       <input required type="number" value={duracion} onChange={(e) => setDuracion(Number(e.target.value))} className="w-full px-4 py-2 border-2 border-transparent focus:border-blue-500 rounded-xl outline-none font-bold" />
+                    </div>
+                  </div>
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Fecha de Creación</label>
+                    <input type="date" value={createdAt} onChange={(e) => setCreatedAt(e.target.value)} className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-blue-500 transition-all"/>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Última Modificación</label>
+                    <input type="date"  value={updatedAt}  onChange={(e) => setUpdatedAt(e.target.value)} className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-blue-500 transition-all"/>
                     </div>
                   </div>
                 </div>

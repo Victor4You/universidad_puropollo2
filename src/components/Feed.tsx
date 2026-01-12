@@ -112,10 +112,17 @@ export default function Feed() {
                   <div key={curso.id} className={`min-w-[300px] md:min-w-[320px] bg-white rounded-2xl border border-gray-100 shadow-sm p-6 snap-start transition-all ${!estaHabilitado ? 'opacity-50 grayscale-[0.5]' : 'hover:shadow-md'}`}>
                     <div className="flex justify-between items-start mb-4">
                       <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 bg-gray-50 px-2 py-1 rounded">{curso.codigo}</span>
+                      {/* Visualización de fecha de creación */}
+                      <span className="text-[9px] font-bold text-gray-400 uppercase"> {curso.createdAt ? new Date(curso.createdAt).toLocaleDateString() : 'Nuevo'} </span>
                     </div>
                     <h3 className="text-lg font-bold text-gray-900 mb-1 leading-tight h-12 line-clamp-2">{curso.nombre}</h3>
                     <div className="flex items-center justify-between mb-4">
                       <p className="text-gray-500 text-sm flex items-center"><Users size={16} className="mr-1.5" /> {curso.profesor}</p>
+                    </div>
+                    {/* Visualización de última modificación */}
+                    <div className="text-[10px] text-gray-400 flex items-center">
+                      <span className="w-2 h-2 bg-green-400 rounded-full mr-2"></span> 
+                      Editado: {curso.updatedAt ? new Date(curso.updatedAt).toLocaleDateString() : 'Recientemente'}
                     </div>
                     <div className="pt-4 border-t border-gray-50 flex justify-between items-center">
                       <button 
