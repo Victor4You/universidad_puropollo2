@@ -5,8 +5,8 @@ import { useState, useEffect } from 'react';
 import { 
   Plus, Search, Edit2, Trash2, Users, 
   ChevronLeft, ChevronRight, CheckCircle2,
-  BookOpen, Star
-} from 'lucide-react'; // CORREGIDO: Era lucide-react, no lucide-center
+  BookOpen, Star, Lock as LockIcon // Renombrado para evitar conflictos
+} from 'lucide-react';
 import CourseFormModal from '@/components/CourseFormModal';
 import CourseStudentsModal from '@/components/CourseStudentsModal';
 import CourseTestModal from '@/components/test/CourseTestModal';
@@ -68,7 +68,7 @@ export default function GestionCursosPage() {
     if (selectedCurso) {
       nuevosCursos = cursos.map(c => c.id === selectedCurso.id ? { ...c, ...data } : c);
     } else {
-      const nuevo = { ...data, id: Date.now().toString(), estudiantes: 0, estado: 'activo', estudiantesInscritos: [] };
+      const nuevo = { ...data, id: Date.now().toString(), estudiantes: 0, estado: 'activo', estudiantesInscritos: [], completado: false };
       nuevosCursos = [...cursos, nuevo];
     }
     setCursos(nuevosCursos);
@@ -91,7 +91,6 @@ export default function GestionCursosPage() {
     }
   };
 
-  // CORREGIDO: Se eliminó "profesor" porque tu tipo UserRole solo acepta "teacher"
   const esAdminOProfesor = isRole('admin') || isRole('teacher');
 
   const filteredCursos = cursos.filter(curso =>
@@ -135,41 +134,58 @@ export default function GestionCursosPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
-        {currentItems.map((curso) => (
-          <div key={curso.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm transition-all flex flex-col overflow-hidden hover:shadow-md">
-            <div className="p-6 flex-grow">
-              <div className="flex justify-between items-start mb-4">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 bg-gray-50 px-2 py-1 rounded">{curso.codigo}</span>
-                <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${curso.estado === 'activo' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>{curso.estado}</span>
-              </div>
-              <h3 className="text-lg font-bold text-gray-900 mb-1 leading-tight">{curso.nombre}</h3>
-              <p className="text-gray-500 text-sm mb-4 flex items-center"><Users className="w-4 h-4 mr-1.5" /> {curso.profesor}</p>
+        {currentItems.map((curso, index) => {
+          // Lógica de habilitación secuencial
+          const estaHabilitado = esAdminOProfesor || index === 0 || !!currentItems[index - 1].completado;
+
+          return (
+            <div key={curso.id} className={`bg-white rounded-2xl border border-gray-100 shadow-sm transition-all flex flex-col overflow-hidden relative ${!estaHabilitado ? 'opacity-60 grayscale' : 'hover:shadow-md'}`}>
+              {!estaHabilitado && (
+                <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/10 backdrop-blur-[1px]">
+                  <LockIcon className="w-8 h-8 text-gray-400" />
+                </div>
+              )}
               
-              <div className="flex items-center gap-3">
-                <div className="text-[11px] font-bold text-gray-500 bg-gray-50 px-2 py-1 rounded border border-gray-100 uppercase">{curso.creditos} CRÉDITOS</div>
-                <div className="text-[11px] font-bold text-gray-500 bg-gray-50 px-2 py-1 rounded border border-gray-100">{curso.semestre}</div>
-                <div className="flex items-center text-[11px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded border border-blue-100 uppercase">
-                  <Users className="w-3 h-3 mr-1" />
-                  {curso.estudiantes || 0} Registrados
+              <div className="p-6 flex-grow">
+                <div className="flex justify-between items-start mb-4">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 bg-gray-50 px-2 py-1 rounded">{curso.codigo}</span>
+                  <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${curso.estado === 'activo' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>{curso.estado}</span>
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 mb-1 leading-tight">{curso.nombre}</h3>
+                <p className="text-gray-500 text-sm mb-4 flex items-center"><Users className="w-4 h-4 mr-1.5" /> {curso.profesor}</p>
+                
+                <div className="flex items-center gap-3">
+                  <div className="text-[11px] font-bold text-gray-500 bg-gray-50 px-2 py-1 rounded border border-gray-100 uppercase">{curso.creditos} CRÉDITOS</div>
+                  <div className="text-[11px] font-bold text-gray-500 bg-gray-50 px-2 py-1 rounded border border-gray-100">{curso.semestre}</div>
+                  <div className="flex items-center text-[11px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded border border-blue-100 uppercase">
+                    <Users className="w-3 h-3 mr-1" />
+                    {curso.estudiantes || 0} Registrados
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="px-6 py-4 bg-gray-50/50 border-t border-gray-100 flex justify-between items-center">
-              <div className="flex space-x-1">
-                <button onClick={() => { setSelectedCurso(curso); setShowTestModal(true); }} className="p-2 text-purple-600 hover:bg-purple-100 rounded-lg"><BookOpen className="w-5 h-5" /></button>
-                {esAdminOProfesor && (
-                  <>
-                    <button onClick={() => { setSelectedCurso(curso); setShowStudentsModal(true); }} className="p-2 text-green-600 hover:bg-green-100 rounded-lg"><Users className="w-5 h-5" /></button>
-                    <button onClick={() => { setSelectedCurso(curso); setIsModalOpen(true); }} className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg"><Edit2 className="w-5 h-5" /></button>
-                    <button onClick={() => handleDeleteCourse(curso.id)} className="p-2 text-red-600 hover:bg-red-100 rounded-lg"><Trash2 className="w-5 h-5" /></button>
-                  </>
-                )}
+              <div className="px-6 py-4 bg-gray-50/50 border-t border-gray-100 flex justify-between items-center">
+                <div className="flex space-x-1">
+                  <button 
+                    onClick={() => { if (estaHabilitado) { setSelectedCurso(curso); setShowTestModal(true); } }} 
+                    disabled={!estaHabilitado}
+                    className={`p-2 rounded-lg ${estaHabilitado ? 'text-purple-600 hover:bg-purple-100' : 'text-gray-400 cursor-not-allowed'}`}
+                  >
+                    <BookOpen className="w-5 h-5" />
+                  </button>
+                  {esAdminOProfesor && (
+                    <>
+                      <button onClick={() => { setSelectedCurso(curso); setShowStudentsModal(true); }} className="p-2 text-green-600 hover:bg-green-100 rounded-lg"><Users className="w-5 h-5" /></button>
+                      <button onClick={() => { setSelectedCurso(curso); setIsModalOpen(true); }} className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg"><Edit2 className="w-5 h-5" /></button>
+                      <button onClick={() => handleDeleteCourse(curso.id)} className="p-2 text-red-600 hover:bg-red-100 rounded-lg"><Trash2 className="w-5 h-5" /></button>
+                    </>
+                  )}
+                </div>
+                {curso.completado && <CheckCircle2 className="w-6 h-6 text-green-500" />}
               </div>
-              {curso.completado && <CheckCircle2 className="w-6 h-6 text-green-500" />}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {totalPages > 1 && (
@@ -179,31 +195,9 @@ export default function GestionCursosPage() {
         </div>
       )}
 
-      {isModalOpen && (
-        <CourseFormModal 
-          isOpen={isModalOpen} 
-          onClose={() => { setIsModalOpen(false); setSelectedCurso(null); }} 
-          courseData={selectedCurso} 
-          onSave={handleSaveCourse} 
-        />
-      )}
-      
-      {showStudentsModal && selectedCurso && (
-        <CourseStudentsModal 
-          isOpen={showStudentsModal} 
-          onClose={() => { setShowStudentsModal(false); setSelectedCurso(null); }} 
-          courseData={selectedCurso} 
-          onUpdateCourse={handleUpdateCourseData}
-        />
-      )}
-
-      {showTestModal && selectedCurso && (
-        <CourseTestModal
-          isOpen={showTestModal}
-          onClose={() => { setShowTestModal(false); setSelectedCurso(null); }}
-          courseData={selectedCurso}
-        />
-      )}
+      {isModalOpen && <CourseFormModal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setSelectedCurso(null); }} courseData={selectedCurso} onSave={handleSaveCourse} />}
+      {showStudentsModal && selectedCurso && <CourseStudentsModal isOpen={showStudentsModal} onClose={() => { setShowStudentsModal(false); setSelectedCurso(null); }} courseData={selectedCurso} onUpdateCourse={handleUpdateCourseData} />}
+      {showTestModal && selectedCurso && <CourseTestModal isOpen={showTestModal} onClose={() => { setShowTestModal(false); setSelectedCurso(null); }} courseData={selectedCurso} />}
     </div>
   );
 }
