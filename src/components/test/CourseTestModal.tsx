@@ -1,22 +1,42 @@
 // src/components/test/CourseTestModal.tsx
 'use client';
 
+'use client';
+
 import { Fragment, useState, useEffect, useCallback } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
+import axios from 'axios'; 
+import { useAuth } from '@/hooks/useAuth';
 
-// ICONOS CORREGIDOS
+// ICONOS ORIGINALES (SIN CAMBIOS)
 const XMarkIcon = () => (<svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>);
 const PlayIcon = () => (<svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>);
 const DocumentIcon = () => (<svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>);
 const ClockIcon = () => (<svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>);
 
+const Star = ({ className }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.518 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.921-.755 1.688-1.54 1.118l-3.976-2.888a1 1 0 00-1.175 0l-3.976 2.888c-.784.57-1.838-.197-1.539-1.118l1.518-4.674a1 1 0 00-.364-1.118L2.05 9.401c-.783-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+  </svg>
+);
+
 export default function CourseTestModal({ isOpen, onClose, onSuccess, courseData }: any) {
-  const [currentStep, setCurrentStep] = useState<'content' | 'quiz' | 'results'>('content');
+  const { user } = useAuth();
+  const [currentStep, setCurrentStep] = useState<'content' | 'quiz' | 'survey' | 'results'>('content');
+  const [surveyData, setSurveyData] = useState<Record<string, number>>({ 
+    ensenanza: 5, 
+    consistencia: 5, 
+    riesgo: 5, 
+    contenido: 5 
+  });
   const [currentVideo, setCurrentVideo] = useState<any>(null);
   const [currentPDF, setCurrentPDF] = useState<any>(null);
+  const [attempts, setAttempts] = useState(0);
+  const [shuffledQuestions, setShuffledQuestions] = useState<any[]>([]);
   const [quizTimeLeft, setQuizTimeLeft] = useState<number>(1800);
   const [score, setScore] = useState(0);
   const [userAnswers, setUserAnswers] = useState<Record<string, string>>({});
+  const [pdfScrollReached, setPdfScrollReached] = useState(false);
 
   const [viewedVideos, setViewedVideos] = useState<Set<string>>(new Set());
   const [viewedPdfs, setViewedPdfs] = useState<Set<string>>(new Set());
@@ -34,30 +54,69 @@ export default function CourseTestModal({ isOpen, onClose, onSuccess, courseData
       setUserAnswers({});
       setViewedVideos(new Set());
       setViewedPdfs(new Set());
+      setSurveyData({ ensenanza: 5, consistencia: 5, riesgo: 5, contenido: 5 });
+
+      const questions = courseData?.questions || [];
+      setShuffledQuestions([...questions].sort(() => Math.random() - 0.5));
+
       const tiempoMinutos = courseData?.duracionExamen || 30;
       setQuizTimeLeft(tiempoMinutos * 60);
+      setAttempts(0);
     }
   }, [isOpen, courseData]);
 
-  const handleFinishExam = useCallback(() => {
-    const questions = courseData?.questions || [];
-    if (questions.length === 0) {
-      setScore(100);
+  const handleFinishExam = useCallback(async () => {
+  const questions = shuffledQuestions;
+  let correctas = 0;
+  questions.forEach((q: any) => {
+    if (userAnswers[q.id] === q.answer) correctas++;
+  });
+
+  const notaFinal = questions.length > 0 ? Math.round((correctas / questions.length) * 100) : 100;
+  setScore(notaFinal);
+
+  try {
+    await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/courses/register-completion`, {
+      courseId: courseData.id,
+      userId: Number(user?.id),
+      score: notaFinal,
+    });
+  } catch (error) {
+    console.error("Error al registrar intento:", error);
+  }
+
+if (notaFinal >= 90) {
+    setCurrentStep('survey');
+  } else {
+    const nuevosIntentos = attempts + 1;
+    setAttempts(nuevosIntentos);
+
+    if (nuevosIntentos >= 2) {
+      alert("❌ Has fallado 2 intentos. Tu progreso ha sido reiniciado.");
+      setViewedVideos(new Set());
+      setViewedPdfs(new Set());
+      setAttempts(0);
+      setCurrentStep('content');
+    } else {
+      setCurrentStep('results');
+    }
+  }
+}, [shuffledQuestions, userAnswers, attempts, courseData, user]);
+
+  const handleSaveToPostgres = async () => {
+    try {
+      await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/courses/register-completion`, {
+      courseId: courseData.id,
+      userId: Number(user?.id),
+      score: score,
+      survey: surveyData
+      });
       setCurrentStep('results');
       if (onSuccess) onSuccess(100);
-      return;
+    } catch (error) {
+      alert("Error al guardar en la base de datos");
     }
-
-    let correctas = 0;
-    questions.forEach((q: any) => {
-      if (userAnswers[q.id] === q.answer) correctas++;
-    });
-
-    const notaFinal = Math.round((correctas / questions.length) * 100);
-    setScore(notaFinal);
-    setCurrentStep('results');
-    if (onSuccess && notaFinal === 100) onSuccess(notaFinal);
-  }, [courseData, userAnswers, onSuccess]);
+  };
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -79,11 +138,27 @@ export default function CourseTestModal({ isOpen, onClose, onSuccess, courseData
     setUserAnswers(prev => ({ ...prev, [qId]: option }));
   };
 
-  const isComplete = courseData?.questions?.every((q: any) => userAnswers[q.id]);
+  const isComplete = shuffledQuestions.length > 0 && shuffledQuestions.every((q: any) => userAnswers[q.id]);
+  
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const handlePDFScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    if (scrollTop + clientHeight >= scrollHeight * 0.95) {
+      if (!pdfScrollReached) setPdfScrollReached(true);
+    }
+  };
+
+  const markPDFAsRead = () => {
+    if (currentPDF && pdfScrollReached) {
+      setViewedPdfs(prev => new Set(prev).add(currentPDF.id));
+      setCurrentPDF(null);
+      setPdfScrollReached(false);
+    }
   };
 
   return (
@@ -146,14 +221,21 @@ export default function CourseTestModal({ isOpen, onClose, onSuccess, courseData
                 {currentStep === 'quiz' && (
                   <div className="space-y-8">
                     <div className="flex justify-between items-center p-6 bg-black text-white rounded-3xl">
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Intento</span>
+                        <span className="text-xl font-black">{attempts + 1} / 2</span>
+                      </div>
                       <div className="flex items-center gap-3">
                         <ClockIcon />
                         <span className={`text-2xl font-black ${quizTimeLeft < 60 ? 'text-red-500 animate-pulse' : ''}`}>{formatTime(quizTimeLeft)}</span>
                       </div>
-                      <span className="font-black text-xs uppercase tracking-widest text-gray-400">Puntaje requerido: 100%</span>
+                      <div className="text-right">
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Mínimo para aprobar</span>
+                        <span className="text-xl font-black text-green-500">90%</span>
+                      </div>
                     </div>
 
-                    {courseData?.questions?.map((q: any, i: number) => (
+                    {shuffledQuestions.map((q: any, i: number) => (
                       <div key={q.id} className="p-8 border-2 border-gray-100 rounded-[2rem] bg-gray-50 space-y-6">
                         <p className="text-xl font-black text-gray-800 italic">{i+1}. {q.question}</p>
                         <div className="grid grid-cols-1 gap-4">
@@ -173,25 +255,46 @@ export default function CourseTestModal({ isOpen, onClose, onSuccess, courseData
                   </div>
                 )}
 
+                {currentStep === 'survey' && (
+                  <div className="space-y-8 py-6">
+                    <h3 className="text-2xl font-black text-center uppercase">Encuesta de Calidad</h3>
+                    {['ensenanza', 'consistencia', 'riesgo', 'contenido'].map((item) => (
+                      <div key={item} className="flex justify-between items-center p-4 bg-gray-50 rounded-2xl">
+                        <span className="font-bold uppercase text-xs text-gray-600">{item}</span>
+                        <div className="flex gap-1">
+                          {[1, 2, 3, 4, 5].map((starValue) => (
+                            <button key={starValue} onClick={() => setSurveyData({...surveyData, [item]: starValue})}>
+                              <Star className={`w-6 h-6 ${surveyData[item] >= starValue ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                    <button onClick={handleSaveToPostgres} className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black uppercase shadow-lg">
+                      GUARDAR Y FINALIZAR
+                    </button>
+                  </div>
+                )}
+
                 {currentStep === 'results' && (
                   <div className="text-center py-20 space-y-8">
-                    <div className={`text-[10rem] font-black tracking-tighter leading-none ${score === 100 ? 'text-green-600' : 'text-red-600'}`}>
+                    <div className={`text-[10rem] font-black tracking-tighter leading-none ${score >= 90 ? 'text-green-600' : 'text-red-600'}`}>
                       {score}%
                     </div>
-                    <p className="text-2xl font-black uppercase italic">{score === 100 ? '¡Examen Perfecto!' : 'Aprobación Fallida'}</p>
+                    <p className="text-2xl font-black uppercase italic">{score >= 90 ? '¡Aprobado!' : 'Aprobación Fallida'}</p>
                     <div className="flex gap-4 justify-center">
-                      {score < 100 && (
+                      {score < 90 && (
                         <button onClick={() => {setScore(0); setUserAnswers({}); setCurrentStep('quiz'); setQuizTimeLeft((courseData?.duracionExamen || 30) * 60);}} className="px-10 py-4 bg-black text-white rounded-2xl font-black hover:scale-105 transition-all">REINTENTAR AHORA</button>
                       )}
-                      <button onClick={onClose} className={`px-10 py-4 rounded-2xl font-black transition-all ${score === 100 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-400'}`}>
-                        {score === 100 ? 'FINALIZAR' : 'CERRAR'}
+                      <button onClick={onClose} className={`px-10 py-4 rounded-2xl font-black transition-all ${score >= 90 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-400'}`}>
+                        {score >= 90 ? 'FINALIZAR' : 'CERRAR'}
                       </button>
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* VISORES */}
+              {/* VISORES ORIGINALES */}
               {currentVideo && (
                 <div className="fixed inset-0 bg-black/95 z-[70] flex items-center justify-center p-8">
                   <div className="w-full max-w-5xl aspect-video relative">
@@ -207,26 +310,46 @@ export default function CourseTestModal({ isOpen, onClose, onSuccess, courseData
                     >
                       <source src={currentVideo.fileUrl} type="video/mp4" />
                     </video>
-                    {/* Estilos para ocultar la barra de progreso y prevenir adelantar */}
-                    <style>{`
-                      #course-video-player::-webkit-media-controls-timeline {
-                        display: none !important;
-                      }
-                      #course-video-player::-webkit-media-controls-current-time-display {
-                        display: none !important;
-                      }
-                    `}</style>
                   </div>
                 </div>
               )}
+
               {currentPDF && (
                 <div className="fixed inset-0 bg-black/95 z-[70] flex items-center justify-center p-8">
-                  <div className="w-full max-w-6xl h-full relative flex flex-col">
-                    <button onClick={() => setCurrentPDF(null)} className="absolute -top-12 right-0 text-white flex items-center gap-2 font-black tracking-widest text-xs uppercase"><XMarkIcon /> CERRAR PDF</button>
-                    <iframe title={currentPDF.title} src={currentPDF.fileUrl} className="w-full flex-1 rounded-3xl bg-white" />
+                  <div className="w-full max-w-6xl h-full relative flex flex-col gap-4">
+                    <div className="flex justify-between items-center text-white">
+                      <h3 className="font-black uppercase tracking-widest">{currentPDF.title}</h3>
+                      <button onClick={() => { setCurrentPDF(null); setPdfScrollReached(false); }} className="flex items-center gap-2 font-black text-xs uppercase hover:text-red-500 transition-colors">
+                        <XMarkIcon /> CANCELAR LECTURA
+                      </button>
+                    </div>
+
+                    <div onScroll={handlePDFScroll} className="w-full flex-1 rounded-3xl bg-white overflow-y-auto custom-scrollbar p-2">
+                      <div className="w-full h-[2000px] relative">
+                        <iframe title={currentPDF.title} src={currentPDF.fileUrl} className="w-full h-full rounded-2xl border-none" />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col items-center gap-2">
+                      {!pdfScrollReached && (
+                        <span className="text-orange-400 font-bold text-xs uppercase animate-pulse">
+                          ⬇️ Debes desplazarte hasta el final del documento para habilitar la confirmación
+                        </span>
+                      )}
+                      <button 
+                        disabled={!pdfScrollReached}
+                        onClick={markPDFAsRead}
+                        className={`w-full max-w-md py-4 rounded-2xl font-black uppercase transition-all ${
+                          pdfScrollReached ? 'bg-green-600 text-white shadow-lg hover:scale-105' : 'bg-gray-800 text-gray-500 cursor-not-allowed'
+                        }`}
+                      >
+                        {pdfScrollReached ? 'CONFIRMAR LECTURA COMPLETADA' : 'LECTURA EN PROGRESO...'}
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
+
             </Dialog.Panel>
           </div>
         </div>

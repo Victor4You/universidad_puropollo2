@@ -2,7 +2,7 @@
 
 import { Fragment, useState, useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
-import { useRouter } from 'next/navigation'; // IMPORTADO
+import { useRouter } from 'next/navigation';
 import axios from 'axios';
 
 const XMarkIcon = () => (<svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>);
@@ -10,15 +10,14 @@ const UserIcon = () => (<svg className="h-5 w-5" fill="none" stroke="currentColo
 const SearchIcon = () => (<svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>);
 
 export default function CourseStudentsModal({ isOpen, onClose, courseData, onUpdateCourse }: any) {
-  const router = useRouter(); // INICIALIZADO
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
   const [inscritos, setInscritos] = useState<any[]>([]);
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
-  // FUNCIÓN PARA REDIRIGIR AL PERFIL
   const handleSeeStudentProfile = (studentUsername: string) => {
-    onClose(); // Cerramos el modal antes de navegar
+    onClose();
     router.push(`/profile/${studentUsername}`);
   };
 
@@ -29,30 +28,27 @@ export default function CourseStudentsModal({ isOpen, onClose, courseData, onUpd
   }, [courseData]);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (searchTerm.trim().length >= 1) {
-        fetchUsers();
-      } else {
-        setSearchResults([]);
-      }
-    }, 300);
-    return () => clearTimeout(timer);
+    const term = searchTerm.trim();
+    if (term.length >= 1) {
+      const timer = setTimeout(() => fetchUsers(term), 300);
+      return () => clearTimeout(timer);
+    } else {
+      setSearchResults([]);
+    }
   }, [searchTerm]);
 
-  const fetchUsers = async () => {
+  const fetchUsers = async (query: string) => {
     setIsSearching(true);
     try {
-      const response = await axios.get(`http://localhost:3001/v1/users/user/${searchTerm}`);
-      if (response.data) {
-        const foundUser = response.data;
-        const yaEstaInscrito = inscritos.some(s => s.username === foundUser.usuario);
-        if (!yaEstaInscrito) {
-          setSearchResults([foundUser]);
-        } else {
-          setSearchResults([]);
-        }
+      const response = await axios.get(`http://localhost:3001/v1/users/search/${query}`);
+      if (response.data && Array.isArray(response.data)) {
+        const filtrados = response.data.filter((user: any) => {
+          const uKey = (user.usuario || user.username || '').toLowerCase();
+          return !inscritos.some(s => (s.username || '').toLowerCase() === uKey);
+        });
+        setSearchResults(filtrados);
       }
-    } catch (error) {
+    } catch {
       setSearchResults([]);
     } finally {
       setIsSearching(false);
@@ -112,20 +108,20 @@ export default function CourseStudentsModal({ isOpen, onClose, courseData, onUpd
                   placeholder="ESCRIBE PARA BUSCAR USUARIO..."
                   className="w-full bg-gray-50 border-2 border-transparent focus:border-blue-500 focus:bg-white rounded-2xl py-3 pl-12 pr-4 text-xs font-bold outline-none transition-all uppercase"
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e) => setSearchTerm(e.target.value)} 
                 />
-                
+  
                 {searchResults.length > 0 && (
-                  <div className="absolute z-20 w-full mt-2 bg-white border-2 border-blue-600 rounded-2xl shadow-xl overflow-hidden">
+                  <div className="absolute z-20 w-full mt-2 bg-white border-2 border-blue-600 rounded-2xl shadow-xl overflow-hidden max-h-52 overflow-y-auto">
                     {searchResults.map((user) => (
                       <button 
-                        key={user.usuario} 
+                        key={user.usuario || user.username} 
                         onClick={() => handleToggleInscripcion(user)} 
-                        className="w-full flex items-center justify-between p-4 hover:bg-blue-50 transition-colors"
+                        className="w-full flex items-center justify-between p-4 hover:bg-blue-50 transition-colors border-b last:border-none text-left"
                       >
-                        <div className="text-left">
+                        <div>
                           <p className="font-bold text-gray-900 text-sm">{user.nombre} {user.apellido}</p>
-                          <p className="text-[10px] text-blue-600 font-black">@{user.usuario}</p>
+                          <p className="text-[10px] text-blue-600 font-black">@{user.usuario || user.username}</p>
                         </div>
                         <span className="text-blue-600 font-black text-[10px] uppercase">+ Inscribir</span>
                       </button>
@@ -145,7 +141,6 @@ export default function CourseStudentsModal({ isOpen, onClose, courseData, onUpd
                             <UserIcon />
                           </div>
                           <div>
-                            {/* NOMBRE CONVERTIDO EN BOTÓN PARA IR AL PERFIL */}
                             <button 
                               onClick={() => handleSeeStudentProfile(student.username)}
                               className="font-bold text-gray-900 text-sm hover:text-blue-600 transition-colors block text-left"
@@ -155,8 +150,10 @@ export default function CourseStudentsModal({ isOpen, onClose, courseData, onUpd
                             <div className="text-[10px] text-gray-500 uppercase font-black">@{student.username}</div>
                           </div>
                         </div>
+                        {/* BOTÓN CORREGIDO PARA AXE-LINTER */}
                         <button 
                           onClick={() => handleToggleInscripcion(student)}
+                          aria-label={`Desinscribir a ${student.name}`}
                           className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors bg-green-600"
                         >
                           <span className="inline-block h-4 w-4 transform rounded-full bg-white transition-transform translate-x-6" />

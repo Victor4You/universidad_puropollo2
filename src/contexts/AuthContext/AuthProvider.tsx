@@ -4,12 +4,6 @@ import { AuthContext } from './AuthContext';
 import { AuthProviderProps } from './AuthContext.types';
 import { AuthState, User, LoginCredentials } from '@/lib/types/auth.types';
 import { authService } from '@/services/auth.service';
-import { 
-  getStoredAuthData, 
-  clearAuthData, 
-  setAuthData,
-  isTokenValid 
-} from '@/lib/utils/auth.utils';
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const [authState, setAuthState] = useState<AuthState>({
@@ -20,51 +14,41 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const login = useCallback(async (credentials: LoginCredentials): Promise<boolean> => {
     try {
-      const authData = await authService.login(credentials);
+      // Usamos 'any' en la respuesta para evitar los errores 2339 de TS al mapear
+      const userData: any = await authService.login(credentials);
       
-      if (authData?.token) {
-        // Guardar token primero para que las siguientes peticiones de Axios lo incluyan
-        localStorage.setItem('auth_token', authData.token);
-        
-        const user = await authService.getUserProfile(authData.username || credentials.email);
-        
-        if (user) {
-          setAuthData(user, authData.token);
-          setAuthState({ user, isAuthenticated: true, isLoading: false });
-          return true;
-        }
+      if (userData) {
+        // Mapeamos cuidadosamente a la interfaz User
+        const fullUser: User = {
+          id: userData.id || 0,
+          username: userData.usuario || userData.username || '',
+          name: userData.name || `${userData.nombre} ${userData.apellido}` || '',
+          email: userData.email || '',
+          role: userData.role || 'estudiante',
+          avatar: userData.avatar || '',
+          // Si tu interfaz 'User' no tiene 'token', TS dará error 2353. 
+          // Se quita del objeto 'User' si no es parte de la definición.
+        };
+
+        setAuthState({ user: fullUser, isAuthenticated: true, isLoading: false });
+        return true;
       }
       return false;
     } catch (error: any) {
-      // Extraemos el mensaje de error del backend para que la UI lo muestre
-      const message = error.response?.data?.message || 'Error de conexión con el servidor';
+      const message = error.response?.data?.message || 'Error de conexión';
       throw new Error(message);
     }
   }, []);
 
   const logout = useCallback(() => {
-    clearAuthData();
     setAuthState({ user: null, isAuthenticated: false, isLoading: false });
     if (typeof window !== 'undefined') window.location.href = '/login';
   }, []);
 
   useEffect(() => {
-    const init = async () => {
-      const { user, token } = getStoredAuthData();
-      if (user && token && isTokenValid(token)) {
-        // Refrescar perfil al cargar la página para asegurar datos actualizados
-        const freshUser = await authService.getUserProfile(user.username || user.id);
-        if (freshUser) {
-          setAuthState({ user: freshUser, isAuthenticated: true, isLoading: false });
-        } else {
-          logout();
-        }
-      } else {
-        setAuthState(prev => ({ ...prev, isLoading: false }));
-      }
-    };
-    init();
-  }, [logout]);
+    // REGLA: Sin LocalStorage, la sesión inicia limpia en cada recarga
+    setAuthState(prev => ({ ...prev, isLoading: false }));
+  }, []);
 
   return (
     <AuthContext.Provider value={{ ...authState, login, logout, updateUser: () => {} }}>
