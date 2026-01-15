@@ -59,9 +59,12 @@ export function UserDropdown() {
   }
 
   const handleProfileClick = () => {
-  // Verificamos que exista el usuario en el contexto de Auth
-  if (user?.usuario) { // Cambia .id por .usuario para que coincida con tu endpoint 
-    router.push(`/profile/${user.usuario}`);
+  // Cambiamos user.usuario por user.username
+  const identifier = user?.username || user?.usuario; 
+  
+  if (identifier) {
+    // IMPORTANTE: Si tu carpeta en app se llama [id], usa /profile/${identifier}
+    router.push(`/profile/${identifier}`);
     setIsOpen(false);
   }
 };

@@ -26,7 +26,9 @@ const Avatar = ({ src, alt, size = 'w-12 h-12' }: AvatarProps) => {
         />
       ) : (
         <span className="text-gray-600 text-sm font-semibold">
-          {alt.split(' ').map(n => n[0]).join('').toUpperCase()}
+        {alt && typeof alt === 'string' 
+  ? alt.split(' ').map(n => n[0]).join('').toUpperCase() 
+  : 'U'}
         </span>
       )}
     </div>

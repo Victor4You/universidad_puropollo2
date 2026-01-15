@@ -42,30 +42,58 @@ export default function Feed() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showStudentsModal, setShowStudentsModal] = useState(false);
 
-  const loadCursos = () => {
-    const savedCursos = localStorage.getItem('lista_cursos_universidad');
-    const savedProgress = localStorage.getItem('progreso_cursos');
-    
-    if (savedCursos) {
-      try {
-        const cursosData = JSON.parse(savedCursos);
-        const completadosIds = savedProgress ? JSON.parse(savedProgress) : [];
-        const dataFinal = cursosData.map((c: any) => ({
+const loadCursos = async () => {
+    if (!user?.id) return;
+
+    try {
+      console.log("Iniciando carga de cursos en /v1...");
+      
+      // 1. Obtener cursos con el prefijo v1
+      const coursesRes = await fetch('http://localhost:3001/v1/courses');
+      const rawData = await coursesRes.json();
+
+      const todosLosCursos = Array.isArray(rawData) 
+        ? rawData 
+        : (rawData.courses || rawData.data || []);
+
+      // 2. Obtener progreso con el prefijo v1
+      const progressRes = await fetch(`http://localhost:3001/v1/courses/user-progress?userId=${user.id}`);
+      const progressData = await progressRes.json();
+      const completadosIds = Array.isArray(progressData) ? progressData : [];
+
+      // 3. Mapear y actualizar estado
+      if (todosLosCursos.length > 0) {
+        const dataFinal = todosLosCursos.map((c: any) => ({
           ...c,
-          completado: completadosIds.includes(c.id) || c.completado
+          id: c.id,
+          nombre: c.nombre || c.title || 'Curso sin nombre',
+          codigo: c.codigo || 'S/C',
+          profesor: c.profesor || 'Staff Universidad',
+          completado: completadosIds.includes(String(c.id)) || completadosIds.includes(Number(c.id))
         }));
+
         setCursos(dataFinal);
-      } catch (e) { console.error(e); }
+      } else {
+        setCursos([]);
+      }
+
+    } catch (e) {
+      console.error("Error crítico en loadCursos:", e);
+      setCursos([]);
     }
   };
 
-  useEffect(() => {
-    if (isAuthenticated) loadCursos();
+useEffect(() => {
+    // Solo cargamos si el usuario ya está autenticado y tenemos su ID
+    if (isAuthenticated && user?.id) {
+      loadCursos();
+    }
+    
     const checkMobile = () => setIsMobile(window.innerWidth < 1024);
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
-  }, [isAuthenticated]);
+  }, [isAuthenticated, user?.id]); // Agregamos user?.id como dependencia
 
   const esAdminOProfesor = userRole === 'admin' || userRole === 'teacher';
 
