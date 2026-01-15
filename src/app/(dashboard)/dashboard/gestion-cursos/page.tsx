@@ -54,6 +54,10 @@ export default function GestionCursosPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
 
+  useEffect(() => {
+  loadData();
+}, []);
+
   // NUEVA FUNCIÓN: Sincronizar con PostgreSQL
   const loadPostgresProgress = async () => {
     try {
@@ -82,52 +86,69 @@ export default function GestionCursosPage() {
     }
   };
 
-useEffect(() => {
-  const loadData = async () => {
-    setLoading(true);
-    
-    // Tus cursos originales (los que ya tienes en el archivo)
-    let misCursos = [...cursosMock]; 
-    const saved = localStorage.getItem('lista_cursos_universidad');
-    if (saved) misCursos = JSON.parse(saved);
+const loadData = async () => {
+  setLoading(true);
+  try {
+    // 1. Traemos los cursos reales de Postgres
+    const res = await axios.get(`http://localhost:3001/v1/courses`);
+    let cursosBase = res.data;
 
-    // Si el usuario está logueado, pedimos el progreso a PostgreSQL
+    // 2. Si el usuario es estudiante, cruzamos con su progreso
     if (user?.id) {
       try {
-        const res = await axios.get(`http://localhost:3001/v1/courses/user-progress?userId=${user.id}`);
-        const completadosIds = res.data; // Array de IDs desde la base de datos
-
-        // Marcamos los cursos completados sin borrar su contenido
-        misCursos = misCursos.map(c => ({
+        const progRes = await axios.get(`http://localhost:3001/v1/courses/user-progress?userId=${user.id}`);
+        const completadosIds = progRes.data;
+        
+        cursosBase = cursosBase.map((c: any) => ({
           ...c,
-          completado: completadosIds.includes(c.id)
+          completado: completadosIds.includes(c.id.toString())
         }));
       } catch (e) {
-        console.error("Error trayendo progreso de Postgres");
+        console.error("Error al traer progreso, mostrando cursos base");
       }
     }
     
-    setCursos(misCursos);
-    setLoading(false);
-  };
-
-  if (!authLoading) loadData();
-}, [user?.id, authLoading]);
+    setCursos(cursosBase);
+  } catch (e) {
+    console.error("Error de conexión:", e);
+    // PLAN DE RESPALDO: Si el backend falla, usamos los mocks para que no quede en blanco
+    setCursos(cursosMock);
+  } finally {
+    // ESTO QUITA EL SPINNER AZUL
+    setLoading(false); 
+  }
+};
 
   // EL RESTO DE TUS FUNCIONES ORIGINALES (SIN CAMBIOS)
-  const handleSaveCourse = (data: any) => {
-    let nuevosCursos;
+const handleSaveCourse = async (courseFormData: any) => {
+  try {
+    const payload = {
+      codigo: courseFormData.codigo,
+      nombre: courseFormData.nombre,
+      profesor: courseFormData.profesor,
+      creditos: Number(courseFormData.creditos),
+      semestre: courseFormData.semestre,
+      // Los campos JSONB:
+      videos: courseFormData.videos, // Array de objetos [{id, title, fileUrl}]
+      pdfs: courseFormData.pdfs,     // Array de objetos [{id, title, fileUrl}]
+      questions: courseFormData.questions, // Array de preguntas
+      duracionExamen: Number(courseFormData.duracionExamen)
+    };
+
     if (selectedCurso) {
-      nuevosCursos = cursos.map(c => c.id === selectedCurso.id ? { ...c, ...data } : c);
+      await axios.put(`http://localhost:3001/v1/courses/${selectedCurso.id}`, payload);
     } else {
-      const nuevo = { ...data, id: Date.now().toString(), estudiantes: 0, estado: 'activo', estudiantesInscritos: [], completado: false };
-      nuevosCursos = [...cursos, nuevo];
+      await axios.post(`http://localhost:3001/v1/courses`, payload);
     }
-    setCursos(nuevosCursos);
-    localStorage.setItem('lista_cursos_universidad', JSON.stringify(nuevosCursos));
+
+    // Refrescar lista
+    const res = await axios.get(`http://localhost:3001/v1/courses`);
+    setCursos(res.data);
     setIsModalOpen(false);
-    setSelectedCurso(null);
-  };
+  } catch (error) {
+    alert("Error al guardar el curso completo.");
+  }
+};
 
   const handleUpdateCourseData = (updatedCourse: Curso) => {
     const nuevosCursos = cursos.map(c => c.id === updatedCourse.id ? updatedCourse : c);
@@ -176,7 +197,8 @@ useEffect(() => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
         {currentItems.map((curso, index) => {
           // TU LÓGICA DE CANDADOS ORIGINAL
-          const estaHabilitado = esAdminOProfesor || index === 0 || !!currentItems[index - 1].completado;
+          const cursoAnteriorCompletado = index === 0 || currentItems[index - 1].completado;
+         const estaHabilitado = esAdminOProfesor || cursoAnteriorCompletado;
 
           return (
             <div key={curso.id} className={`bg-white rounded-2xl border border-gray-100 shadow-sm transition-all flex flex-col overflow-hidden relative ${!estaHabilitado ? 'opacity-60 grayscale' : 'hover:shadow-md'}`}>
@@ -202,8 +224,8 @@ useEffect(() => {
 
               <div className="px-6 py-4 bg-gray-50/50 border-t border-gray-100 flex justify-between items-center">
                 <div className="flex space-x-1">
-                  <button onClick={() => { if (estaHabilitado && !curso.completado) { setSelectedCurso(curso); setShowTestModal(true); } }} className={`p-2 rounded-lg ${ curso.completado? 'text-green-600 bg-green-50 cursor-not-allowed opacity-70': estaHabilitado ? 'text-purple-600 hover:bg-purple-100' : 'text-gray-400 cursor-not-allowed' }`}
-                  title={curso.completado ? "Curso ya completado" : estaHabilitado ? "Abrir curso" : "Curso bloqueado"}> <BookOpen className="w-5 h-5" /></button>
+                  <button onClick={() => { if (estaHabilitado && !curso.completado) { setSelectedCurso(curso); setShowTestModal(true);  } else if (curso.completado && !esAdminOProfesor) {alert("Ya has completado este curso."); } }} className={`p-2 rounded-lg transition-colors ${ curso.completado ? 'text-green-600 bg-green-50' : estaHabilitado ? 'text-purple-600 hover:bg-purple-100'  : 'text-gray-400 cursor-not-allowed'  }`}>
+                  <BookOpen className="w-5 h-5" /> </button>
                   {esAdminOProfesor && (
                     <>
                       <button onClick={() => { setSelectedCurso(curso); setShowStudentsModal(true); }} className="p-2 text-green-600 hover:bg-green-100 rounded-lg"><Users className="w-5 h-5" /></button>

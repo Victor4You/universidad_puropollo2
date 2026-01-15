@@ -508,9 +508,7 @@ export default function CourseTestModal({
                 <div className="fixed inset-0 bg-black/95 z-[70] flex items-center justify-center p-8">
                   <div className="w-full max-w-5xl aspect-video relative">
                     <button
-                      onClick={() => {
-                        setCurrentVideo(null);
-                      }}
+                      onClick={() => setCurrentVideo(null)}
                       className="absolute -top-12 right-0 text-white flex items-center gap-2 font-black tracking-widest text-xs uppercase"
                     >
                       <XMarkIcon /> CERRAR VIDEO
@@ -523,19 +521,15 @@ export default function CourseTestModal({
                       controlsList="nodownload noplaybackrate"
                       className="w-full h-full rounded-3xl bg-black"
                       id="course-video-player"
-                      // --- LÓGICA ANTI-TRAMPA MEJORADA ---
                       onTimeUpdate={(e: any) => {
                         const video = e.target;
-                        // Si intenta adelantar más de 1.5 segundos de golpe (salto manual)
                         if (video.currentTime > lastTimeReached.current + 1.5) {
                           video.currentTime = lastTimeReached.current;
                         } else {
-                          // Si el avance es normal, actualizamos la marca máxima
                           lastTimeReached.current = video.currentTime;
                         }
                       }}
                       onSeeking={(e: any) => {
-                        // Bloqueo inmediato al arrastrar la barra
                         if (e.target.currentTime > lastTimeReached.current) {
                           e.target.currentTime = lastTimeReached.current;
                         }
@@ -546,7 +540,10 @@ export default function CourseTestModal({
                         );
                       }}
                     >
-                      <source src={currentVideo.fileUrl} type="video/mp4" />
+                      {/* FIX: Solo renderiza source si fileUrl existe y no es string vacío */}
+                      {currentVideo?.fileUrl && (
+                        <source src={currentVideo.fileUrl} type="video/mp4" />
+                      )}
                     </video>
                   </div>
                 </div>
@@ -575,11 +572,14 @@ export default function CourseTestModal({
                       className="w-full flex-1 rounded-3xl bg-white overflow-y-auto custom-scrollbar p-2"
                     >
                       <div className="w-full h-[2000px] relative">
-                        <iframe
-                          title={currentPDF.title}
-                          src={currentPDF.fileUrl}
-                          className="w-full h-full rounded-2xl border-none"
-                        />
+                        {/* FIX: Solo renderiza iframe si hay URL para evitar recargas de página */}
+                        {currentPDF?.fileUrl && (
+                          <iframe
+                            title={currentPDF.title}
+                            src={currentPDF.fileUrl}
+                            className="w-full h-full rounded-2xl border-none"
+                          />
+                        )}
                       </div>
                     </div>
 
