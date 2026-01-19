@@ -1,19 +1,28 @@
 // src/app/(dashboard)/dashboard/gestion-cursos/page.tsx
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import axios from 'axios';
-import { 
-  Plus, Search, Edit2, Trash2, Users, 
-  ChevronLeft, ChevronRight, CheckCircle2,
-  BookOpen, Star, Lock as LockIcon, CheckCircle
-} from 'lucide-react';
-import CourseFormModal from '@/components/CourseFormModal';
-import CourseStudentsModal from '@/components/CourseStudentsModal';
-import CourseTestModal from '@/components/test/CourseTestModal';
-import { Loader } from '@/components/ui/Loader/Loader';
-import { useAuth } from '@/hooks/useAuth';
-import { usePermission } from '@/hooks/usePermission';
+import { useState, useEffect } from "react";
+import axios from "axios";
+import {
+  Plus,
+  Search,
+  Edit2,
+  Trash2,
+  Users,
+  ChevronLeft,
+  ChevronRight,
+  CheckCircle2,
+  BookOpen,
+  Star,
+  Lock as LockIcon,
+  CheckCircle,
+} from "lucide-react";
+import CourseFormModal from "@/components/CourseFormModal";
+import CourseStudentsModal from "@/components/CourseStudentsModal";
+import CourseTestModal from "@/components/test/CourseTestModal";
+import { Loader } from "@/components/ui/Loader/Loader";
+import { useAuth } from "@/hooks/useAuth";
+import { usePermission } from "@/hooks/usePermission";
 
 interface Curso {
   id: string;
@@ -22,9 +31,9 @@ interface Curso {
   creditos: number;
   semestre: string;
   profesor: string;
-  estado: 'activo' | 'inactivo';
+  estado: "activo" | "inactivo";
   estudiantes: number;
-  estudiantesInscritos?: any[]; 
+  estudiantesInscritos?: any[];
   completado?: boolean;
   calificacion?: number;
   videos?: any[];
@@ -35,8 +44,28 @@ interface Curso {
 
 // Tus cursos Mock originales
 const cursosMock: Curso[] = [
-  { id: '1', codigo: 'ASC-001', nombre: 'TALLER ATENCION Y SERVICIO AL CLIENTE', creditos: 4, semestre: '2024-I', profesor: 'Carlos Mendoza', estado: 'activo', estudiantes: 45, completado: false },
-  { id: '2', codigo: 'BPM-002', nombre: 'INDUCCIÓN A LAS BUENAS PRACTICAS DE MANUFACTURA', creditos: 5, semestre: '2024-I', profesor: 'Ana López', estado: 'activo', estudiantes: 38, completado: false },
+  {
+    id: "1",
+    codigo: "ASC-001",
+    nombre: "TALLER ATENCION Y SERVICIO AL CLIENTE",
+    creditos: 4,
+    semestre: "2024-I",
+    profesor: "Carlos Mendoza",
+    estado: "activo",
+    estudiantes: 45,
+    completado: false,
+  },
+  {
+    id: "2",
+    codigo: "BPM-002",
+    nombre: "INDUCCIÓN A LAS BUENAS PRACTICAS DE MANUFACTURA",
+    creditos: 5,
+    semestre: "2024-I",
+    profesor: "Ana López",
+    estado: "activo",
+    estudiantes: 38,
+    completado: false,
+  },
 ];
 
 export default function GestionCursosPage() {
@@ -45,35 +74,41 @@ export default function GestionCursosPage() {
 
   const [cursos, setCursos] = useState<Curso[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCurso, setSelectedCurso] = useState<Curso | null>(null);
   const [showStudentsModal, setShowStudentsModal] = useState(false);
   const [showTestModal, setShowTestModal] = useState(false);
-  
+
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
 
   useEffect(() => {
-  loadData();
-}, []);
+    if (!authLoading && user) {
+      loadData();
+    }
+  }, [user, authLoading]);
 
   // NUEVA FUNCIÓN: Sincronizar con PostgreSQL
   const loadPostgresProgress = async () => {
     try {
       setLoading(true);
       // 1. Obtener cursos de LocalStorage (tus datos actuales)
-      const savedCursos = localStorage.getItem('lista_cursos_universidad');
-      const baseCursos: Curso[] = savedCursos ? JSON.parse(savedCursos) : cursosMock;
+      const savedCursos = localStorage.getItem("lista_cursos_universidad");
+      const baseCursos: Curso[] = savedCursos
+        ? JSON.parse(savedCursos)
+        : cursosMock;
 
       // 2. Si hay usuario, traer progreso de Postgres
       if (user?.id) {
-        const response = await axios.get(`http://localhost:3001/v1/courses/user-progress?userId=${user.id}`);
+        const response = await axios.get(
+          `http://localhost:3001/v1/courses/user-progress?userId=${user.id}`
+        );
         const completadosIds = response.data; // Array de IDs: ["1", "3"]
 
-        const actualizados = baseCursos.map(c => ({
+        const actualizados = baseCursos.map((c) => ({
           ...c,
-          completado: completadosIds.includes(c.id)
+          completado: completadosIds.includes(c.id),
         }));
         setCursos(actualizados);
       } else {
@@ -86,104 +121,148 @@ export default function GestionCursosPage() {
     }
   };
 
-const loadData = async () => {
-  setLoading(true);
-  try {
-    // 1. Traemos los cursos reales de Postgres
-    const res = await axios.get(`http://localhost:3001/v1/courses`);
-    let cursosBase = res.data;
+  const loadData = async () => {
+    if (authLoading || !user) return;
 
-    // 2. Si el usuario es estudiante, cruzamos con su progreso
-    if (user?.id) {
-      try {
-        const progRes = await axios.get(`http://localhost:3001/v1/courses/user-progress?userId=${user.id}`);
-        const completadosIds = progRes.data;
-        
-        cursosBase = cursosBase.map((c: any) => ({
-          ...c,
-          completado: completadosIds.includes(c.id.toString())
-        }));
-      } catch (e) {
-        console.error("Error al traer progreso, mostrando cursos base");
+    setLoading(true);
+    try {
+      const isAdminOProfesor = isRole("admin") || isRole("teacher");
+
+      // VALIDACIÓN: Si es estudiante y no hay ID, no disparamos la petición
+      if (!isAdminOProfesor && !user.id) {
+        console.error("ID de usuario no disponible para carga de cursos");
+        return;
       }
+
+      const url = isAdminOProfesor
+        ? `http://localhost:3001/v1/courses`
+        : `http://localhost:3001/v1/courses/enrolled/${user.id}`;
+
+      const res = await axios.get(url);
+      let cursosBase = res.data;
+
+      // 3. Cruzamos con el progreso (solo si es estudiante)
+      if (!isAdminOProfesor && user?.id) {
+        try {
+          const progRes = await axios.get(
+            `http://localhost:3001/v1/courses/user-progress?userId=${user.id}`
+          );
+          const completadosIds = progRes.data; // Ej: ["1", "3"]
+
+          cursosBase = cursosBase.map((c: any) => ({
+            ...c,
+            completado: completadosIds.includes(c.id.toString()),
+          }));
+        } catch (e) {
+          console.error("Error al traer progreso");
+        }
+      }
+
+      setCursos(cursosBase);
+    } catch (e) {
+      console.error("Error de conexión:", e);
+      // Solo mostramos mocks si la API falla totalmente
+      setCursos(cursosMock);
+    } finally {
+      setLoading(false);
     }
-    
-    setCursos(cursosBase);
-  } catch (e) {
-    console.error("Error de conexión:", e);
-    // PLAN DE RESPALDO: Si el backend falla, usamos los mocks para que no quede en blanco
-    setCursos(cursosMock);
-  } finally {
-    // ESTO QUITA EL SPINNER AZUL
-    setLoading(false); 
-  }
-};
+  };
 
   // EL RESTO DE TUS FUNCIONES ORIGINALES (SIN CAMBIOS)
-const handleSaveCourse = async (courseFormData: any) => {
-  try {
-    const payload = {
-      codigo: courseFormData.codigo,
-      nombre: courseFormData.nombre,
-      profesor: courseFormData.profesor,
-      creditos: Number(courseFormData.creditos),
-      semestre: courseFormData.semestre,
-      // Los campos JSONB:
-      videos: courseFormData.videos, // Array de objetos [{id, title, fileUrl}]
-      pdfs: courseFormData.pdfs,     // Array de objetos [{id, title, fileUrl}]
-      questions: courseFormData.questions, // Array de preguntas
-      duracionExamen: Number(courseFormData.duracionExamen)
-    };
+  const handleSaveCourse = async (courseFormData: any) => {
+    try {
+      const payload = {
+        codigo: courseFormData.codigo,
+        nombre: courseFormData.nombre,
+        profesor: courseFormData.profesor,
+        creditos: Number(courseFormData.creditos),
+        semestre: courseFormData.semestre,
+        // Los campos JSONB:
+        videos: courseFormData.videos, // Array de objetos [{id, title, fileUrl}]
+        pdfs: courseFormData.pdfs, // Array de objetos [{id, title, fileUrl}]
+        questions: courseFormData.questions, // Array de preguntas
+        duracionExamen: Number(courseFormData.duracionExamen),
+      };
 
-    if (selectedCurso) {
-      await axios.put(`http://localhost:3001/v1/courses/${selectedCurso.id}`, payload);
-    } else {
-      await axios.post(`http://localhost:3001/v1/courses`, payload);
+      if (selectedCurso) {
+        await axios.put(
+          `http://localhost:3001/v1/courses/${selectedCurso.id}`,
+          payload
+        );
+      } else {
+        await axios.post(`http://localhost:3001/v1/courses`, payload);
+      }
+
+      // Refrescar lista
+      const res = await axios.get(`http://localhost:3001/v1/courses`);
+      setCursos(res.data);
+      setIsModalOpen(false);
+    } catch (error) {
+      alert("Error al guardar el curso completo.");
     }
-
-    // Refrescar lista
-    const res = await axios.get(`http://localhost:3001/v1/courses`);
-    setCursos(res.data);
-    setIsModalOpen(false);
-  } catch (error) {
-    alert("Error al guardar el curso completo.");
-  }
-};
+  };
 
   const handleUpdateCourseData = (updatedCourse: Curso) => {
-    const nuevosCursos = cursos.map(c => c.id === updatedCourse.id ? updatedCourse : c);
+    const nuevosCursos = cursos.map((c) =>
+      c.id === updatedCourse.id ? updatedCourse : c
+    );
     setCursos(nuevosCursos);
-    localStorage.setItem('lista_cursos_universidad', JSON.stringify(nuevosCursos));
+    localStorage.setItem(
+      "lista_cursos_universidad",
+      JSON.stringify(nuevosCursos)
+    );
   };
 
   const handleDeleteCourse = (id: string) => {
-    if (confirm('¿Estás seguro de que deseas eliminar este curso?')) {
-      const nuevosCursos = cursos.filter(c => c.id !== id);
+    if (confirm("¿Estás seguro de que deseas eliminar este curso?")) {
+      const nuevosCursos = cursos.filter((c) => c.id !== id);
       setCursos(nuevosCursos);
-      localStorage.setItem('lista_cursos_universidad', JSON.stringify(nuevosCursos));
+      localStorage.setItem(
+        "lista_cursos_universidad",
+        JSON.stringify(nuevosCursos)
+      );
     }
   };
 
-  const esAdminOProfesor = isRole('admin') || isRole('teacher');
-  const filteredCursos = cursos.filter(curso =>
-    curso.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    curso.codigo.toLowerCase().includes(searchTerm.toLowerCase())
+  const esAdminOProfesor = isRole("admin") || isRole("teacher");
+  const filteredCursos = cursos.filter(
+    (curso) =>
+      curso.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      curso.codigo.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const currentItems = filteredCursos.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const currentItems = filteredCursos.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
   const totalPages = Math.ceil(filteredCursos.length / itemsPerPage);
 
-  if (authLoading || loading) return <div className="flex justify-center items-center min-h-[400px]"><Loader /></div>;
+  if (authLoading || loading)
+    return (
+      <div className="flex justify-center items-center min-h-[400px]">
+        <Loader />
+      </div>
+    );
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Gestión de Cursos</h1>
-          <p className="text-gray-500">Administra y supervisa los cursos de la plataforma</p>
+          <h1 className="text-3xl font-bold text-gray-900">
+            Gestión de Cursos
+          </h1>
+          <p className="text-gray-500">
+            Administra y supervisa los cursos de la plataforma
+          </p>
         </div>
         {esAdminOProfesor && (
-          <button onClick={() => { setSelectedCurso(null); setIsModalOpen(true); }} className="flex items-center justify-center px-5 py-2.5 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all active:scale-95">
+          <button
+            onClick={() => {
+              setSelectedCurso(null);
+              setIsModalOpen(true);
+            }}
+            className="flex items-center justify-center px-5 py-2.5 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all active:scale-95"
+          >
             <Plus className="w-5 h-5 mr-2" /> Nuevo Curso
           </button>
         )}
@@ -191,50 +270,114 @@ const handleSaveCourse = async (courseFormData: any) => {
 
       <div className="relative mb-8 max-w-md">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-        <input type="text" placeholder="Buscar curso..." className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-2xl shadow-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all" value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }} />
+        <input
+          type="text"
+          placeholder="Buscar curso..."
+          className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-2xl shadow-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+          value={searchTerm}
+          onChange={(e) => {
+            setSearchTerm(e.target.value);
+            setCurrentPage(1);
+          }}
+        />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
         {currentItems.map((curso, index) => {
           // TU LÓGICA DE CANDADOS ORIGINAL
-          const cursoAnteriorCompletado = index === 0 || currentItems[index - 1].completado;
-         const estaHabilitado = esAdminOProfesor || cursoAnteriorCompletado;
+          const cursoAnteriorCompletado =
+            index === 0 || currentItems[index - 1].completado;
+          const estaHabilitado = esAdminOProfesor || cursoAnteriorCompletado;
 
           return (
-            <div key={curso.id} className={`bg-white rounded-2xl border border-gray-100 shadow-sm transition-all flex flex-col overflow-hidden relative ${!estaHabilitado ? 'opacity-60 grayscale' : 'hover:shadow-md'}`}>
+            <div
+              key={curso.id}
+              className={`bg-white rounded-2xl border border-gray-100 shadow-sm transition-all flex flex-col overflow-hidden relative ${!estaHabilitado ? "opacity-60 grayscale" : "hover:shadow-md"}`}
+            >
               {!estaHabilitado && (
                 <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/10 backdrop-blur-[1px]">
                   <LockIcon className="w-8 h-8 text-gray-400" />
                 </div>
               )}
-              
+
               <div className="p-6 flex-grow">
                 <div className="flex justify-between items-start mb-4">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 bg-gray-50 px-2 py-1 rounded">{curso.codigo}</span>
-                  <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${curso.estado === 'activo' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>{curso.estado}</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 bg-gray-50 px-2 py-1 rounded">
+                    {curso.codigo}
+                  </span>
+                  <span
+                    className={`px-2.5 py-1 rounded-full text-xs font-bold ${curso.estado === "activo" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}`}
+                  >
+                    {curso.estado}
+                  </span>
                 </div>
-                <h3 className="text-lg font-bold text-gray-900 mb-1 leading-tight">{curso.nombre}</h3>
-                <p className="text-gray-500 text-sm mb-4 flex items-center"><Users className="w-4 h-4 mr-1.5" /> {curso.profesor}</p>
+                <h3 className="text-lg font-bold text-gray-900 mb-1 leading-tight">
+                  {curso.nombre}
+                </h3>
+                <p className="text-gray-500 text-sm mb-4 flex items-center">
+                  <Users className="w-4 h-4 mr-1.5" /> {curso.profesor}
+                </p>
                 <div className="flex items-center gap-3">
-                  <div className="text-[11px] font-bold text-gray-500 bg-gray-50 px-2 py-1 rounded border border-gray-100 uppercase">{curso.creditos} CRÉDITOS</div>
-                  <div className="text-[11px] font-bold text-gray-500 bg-gray-50 px-2 py-1 rounded border border-gray-100">{curso.semestre}</div>
-                  <div className="flex items-center text-[11px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded border border-blue-100 uppercase"><Users className="w-3 h-3 mr-1" />{curso.estudiantes || 0} Registrados</div>
+                  <div className="text-[11px] font-bold text-gray-500 bg-gray-50 px-2 py-1 rounded border border-gray-100 uppercase">
+                    {curso.creditos} CRÉDITOS
+                  </div>
+                  <div className="text-[11px] font-bold text-gray-500 bg-gray-50 px-2 py-1 rounded border border-gray-100">
+                    {curso.semestre}
+                  </div>
+                  <div className="flex items-center text-[11px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded border border-blue-100 uppercase">
+                    <Users className="w-3 h-3 mr-1" />
+                    {curso.estudiantes || 0} Registrados
+                  </div>
                 </div>
               </div>
 
               <div className="px-6 py-4 bg-gray-50/50 border-t border-gray-100 flex justify-between items-center">
                 <div className="flex space-x-1">
-                  <button onClick={() => { if (estaHabilitado && !curso.completado) { setSelectedCurso(curso); setShowTestModal(true);  } else if (curso.completado && !esAdminOProfesor) {alert("Ya has completado este curso."); } }} className={`p-2 rounded-lg transition-colors ${ curso.completado ? 'text-green-600 bg-green-50' : estaHabilitado ? 'text-purple-600 hover:bg-purple-100'  : 'text-gray-400 cursor-not-allowed'  }`}>
-                  <BookOpen className="w-5 h-5" /> </button>
+                  <button
+                    onClick={() => {
+                      if (estaHabilitado && !curso.completado) {
+                        setSelectedCurso(curso);
+                        setShowTestModal(true);
+                      } else if (curso.completado && !esAdminOProfesor) {
+                        alert("Ya has completado este curso.");
+                      }
+                    }}
+                    className={`p-2 rounded-lg transition-colors ${curso.completado ? "text-green-600 bg-green-50" : estaHabilitado ? "text-purple-600 hover:bg-purple-100" : "text-gray-400 cursor-not-allowed"}`}
+                  >
+                    <BookOpen className="w-5 h-5" />{" "}
+                  </button>
                   {esAdminOProfesor && (
                     <>
-                      <button onClick={() => { setSelectedCurso(curso); setShowStudentsModal(true); }} className="p-2 text-green-600 hover:bg-green-100 rounded-lg"><Users className="w-5 h-5" /></button>
-                      <button onClick={() => { setSelectedCurso(curso); setIsModalOpen(true); }} className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg"><Edit2 className="w-5 h-5" /></button>
-                      <button onClick={() => handleDeleteCourse(curso.id)} className="p-2 text-red-600 hover:bg-red-100 rounded-lg"><Trash2 className="w-5 h-5" /></button>
+                      <button
+                        onClick={() => {
+                          setSelectedCurso(curso);
+                          setShowStudentsModal(true);
+                        }}
+                        className="p-2 text-green-600 hover:bg-green-100 rounded-lg"
+                      >
+                        <Users className="w-5 h-5" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedCurso(curso);
+                          setIsModalOpen(true);
+                        }}
+                        className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg"
+                      >
+                        <Edit2 className="w-5 h-5" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteCourse(curso.id)}
+                        className="p-2 text-red-600 hover:bg-red-100 rounded-lg"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
                     </>
                   )}
                 </div>
-                {curso.completado && <CheckCircle2 className="w-6 h-6 text-green-500" />}
+                {curso.completado && (
+                  <CheckCircle2 className="w-6 h-6 text-green-500" />
+                )}
               </div>
             </div>
           );
@@ -243,18 +386,51 @@ const handleSaveCourse = async (courseFormData: any) => {
 
       {totalPages > 1 && (
         <div className="flex justify-center gap-2 mb-10">
-          <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} className="p-2 rounded-lg border hover:bg-white"><ChevronLeft className="w-5 h-5"/></button>
-          <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} className="p-2 rounded-lg border hover:bg-white"><ChevronRight className="w-5 h-5"/></button>
+          <button
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            className="p-2 rounded-lg border hover:bg-white"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <button
+            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            className="p-2 rounded-lg border hover:bg-white"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
         </div>
       )}
 
-      {isModalOpen && <CourseFormModal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setSelectedCurso(null); }} courseData={selectedCurso} onSave={handleSaveCourse} />}
-      {showStudentsModal && selectedCurso && <CourseStudentsModal isOpen={showStudentsModal} onClose={() => { setShowStudentsModal(false); setSelectedCurso(null); }} courseData={selectedCurso} onUpdateCourse={handleUpdateCourseData} />}
+      {isModalOpen && (
+        <CourseFormModal
+          isOpen={isModalOpen}
+          onClose={() => {
+            setIsModalOpen(false);
+            setSelectedCurso(null);
+          }}
+          courseData={selectedCurso}
+          onSave={handleSaveCourse}
+        />
+      )}
+      {showStudentsModal && selectedCurso && (
+        <CourseStudentsModal
+          isOpen={showStudentsModal}
+          onClose={() => {
+            setShowStudentsModal(false);
+            setSelectedCurso(null);
+          }}
+          courseData={selectedCurso}
+          onUpdateCourse={loadData} // CAMBIA handleUpdateCourseData por loadData
+        />
+      )}
       {showTestModal && selectedCurso && (
-        <CourseTestModal 
-          isOpen={showTestModal} 
-          onClose={() => { setShowTestModal(false); setSelectedCurso(null); }} 
-          courseData={selectedCurso} 
+        <CourseTestModal
+          isOpen={showTestModal}
+          onClose={() => {
+            setShowTestModal(false);
+            setSelectedCurso(null);
+          }}
+          courseData={selectedCurso}
           onSuccess={() => loadPostgresProgress()} // Sincroniza al terminar
         />
       )}
