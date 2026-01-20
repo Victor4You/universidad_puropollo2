@@ -128,7 +128,6 @@ export default function GestionCursosPage() {
     try {
       const isAdminOProfesor = isRole("admin") || isRole("teacher");
 
-      // VALIDACIÓN: Si es estudiante y no hay ID, no disparamos la petición
       if (!isAdminOProfesor && !user.id) {
         console.error("ID de usuario no disponible para carga de cursos");
         return;
@@ -141,17 +140,19 @@ export default function GestionCursosPage() {
       const res = await axios.get(url);
       let cursosBase = res.data;
 
-      // 3. Cruzamos con el progreso (solo si es estudiante)
+      // Sincronización de progreso (Solo para estudiantes)
       if (!isAdminOProfesor && user?.id) {
         try {
           const progRes = await axios.get(
             `http://localhost:3001/v1/courses/user-progress?userId=${user.id}`
           );
-          const completadosIds = progRes.data; // Ej: ["1", "3"]
+          const completadosIds = Array.isArray(progRes.data)
+            ? progRes.data.map((id: any) => String(id))
+            : [];
 
           cursosBase = cursosBase.map((c: any) => ({
             ...c,
-            completado: completadosIds.includes(c.id.toString()),
+            completado: completadosIds.includes(String(c.id)),
           }));
         } catch (e) {
           console.error("Error al traer progreso");
@@ -161,8 +162,7 @@ export default function GestionCursosPage() {
       setCursos(cursosBase);
     } catch (e) {
       console.error("Error de conexión:", e);
-      // Solo mostramos mocks si la API falla totalmente
-      setCursos(cursosMock);
+      setCursos(cursosMock); // Fallback a mocks si falla la API
     } finally {
       setLoading(false);
     }
@@ -177,15 +177,17 @@ export default function GestionCursosPage() {
         profesor: courseFormData.profesor,
         creditos: Number(courseFormData.creditos),
         semestre: courseFormData.semestre,
-        // Los campos JSONB:
-        videos: courseFormData.videos, // Array de objetos [{id, title, fileUrl}]
-        pdfs: courseFormData.pdfs, // Array de objetos [{id, title, fileUrl}]
-        questions: courseFormData.questions, // Array de preguntas
+        estado: courseFormData.estado, // Añadido para persistir el estado (activo/inactivo)
+        fechaLimite: courseFormData.fechaLimite, // Añadido para persistir la fecha límite
+        videos: courseFormData.videos,
+        pdfs: courseFormData.pdfs,
+        questions: courseFormData.questions,
         duracionExamen: Number(courseFormData.duracionExamen),
       };
 
       if (selectedCurso) {
-        await axios.put(
+        // CAMBIO CLAVE: Se cambia .put por .patch para coincidir con el backend
+        await axios.patch(
           `http://localhost:3001/v1/courses/${selectedCurso.id}`,
           payload
         );
@@ -193,11 +195,15 @@ export default function GestionCursosPage() {
         await axios.post(`http://localhost:3001/v1/courses`, payload);
       }
 
-      // Refrescar lista
+      // Refrescar lista de cursos
       const res = await axios.get(`http://localhost:3001/v1/courses`);
+
+      // Asegúrate de que los datos vengan formateados si tu service hace el map de 'estudiantes'
       setCursos(res.data);
       setIsModalOpen(false);
+      setSelectedCurso(null); // Limpiar selección tras guardar
     } catch (error) {
+      console.error("Error detallado:", error);
       alert("Error al guardar el curso completo.");
     }
   };
@@ -295,9 +301,15 @@ export default function GestionCursosPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
         {currentItems.map((curso, index) => {
           // TU LÓGICA DE CANDADOS ORIGINAL
+          const ahora = new Date();
+          const fechaLimiteObj = curso.fechaLimite
+            ? new Date(curso.fechaLimite)
+            : null;
+          const estaExpirado = fechaLimiteObj ? ahora > fechaLimiteObj : false;
           const cursoAnteriorCompletado =
             index === 0 || currentItems[index - 1].completado;
-          const estaHabilitado = esAdminOProfesor || cursoAnteriorCompletado;
+          const estaHabilitado =
+            esAdminOProfesor || (cursoAnteriorCompletado && !estaExpirado);
 
           return (
             <div
@@ -331,8 +343,16 @@ export default function GestionCursosPage() {
                   <div className="text-[11px] font-bold text-gray-500 bg-gray-50 px-2 py-1 rounded border border-gray-100 uppercase">
                     {curso.creditos} CRÉDITOS
                   </div>
-                  <div className="text-[11px] font-bold text-gray-500 bg-gray-50 px-2 py-1 rounded border border-gray-100">
-                    {curso.semestre}
+                  <div
+                    className={estaExpirado ? "text-red-600" : "text-gray-500"}
+                  >
+                    {estaExpirado
+                      ? "EXPIRADO"
+                      : `LÍMITE: ${
+                          curso.fechaLimite
+                            ? new Date(curso.fechaLimite).toLocaleDateString()
+                            : "SIN FECHA"
+                        }`}
                   </div>
                   <div className="flex items-center text-[11px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded border border-blue-100 uppercase">
                     <Users className="w-3 h-3 mr-1" />

@@ -3,8 +3,9 @@
 
 import { Fragment, useState, useEffect } from "react";
 import { Dialog, Transition } from "@headlessui/react";
+import axios from "axios";
 
-// TUS ÍCONOS ORIGINALES (SIN CAMBIOS)
+// TUS ÍCONOS ORIGINALES
 const XMarkIcon = () => (
   <svg
     className="h-6 w-6"
@@ -42,7 +43,6 @@ export default function CourseFormModal({
   courseData,
   onSave,
 }: any) {
-  // ESTADOS PARA DATOS DE LA TARJETA
   const [nombre, setNombre] = useState("");
   const [codigo, setCodigo] = useState("");
   const [profesor, setProfesor] = useState("");
@@ -50,19 +50,15 @@ export default function CourseFormModal({
   const [semestre, setSemestre] = useState("");
   const [estado, setEstado] = useState("activo");
   const [duracion, setDuracion] = useState(30);
+  const [fechaLimite, setFechaLimite] = useState("");
   const [createdAt, setCreatedAt] = useState(
     new Date().toISOString().split("T")[0]
   );
-  const [updatedAt, setUpdatedAt] = useState(
-    new Date().toISOString().split("T")[0]
-  );
 
-  // ESTADOS PARA CONTENIDO
   const [videos, setVideos] = useState<any[]>([]);
   const [pdfs, setPdfs] = useState<any[]>([]);
   const [questions, setQuestions] = useState<any[]>([]);
 
-  // Sincronización dinámica al abrir/editar
   useEffect(() => {
     if (isOpen) {
       if (courseData) {
@@ -73,13 +69,28 @@ export default function CourseFormModal({
         setSemestre(courseData.semestre || "");
         setEstado(courseData.estado || "activo");
         setDuracion(courseData.duracionExamen || 30);
-        // Aseguramos que si vienen de Postgres como null, sean arrays
+
+        // CORRECCIÓN: Formato exacto para datetime-local (YYYY-MM-DDTHH:mm)
+        if (courseData.fechaLimite) {
+          const date = new Date(courseData.fechaLimite);
+          const formatted = date.toISOString().slice(0, 16);
+          setFechaLimite(formatted);
+        } else {
+          setFechaLimite("");
+        }
+
+        if (courseData.createdAt) {
+          setCreatedAt(
+            new Date(courseData.createdAt).toISOString().split("T")[0]
+          );
+        }
+
         setVideos(Array.isArray(courseData.videos) ? courseData.videos : []);
         setPdfs(Array.isArray(courseData.pdfs) ? courseData.pdfs : []);
         setQuestions(
           Array.isArray(courseData.questions) ? courseData.questions : []
         );
-      } else {  
+      } else {
         setNombre("");
         setCodigo("");
         setProfesor("");
@@ -87,12 +98,42 @@ export default function CourseFormModal({
         setSemestre("");
         setEstado("activo");
         setDuracion(30);
+        setFechaLimite("");
         setVideos([]);
         setPdfs([]);
         setQuestions([]);
       }
     }
   }, [courseData, isOpen]);
+
+  const handleFileUpload = async (
+    index: number,
+    type: "video" | "pdf",
+    fileRaw: File
+  ) => {
+    try {
+      const formData = new FormData();
+      formData.append("file", fileRaw);
+      const res = await axios.post(
+        "http://localhost:3001/v1/courses/upload",
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        }
+      );
+      if (type === "video") {
+        const newVideos = [...videos];
+        newVideos[index].fileUrl = res.data.url;
+        setVideos(newVideos);
+      } else {
+        const newPdfs = [...pdfs];
+        newPdfs[index].fileUrl = res.data.url;
+        setPdfs(newPdfs);
+      }
+    } catch (error) {
+      console.error("Error subiendo archivo", error);
+    }
+  };
 
   const handleUpdateQuestion = (id: string, field: string, value: any) => {
     setQuestions(
@@ -121,13 +162,10 @@ export default function CourseFormModal({
     );
   };
 
-  // src/components/CourseFormModal.tsx (Resumen de cambios clave)
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Creamos el objeto con los estados que ya tienes definidos arriba
     const payload = {
+      id: courseData?.id,
       nombre,
       codigo,
       profesor,
@@ -135,12 +173,11 @@ export default function CourseFormModal({
       semestre,
       estado,
       duracionExamen: Number(duracion),
-      videos, // Ya es un array por tus estados
-      pdfs, // Ya es un array por tus estados
-      questions, // Ya es un array por tus estados
+      fechaLimite,
+      videos,
+      pdfs,
+      questions,
     };
-
-    // Enviamos a la función onSave que definimos en la página principal
     onSave(payload);
   };
 
@@ -169,7 +206,6 @@ export default function CourseFormModal({
                 onSubmit={handleSubmit}
                 className="space-y-10 max-h-[75vh] overflow-y-auto pr-4 custom-scrollbar"
               >
-                {/* 1. INFORMACIÓN DE LA TARJETA */}
                 <div className="bg-gray-50 p-6 rounded-3xl space-y-6 border border-gray-100">
                   <h4 className="text-xs font-black text-blue-600 uppercase tracking-widest">
                     1. Datos de la Tarjeta e Identificación
@@ -268,6 +304,8 @@ export default function CourseFormModal({
                       />
                     </div>
                   </div>
+
+                  {/* SECCIÓN DE FECHAS REORGANIZADA SEGÚN TU PETICIÓN */}
                   <div className="grid grid-cols-2 gap-4 mb-6">
                     <div>
                       <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
@@ -276,26 +314,26 @@ export default function CourseFormModal({
                       <input
                         type="date"
                         value={createdAt}
-                        onChange={(e) => setCreatedAt(e.target.value)}
-                        className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-blue-500 transition-all"
+                        readOnly
+                        className="w-full bg-gray-100 border-none rounded-xl px-4 py-3 text-sm font-bold text-gray-500 cursor-not-allowed outline-none"
                       />
                     </div>
-                    <div>
-                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
-                        Última Modificación
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                        Fecha Límite para completar
                       </label>
                       <input
-                        type="date"
-                        value={updatedAt}
-                        onChange={(e) => setUpdatedAt(e.target.value)}
-                        className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-blue-500 transition-all"
+                        type="datetime-local"
+                        value={fechaLimite}
+                        onChange={(e) => setFechaLimite(e.target.value)}
+                        className="w-full px-4 py-2 border-2 border-blue-500 rounded-xl outline-none font-bold bg-white shadow-sm"
                       />
                     </div>
                   </div>
                 </div>
 
                 {/* 2. CONTENIDO MULTIMEDIA */}
-                <div className="grid grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-4">
                     <h4 className="font-black text-blue-600 text-xs uppercase tracking-widest">
                       2. Videos del Curso
@@ -303,7 +341,7 @@ export default function CourseFormModal({
                     {videos.map((v, i) => (
                       <div
                         key={v.id}
-                        className="p-4 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200 relative group"
+                        className="p-4 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200 relative group space-y-2"
                       >
                         <input
                           value={v.title}
@@ -315,16 +353,37 @@ export default function CourseFormModal({
                           placeholder="Título Video"
                           className="w-full bg-transparent font-bold text-sm outline-none"
                         />
-                        <input
-                          value={v.fileUrl}
-                          onChange={(e) => {
-                            const n = [...videos];
-                            n[i].fileUrl = e.target.value;
-                            setVideos(n);
-                          }}
-                          placeholder="URL .mp4"
-                          className="w-full bg-transparent text-xs text-blue-500 outline-none"
-                        />
+                        <div className="flex gap-2 items-center">
+                          <input
+                            value={v.fileUrl}
+                            onChange={(e) => {
+                              const n = [...videos];
+                              n[i].fileUrl = e.target.value;
+                              setVideos(n);
+                            }}
+                            placeholder="URL .mp4"
+                            className="flex-1 bg-white px-2 py-1 rounded text-xs text-blue-500 outline-none border"
+                          />
+                          <input
+                            type="file"
+                            id={`vid-${i}`}
+                            className="hidden"
+                            accept="video/*"
+                            onChange={(e) =>
+                              e.target.files?.[0] &&
+                              handleFileUpload(i, "video", e.target.files[0])
+                            }
+                          />
+                          <button
+                            type="button"
+                            onClick={() =>
+                              document.getElementById(`vid-${i}`)?.click()
+                            }
+                            className="text-[10px] bg-blue-600 text-white px-2 py-1 rounded-lg font-bold"
+                          >
+                            SUBIR
+                          </button>
+                        </div>
                         <button
                           type="button"
                           onClick={() =>
@@ -357,7 +416,7 @@ export default function CourseFormModal({
                     {pdfs.map((p, i) => (
                       <div
                         key={p.id}
-                        className="p-4 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200 relative group"
+                        className="p-4 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200 relative group space-y-2"
                       >
                         <input
                           value={p.title}
@@ -369,16 +428,37 @@ export default function CourseFormModal({
                           placeholder="Título PDF"
                           className="w-full bg-transparent font-bold text-sm outline-none"
                         />
-                        <input
-                          value={p.fileUrl}
-                          onChange={(e) => {
-                            const n = [...pdfs];
-                            n[i].fileUrl = e.target.value;
-                            setPdfs(n);
-                          }}
-                          placeholder="URL .pdf"
-                          className="w-full bg-transparent text-xs text-red-500 outline-none"
-                        />
+                        <div className="flex gap-2 items-center">
+                          <input
+                            value={p.fileUrl}
+                            onChange={(e) => {
+                              const n = [...pdfs];
+                              n[i].fileUrl = e.target.value;
+                              setPdfs(n);
+                            }}
+                            placeholder="URL .pdf"
+                            className="flex-1 bg-white px-2 py-1 rounded text-xs text-red-500 outline-none border"
+                          />
+                          <input
+                            type="file"
+                            id={`pdf-${i}`}
+                            className="hidden"
+                            accept=".pdf"
+                            onChange={(e) =>
+                              e.target.files?.[0] &&
+                              handleFileUpload(i, "pdf", e.target.files[0])
+                            }
+                          />
+                          <button
+                            type="button"
+                            onClick={() =>
+                              document.getElementById(`pdf-${i}`)?.click()
+                            }
+                            className="text-[10px] bg-red-600 text-white px-2 py-1 rounded-lg font-bold"
+                          >
+                            SUBIR
+                          </button>
+                        </div>
                         <button
                           type="button"
                           onClick={() =>
@@ -452,7 +532,6 @@ export default function CourseFormModal({
                           <option value="open">Pregunta Abierta</option>
                         </select>
                       </div>
-
                       <input
                         value={q.question}
                         onChange={(e) =>
@@ -461,7 +540,6 @@ export default function CourseFormModal({
                         placeholder="Enunciado de la pregunta"
                         className="w-full text-lg font-bold outline-none border-b-2 border-transparent focus:border-blue-500 transition-colors bg-transparent"
                       />
-
                       {q.type === "closed" && (
                         <div className="space-y-3 pt-2">
                           <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
@@ -525,7 +603,6 @@ export default function CourseFormModal({
                   ))}
                 </div>
 
-                {/* BOTONES DE ACCIÓN */}
                 <div className="flex justify-end gap-4 pt-8 border-t">
                   <button
                     type="button"

@@ -77,50 +77,47 @@ export default function Feed() {
     if (!user?.id) return;
 
     try {
-      // 1. Limpiamos para evitar residuos visuales
-      setCursos([]);
+      // 1. Determinar el endpoint según el rol del usuario
+      const endpoint =
+        userRole === "student"
+          ? `http://localhost:3001/v1/courses/enrolled/${user.id}`
+          : "http://localhost:3001/v1/courses";
 
-      // 2. Normalizamos la detección del rol (quitamos espacios o mayúsculas imprevistas)
-      const currentRole = userRole?.toString().toLowerCase().trim();
-
-      // 3. Forzamos la lógica: si no es admin/teacher, ES estudiante
-      const isStudent = currentRole !== "admin" && currentRole !== "teacher";
-
-      // Usamos 127.0.0.1 para asegurar la conexión local
-      const baseUrl = "http://127.0.0.1:3001/v1";
-      const endpoint = isStudent
-        ? `${baseUrl}/courses/enrolled/${user.id}`
-        : `${baseUrl}/courses`;
-
-      // 4. Petición sin caché para asegurar datos frescos
-      const coursesRes = await fetch(endpoint, { cache: "no-store" });
+      const coursesRes = await fetch(endpoint);
       const rawData = await coursesRes.json();
 
-      const inscritos = Array.isArray(rawData) ? rawData : rawData.data || [];
+      const todosLosCursos = Array.isArray(rawData)
+        ? rawData
+        : rawData.courses || rawData.data || [];
 
-      // 5. Obtener progreso
+      // 2. Obtener progreso real del usuario
       const progressRes = await fetch(
-        `${baseUrl}/courses/user-progress?userId=${user.id}`,
-        { cache: "no-store" }
+        `http://localhost:3001/v1/courses/user-progress?userId=${user.id}`
       );
       const progressData = await progressRes.json();
-      const completadosIds = Array.isArray(progressData)
-        ? progressData.map((id) => String(id))
-        : [];
 
-      // 6. Mapeo final (solo se mapean los que devolvió el endpoint anterior)
-      const dataFinal = inscritos.map((c: any) => ({
-        ...c,
-        id: c.id,
-        nombre: c.nombre || c.title || "Curso sin nombre",
-        codigo: c.codigo || "S/C",
-        profesor: c.profesor || "Staff Universidad",
-        completado: completadosIds.includes(String(c.id)),
-      }));
+      const completadosIds = (
+        Array.isArray(progressData) ? progressData : []
+      ).map((id) => String(id));
 
-      setCursos(dataFinal);
+      // 3. Mapear datos finales
+      if (todosLosCursos.length > 0) {
+        const dataFinal = todosLosCursos.map((c: any) => ({
+          ...c,
+          id: c.id,
+          nombre: c.nombre || c.title || "Curso sin nombre",
+          codigo: c.codigo || "S/C",
+          profesor: c.profesor || "Staff Universidad",
+          completado: completadosIds.includes(String(c.id)),
+        }));
+
+        setCursos(dataFinal);
+      } else {
+        setCursos([]);
+      }
     } catch (e) {
-      console.error("Error crítico en Feed:", e);
+      console.error("Error crítico en loadCursos:", e);
+      setCursos([]);
     }
   };
 
@@ -153,15 +150,39 @@ export default function Feed() {
     }
   };
 
-  const handleSaveCourse = (updatedCourse: any) => {
-    const updatedList = cursos.map((c) =>
-      c.id === updatedCourse.id ? updatedCourse : c
-    );
-    setCursos(updatedList);
-    localStorage.setItem(
-      "lista_cursos_universidad",
-      JSON.stringify(updatedList)
-    );
+  const handleSaveCourse = async (updatedCourse: any) => {
+    try {
+      // 1. Enviar la actualización al backend (NestJS)
+      const response = await fetch(
+        `http://localhost:3001/v1/courses/${updatedCourse.id}`,
+        {
+          method: "PATCH", // o 'PUT' según tu backend
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            fechaLimite: updatedCourse.fechaLimite,
+            // Incluye aquí otros campos si tu API los requiere
+          }),
+        }
+      );
+
+      if (!response.ok)
+        throw new Error("Error al actualizar el curso en el servidor");
+
+      // 2. Si la API responde bien, actualizamos el estado local para reflejar el cambio sin recargar
+      const result = await response.json();
+
+      // Actualizamos el estado local con lo que nos devuelve el servidor
+      setCursos((prev) =>
+        prev.map((c) => (c.id === updatedCourse.id ? { ...c, ...result } : c))
+      );
+
+      setIsModalOpen(false); // Cerramos el modal tras guardar
+    } catch (error) {
+      console.error("Error al guardar:", error);
+      alert("No se pudo guardar los cambios.");
+    }
   };
 
   return (
@@ -206,11 +227,18 @@ export default function Feed() {
               style={{ scrollbarWidth: "none" }}
             >
               {cursos.map((curso, index) => {
+                // DETERMINAR SI EL CURSO ESTÁ VENCIDO
+                const ahora = new Date();
+                const fechaCreacion = new Date(curso.createdAt);
+                const fechaLimite = curso.fechaLimite
+                  ? new Date(curso.fechaLimite)
+                  : null;
+                const estaVencido = fechaLimite ? ahora > fechaLimite : false;
+
                 const estaHabilitado =
                   esAdminOProfesor ||
-                  index === 0 ||
-                  !!cursos[index - 1].completado;
-
+                  (!estaVencido &&
+                    (index === 0 || !!cursos[index - 1].completado));
                 return (
                   <div
                     key={curso.id}
@@ -220,13 +248,39 @@ export default function Feed() {
                       <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 bg-gray-50 px-2 py-1 rounded">
                         {curso.codigo}
                       </span>
-                      {/* Visualización de fecha de creación */}
-                      <span className="text-[9px] font-bold text-gray-400 uppercase">
-                        {" "}
-                        {curso.createdAt
-                          ? new Date(curso.createdAt).toLocaleDateString()
-                          : "Nuevo"}{" "}
-                      </span>
+                      {/* Lógica para botones de edición si es admin/profesor */}
+                      <div className="flex gap-2">
+                        {esAdminOProfesor && (
+                          <>
+                            <button
+                              onClick={() => {
+                                setSelectedCurso(curso);
+                                setShowStudentsModal(true);
+                              }}
+                              className="text-gray-400 hover:text-blue-500 transition-colors"
+                              title="Ver estudiantes"
+                            >
+                              <Users size={16} />
+                            </button>
+                            <button
+                              onClick={() => {
+                                setSelectedCurso(curso);
+                                setIsModalOpen(true);
+                              }}
+                              className="text-gray-400 hover:text-purple-500 transition-colors"
+                              title="Editar curso"
+                            >
+                              <BookOpen size={16} />
+                            </button>
+                          </>
+                        )}
+                        <span className="text-[9px] font-bold text-gray-400 uppercase">
+                          {" "}
+                          {curso.createdAt
+                            ? new Date(curso.createdAt).toLocaleDateString()
+                            : "Nuevo"}{" "}
+                        </span>
+                      </div>
                     </div>
                     <h3 className="text-lg font-bold text-gray-900 mb-1 leading-tight h-12 line-clamp-2">
                       {curso.nombre}
@@ -237,12 +291,21 @@ export default function Feed() {
                       </p>
                     </div>
                     {/* Visualización de última modificación */}
-                    <div className="text-[10px] text-gray-400 flex items-center">
-                      <span className="w-2 h-2 bg-green-400 rounded-full mr-2"></span>
-                      Editado:{" "}
-                      {curso.updatedAt
-                        ? new Date(curso.updatedAt).toLocaleDateString()
-                        : "Recientemente"}
+                    <div className="text-[10px] flex items-center">
+                      <span
+                        className={`w-2 h-2 rounded-full mr-2 ${estaVencido ? "bg-red-400" : "bg-green-400"}`}
+                      ></span>
+                      <span className="text-gray-400 font-medium">
+                        {estaVencido ? "Desactivado: " : "Disponible hasta: "}
+                        {fechaLimite
+                          ? fechaLimite.toLocaleDateString() +
+                            " " +
+                            fechaLimite.toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })
+                          : "Sin límite"}
+                      </span>
                     </div>
                     <div className="pt-4 border-t border-gray-50 flex justify-between items-center">
                       <button
@@ -250,16 +313,23 @@ export default function Feed() {
                           estaHabilitado &&
                           router.push("/dashboard/gestion-cursos")
                         }
-                        disabled={!estaHabilitado}
-                        className={`flex items-center gap-2 font-bold text-sm ${estaHabilitado ? "text-purple-600" : "text-gray-400 cursor-not-allowed"}`}
+                        disabled={
+                          !estaHabilitado || (estaVencido && !esAdminOProfesor)
+                        }
+                        className={`flex items-center gap-2 font-bold text-sm ${estaHabilitado && (!estaVencido || esAdminOProfesor) ? "text-purple-600" : "text-gray-400 cursor-not-allowed"}`}
                       >
-                        {estaHabilitado ? (
+                        {estaHabilitado &&
+                        (!estaVencido || esAdminOProfesor) ? (
                           <BookOpen size={20} />
                         ) : (
                           <LockIcon size={20} />
                         )}
                         <span>
-                          {estaHabilitado ? "Ir al curso" : "Bloqueado"}
+                          {estaVencido && !esAdminOProfesor
+                            ? "Expirado"
+                            : estaHabilitado
+                              ? "Ir al curso"
+                              : "Bloqueado"}
                         </span>
                       </button>
                       {curso.completado && (
@@ -319,6 +389,25 @@ export default function Feed() {
             </div>
           </div>
         </div>
+        {isModalOpen && (
+          <CourseFormModal
+            isOpen={isModalOpen}
+            onClose={() => {
+              setIsModalOpen(false);
+              setSelectedCurso(null);
+            }}
+            courseData={selectedCurso}
+            onSave={handleSaveCourse}
+          />
+        )}
+
+        {showStudentsModal && (
+          <CourseStudentsModal
+            isOpen={showStudentsModal}
+            onClose={() => setShowStudentsModal(false)}
+            courseId={selectedCurso?.id}
+          />
+        )}
       </div>
     </div>
   );

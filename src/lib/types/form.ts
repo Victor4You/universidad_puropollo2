@@ -62,3 +62,20 @@ export interface EstudianteFormData {
   email: string;
   telefono: string;
 }
+
+export interface Curso {
+  id?: number;
+  nombre: string;
+  codigo: string;
+  profesor: string;
+  creditos: number;
+  semestre: string;
+  estado: string;
+  duracionExamen: number; // Nombre exacto en Postgres
+  fechaLimite: string;
+  videos: VideoResource[];
+  pdfs: PDFResource[];
+  questions: Question[];
+  createdAt?: string;
+  updatedAt?: string;
+}
