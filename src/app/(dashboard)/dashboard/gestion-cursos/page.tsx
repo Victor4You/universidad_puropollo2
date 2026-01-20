@@ -213,14 +213,24 @@ export default function GestionCursosPage() {
     );
   };
 
-  const handleDeleteCourse = (id: string) => {
+  const handleDeleteCourse = async (id: string) => {
     if (confirm("¿Estás seguro de que deseas eliminar este curso?")) {
-      const nuevosCursos = cursos.filter((c) => c.id !== id);
-      setCursos(nuevosCursos);
-      localStorage.setItem(
-        "lista_cursos_universidad",
-        JSON.stringify(nuevosCursos)
-      );
+      try {
+        // Enviar petición de eliminación al servidor
+        await axios.delete(`http://localhost:3001/v1/courses/${id}`);
+
+        // Actualizar estado local solo si se borró en el back
+        const nuevosCursos = cursos.filter((c) => c.id !== id);
+        setCursos(nuevosCursos);
+
+        localStorage.setItem(
+          "lista_cursos_universidad",
+          JSON.stringify(nuevosCursos)
+        );
+      } catch (error) {
+        console.error("Error al eliminar el curso:", error);
+        alert("No se pudo eliminar el curso del servidor.");
+      }
     }
   };
 

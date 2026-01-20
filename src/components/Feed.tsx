@@ -77,50 +77,50 @@ export default function Feed() {
     if (!user?.id) return;
 
     try {
-      // 1. Determinar el endpoint según el rol del usuario
-      // Si es estudiante, usamos la ruta de inscritos que ya configuramos en el backend
-      const endpoint =
-        userRole === "student"
-          ? `http://localhost:3001/v1/courses/enrolled/${user.id}`
-          : "http://localhost:3001/v1/courses";
+      // 1. Limpiamos para evitar residuos visuales
+      setCursos([]);
 
-      const coursesRes = await fetch(endpoint);
+      // 2. Normalizamos la detección del rol (quitamos espacios o mayúsculas imprevistas)
+      const currentRole = userRole?.toString().toLowerCase().trim();
+
+      // 3. Forzamos la lógica: si no es admin/teacher, ES estudiante
+      const isStudent = currentRole !== "admin" && currentRole !== "teacher";
+
+      // Usamos 127.0.0.1 para asegurar la conexión local
+      const baseUrl = "http://127.0.0.1:3001/v1";
+      const endpoint = isStudent
+        ? `${baseUrl}/courses/enrolled/${user.id}`
+        : `${baseUrl}/courses`;
+
+      // 4. Petición sin caché para asegurar datos frescos
+      const coursesRes = await fetch(endpoint, { cache: "no-store" });
       const rawData = await coursesRes.json();
 
-      const todosLosCursos = Array.isArray(rawData)
-        ? rawData
-        : rawData.courses || rawData.data || [];
+      const inscritos = Array.isArray(rawData) ? rawData : rawData.data || [];
 
-      // 2. Obtener progreso real del usuario
+      // 5. Obtener progreso
       const progressRes = await fetch(
-        `http://localhost:3001/v1/courses/user-progress?userId=${user.id}`
+        `${baseUrl}/courses/user-progress?userId=${user.id}`,
+        { cache: "no-store" }
       );
       const progressData = await progressRes.json();
+      const completadosIds = Array.isArray(progressData)
+        ? progressData.map((id) => String(id))
+        : [];
 
-      // Normalizamos los IDs de progreso para asegurar la comparación
-      const completadosIds = (
-        Array.isArray(progressData) ? progressData : []
-      ).map((id) => String(id));
+      // 6. Mapeo final (solo se mapean los que devolvió el endpoint anterior)
+      const dataFinal = inscritos.map((c: any) => ({
+        ...c,
+        id: c.id,
+        nombre: c.nombre || c.title || "Curso sin nombre",
+        codigo: c.codigo || "S/C",
+        profesor: c.profesor || "Staff Universidad",
+        completado: completadosIds.includes(String(c.id)),
+      }));
 
-      // 3. Mapear datos finales
-      if (todosLosCursos.length > 0) {
-        const dataFinal = todosLosCursos.map((c: any) => ({
-          ...c,
-          id: c.id,
-          nombre: c.nombre || c.title || "Curso sin nombre",
-          codigo: c.codigo || "S/C",
-          profesor: c.profesor || "Staff Universidad",
-          // Verificamos si el ID del curso está en el array de progresos
-          completado: completadosIds.includes(String(c.id)),
-        }));
-
-        setCursos(dataFinal);
-      } else {
-        setCursos([]);
-      }
+      setCursos(dataFinal);
     } catch (e) {
-      console.error("Error crítico en loadCursos:", e);
-      setCursos([]);
+      console.error("Error crítico en Feed:", e);
     }
   };
 
