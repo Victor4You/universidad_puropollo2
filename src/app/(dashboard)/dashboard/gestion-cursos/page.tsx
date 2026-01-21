@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import axios from "axios";
+import api from "@/lib/api/axios";
 import {
   Plus,
   Search,
@@ -94,18 +94,17 @@ export default function GestionCursosPage() {
   const loadPostgresProgress = async () => {
     try {
       setLoading(true);
-      // 1. Obtener cursos de LocalStorage (tus datos actuales)
       const savedCursos = localStorage.getItem("lista_cursos_universidad");
       const baseCursos: Curso[] = savedCursos
         ? JSON.parse(savedCursos)
         : cursosMock;
 
-      // 2. Si hay usuario, traer progreso de Postgres
       if (user?.id) {
-        const response = await axios.get(
-          `http://localhost:3001/v1/courses/user-progress?userId=${user.id}`,
+        // CAMBIO: Se usa 'api' y ruta relativa
+        const response = await api.get(
+          `/courses/user-progress?userId=${user.id}`,
         );
-        const completadosIds = response.data; // Array de IDs: ["1", "3"]
+        const completadosIds = response.data;
 
         const actualizados = baseCursos.map((c) => ({
           ...c,
@@ -124,28 +123,22 @@ export default function GestionCursosPage() {
 
   const loadData = async () => {
     if (authLoading || !user) return;
-
     setLoading(true);
     try {
       const isAdminOProfesor = isRole("admin") || isRole("teacher");
 
-      if (!isAdminOProfesor && !user.id) {
-        console.error("ID de usuario no disponible para carga de cursos");
-        return;
-      }
-
+      // CAMBIO: Rutas relativas
       const url = isAdminOProfesor
-        ? `http://localhost:3001/v1/courses`
-        : `http://localhost:3001/v1/courses/enrolled/${user.id}`;
+        ? `/courses`
+        : `/courses/enrolled/${user.id}`;
 
-      const res = await axios.get(url);
+      const res = await api.get(url);
       let cursosBase = res.data;
 
-      // Sincronización de progreso (Solo para estudiantes)
       if (!isAdminOProfesor && user?.id) {
         try {
-          const progRes = await axios.get(
-            `http://localhost:3001/v1/courses/user-progress?userId=${user.id}`,
+          const progRes = await api.get(
+            `/courses/user-progress?userId=${user.id}`,
           );
           const completadosIds = Array.isArray(progRes.data)
             ? progRes.data.map((id: any) => String(id))
@@ -159,11 +152,10 @@ export default function GestionCursosPage() {
           console.error("Error al traer progreso");
         }
       }
-
       setCursos(cursosBase);
     } catch (e) {
       console.error("Error de conexión:", e);
-      setCursos(cursosMock); // Fallback a mocks si falla la API
+      setCursos(cursosMock);
     } finally {
       setLoading(false);
     }
@@ -171,35 +163,29 @@ export default function GestionCursosPage() {
 
   // EL RESTO DE TUS FUNCIONES ORIGINALES (SIN CAMBIOS)
   const handleSaveCourse = async (courseFormData: any) => {
+    const payload = {
+      codigo: courseFormData.codigo,
+      nombre: courseFormData.nombre,
+      profesor: courseFormData.profesor,
+      creditos: Number(courseFormData.creditos),
+      semestre: courseFormData.semestre,
+      estado: courseFormData.estado, // Añadido para persistir el estado (activo/inactivo)
+      fechaLimite: courseFormData.fechaLimite, // Añadido para persistir la fecha límite
+      videos: courseFormData.videos,
+      pdfs: courseFormData.pdfs,
+      questions: courseFormData.questions,
+      duracionExamen: Number(courseFormData.duracionExamen),
+    };
+
     try {
-      const payload = {
-        codigo: courseFormData.codigo,
-        nombre: courseFormData.nombre,
-        profesor: courseFormData.profesor,
-        creditos: Number(courseFormData.creditos),
-        semestre: courseFormData.semestre,
-        estado: courseFormData.estado, // Añadido para persistir el estado (activo/inactivo)
-        fechaLimite: courseFormData.fechaLimite, // Añadido para persistir la fecha límite
-        videos: courseFormData.videos,
-        pdfs: courseFormData.pdfs,
-        questions: courseFormData.questions,
-        duracionExamen: Number(courseFormData.duracionExamen),
-      };
-
       if (selectedCurso) {
-        // CAMBIO CLAVE: Se cambia .put por .patch para coincidir con el backend
-        await axios.patch(
-          `http://localhost:3001/v1/courses/${selectedCurso.id}`,
-          payload,
-        );
+        // CAMBIO: api.patch y ruta relativa
+        await api.patch(`/courses/${selectedCurso.id}`, payload);
       } else {
-        await axios.post(`http://localhost:3001/v1/courses`, payload);
+        // CAMBIO: api.post y ruta relativa
+        await api.post(`/courses`, payload);
       }
-
-      // Refrescar lista de cursos
-      const res = await axios.get(`http://localhost:3001/v1/courses`);
-
-      // Asegúrate de que los datos vengan formateados si tu service hace el map de 'estudiantes'
+      const res = await api.get(`/courses`);
       setCursos(res.data);
       setIsModalOpen(false);
       setSelectedCurso(null); // Limpiar selección tras guardar
@@ -223,8 +209,8 @@ export default function GestionCursosPage() {
   const handleDeleteCourse = async (id: string) => {
     if (confirm("¿Estás seguro de que deseas eliminar este curso?")) {
       try {
-        // Enviar petición de eliminación al servidor
-        await axios.delete(`http://localhost:3001/v1/courses/${id}`);
+        // CAMBIO: api.delete y ruta relativa
+        await api.delete(`/courses/${id}`);
 
         // Actualizar estado local solo si se borró en el back
         const nuevosCursos = cursos.filter((c) => c.id !== id);
