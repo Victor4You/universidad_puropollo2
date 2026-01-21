@@ -40,6 +40,7 @@ interface Curso {
   pdfs?: any[];
   questions?: any[];
   duracionExamen?: number;
+  fechaLimite?: string; // Se añade para dar soporte a la lógica de expiración existente
 }
 
 // Tus cursos Mock originales
@@ -102,7 +103,7 @@ export default function GestionCursosPage() {
       // 2. Si hay usuario, traer progreso de Postgres
       if (user?.id) {
         const response = await axios.get(
-          `http://localhost:3001/v1/courses/user-progress?userId=${user.id}`
+          `http://localhost:3001/v1/courses/user-progress?userId=${user.id}`,
         );
         const completadosIds = response.data; // Array de IDs: ["1", "3"]
 
@@ -144,7 +145,7 @@ export default function GestionCursosPage() {
       if (!isAdminOProfesor && user?.id) {
         try {
           const progRes = await axios.get(
-            `http://localhost:3001/v1/courses/user-progress?userId=${user.id}`
+            `http://localhost:3001/v1/courses/user-progress?userId=${user.id}`,
           );
           const completadosIds = Array.isArray(progRes.data)
             ? progRes.data.map((id: any) => String(id))
@@ -189,7 +190,7 @@ export default function GestionCursosPage() {
         // CAMBIO CLAVE: Se cambia .put por .patch para coincidir con el backend
         await axios.patch(
           `http://localhost:3001/v1/courses/${selectedCurso.id}`,
-          payload
+          payload,
         );
       } else {
         await axios.post(`http://localhost:3001/v1/courses`, payload);
@@ -210,12 +211,12 @@ export default function GestionCursosPage() {
 
   const handleUpdateCourseData = (updatedCourse: Curso) => {
     const nuevosCursos = cursos.map((c) =>
-      c.id === updatedCourse.id ? updatedCourse : c
+      c.id === updatedCourse.id ? updatedCourse : c,
     );
     setCursos(nuevosCursos);
     localStorage.setItem(
       "lista_cursos_universidad",
-      JSON.stringify(nuevosCursos)
+      JSON.stringify(nuevosCursos),
     );
   };
 
@@ -231,7 +232,7 @@ export default function GestionCursosPage() {
 
         localStorage.setItem(
           "lista_cursos_universidad",
-          JSON.stringify(nuevosCursos)
+          JSON.stringify(nuevosCursos),
         );
       } catch (error) {
         console.error("Error al eliminar el curso:", error);
@@ -244,12 +245,12 @@ export default function GestionCursosPage() {
   const filteredCursos = cursos.filter(
     (curso) =>
       curso.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      curso.codigo.toLowerCase().includes(searchTerm.toLowerCase())
+      curso.codigo.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   const currentItems = filteredCursos.slice(
     (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+    currentPage * itemsPerPage,
   );
   const totalPages = Math.ceil(filteredCursos.length / itemsPerPage);
 
