@@ -6,7 +6,9 @@ console.log("Intentando conectar a API:", envURL || "http://localhost:3001/v1");
 
 const api = axios.create({
   // Forzamos el uso de la variable o el fallback
-  baseURL: envURL || "http://localhost:3001/v1",
+  baseURL:
+    process.env.NEXT_PUBLIC_API_URL ||
+    "https://backend-universidad.vercel.app/v1",
   headers: {
     "Content-Type": "application/json",
     "Bypass-Tunnel-Reminder": "true",
