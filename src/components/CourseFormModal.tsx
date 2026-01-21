@@ -52,7 +52,7 @@ export default function CourseFormModal({
   const [duracion, setDuracion] = useState(30);
   const [fechaLimite, setFechaLimite] = useState("");
   const [createdAt, setCreatedAt] = useState(
-    new Date().toISOString().split("T")[0]
+    new Date().toISOString().split("T")[0],
   );
 
   const [videos, setVideos] = useState<any[]>([]);
@@ -81,14 +81,14 @@ export default function CourseFormModal({
 
         if (courseData.createdAt) {
           setCreatedAt(
-            new Date(courseData.createdAt).toISOString().split("T")[0]
+            new Date(courseData.createdAt).toISOString().split("T")[0],
           );
         }
 
         setVideos(Array.isArray(courseData.videos) ? courseData.videos : []);
         setPdfs(Array.isArray(courseData.pdfs) ? courseData.pdfs : []);
         setQuestions(
-          Array.isArray(courseData.questions) ? courseData.questions : []
+          Array.isArray(courseData.questions) ? courseData.questions : [],
         );
       } else {
         setNombre("");
@@ -109,18 +109,20 @@ export default function CourseFormModal({
   const handleFileUpload = async (
     index: number,
     type: "video" | "pdf",
-    fileRaw: File
+    fileRaw: File,
   ) => {
     try {
       const formData = new FormData();
       formData.append("file", fileRaw);
-      const res = await axios.post(
-        "http://localhost:3001/v1/courses/upload",
-        formData,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-        }
-      );
+
+      // CAMBIO: Usamos la variable de entorno para que sea dinámico
+      const apiUrl =
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/v1";
+
+      const res = await axios.post(`${apiUrl}/courses/upload`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
       if (type === "video") {
         const newVideos = [...videos];
         newVideos[index].fileUrl = res.data.url;
@@ -132,12 +134,13 @@ export default function CourseFormModal({
       }
     } catch (error) {
       console.error("Error subiendo archivo", error);
+      alert("Error al subir el archivo. Verifica la conexión con el servidor.");
     }
   };
 
   const handleUpdateQuestion = (id: string, field: string, value: any) => {
     setQuestions(
-      questions.map((q) => (q.id === id ? { ...q, [field]: value } : q))
+      questions.map((q) => (q.id === id ? { ...q, [field]: value } : q)),
     );
   };
 
@@ -150,15 +153,15 @@ export default function CourseFormModal({
           return { ...q, options: newOpts };
         }
         return q;
-      })
+      }),
     );
   };
 
   const addOption = (qId: string) => {
     setQuestions(
       questions.map((q) =>
-        q.id === qId ? { ...q, options: [...q.options, ""] } : q
-      )
+        q.id === qId ? { ...q, options: [...q.options, ""] } : q,
+      ),
     );
   };
 
@@ -571,8 +574,8 @@ export default function CourseFormModal({
                                     q.id,
                                     "options",
                                     q.options.filter(
-                                      (_: any, i: number) => i !== oIdx
-                                    )
+                                      (_: any, i: number) => i !== oIdx,
+                                    ),
                                   )
                                 }
                                 className="text-gray-300 hover:text-red-500"

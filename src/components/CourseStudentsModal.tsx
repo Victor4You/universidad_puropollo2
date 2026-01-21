@@ -4,6 +4,8 @@ import { Dialog, Transition } from "@headlessui/react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/v1";
+
 const XMarkIcon = () => (
   <svg
     className="h-6 w-6"
@@ -94,7 +96,7 @@ export default function CourseStudentsModal({
       if (isOpen && courseData?.id && courseData.id !== "undefined") {
         try {
           const res = await axios.get(
-            `http://localhost:3001/v1/courses/${courseData.id}/students`
+            `${API_BASE}/courses/${courseData.id}/students`,
           );
           if (res.data && Array.isArray(res.data)) {
             setInscritos(res.data);
@@ -120,7 +122,7 @@ export default function CourseStudentsModal({
     try {
       // Enviamos el 'query' como parámetro 'q' al backend
       const response = await axios.get(
-        `http://localhost:3001/v1/courses/users/sucursal/${sucursalId}?q=${query}`
+        `${API_BASE}/courses/users/sucursal/${sucursalId}?q=${query}`,
       );
 
       if (response.data && Array.isArray(response.data)) {
@@ -130,8 +132,8 @@ export default function CourseStudentsModal({
             !inscritos.some(
               (s) =>
                 (s.username || "").toLowerCase() ===
-                (user.usuario || user.username || "").toLowerCase()
-            )
+                (user.usuario || user.username || "").toLowerCase(),
+            ),
         );
         setSearchResults(filtrados);
       }
@@ -148,7 +150,7 @@ export default function CourseStudentsModal({
 
     // Verificamos por ID y por Username para estar 100% seguros
     const isAlreadyIn = inscritos.some(
-      (s) => s.username === userKey || s.id === userId
+      (s) => s.username === userKey || s.id === userId,
     );
 
     if (isAlreadyIn) {
@@ -173,10 +175,9 @@ export default function CourseStudentsModal({
       setLoading(true); // Ahora este estado sí existe
       if (courseData?.id) {
         // 1. Guardar en Postgres la lista de IDs seleccionados
-        await axios.post(
-          `http://localhost:3001/v1/courses/${courseData.id}/students`,
-          { userIds: inscritos.map((s) => s.id) }
-        );
+        await axios.post(`${API_BASE}/courses/${courseData.id}/students`, {
+          userIds: inscritos.map((s) => s.id),
+        });
 
         // 2. Refrescar la página principal (GestionCursosPage)
         // Esto ejecuta loadData() en el padre y actualiza el contador de la tarjeta
@@ -200,7 +201,7 @@ export default function CourseStudentsModal({
     try {
       // Se agrega el parámetro q vacío para compatibilidad con la nueva lógica del service
       const res = await axios.get(
-        `http://localhost:3001/v1/courses/users/sucursal/${sucursalId}?q=`
+        `${API_BASE}/courses/users/sucursal/${sucursalId}?q=`,
       );
 
       // Quitamos el else que lanzaba el alert "La API no permite..."
@@ -208,7 +209,7 @@ export default function CourseStudentsModal({
         const filtrados = res.data.filter((user: any) => {
           const uKey = (user.usuario || user.username || "").toLowerCase();
           return !inscritos.some(
-            (s) => (s.username || "").toLowerCase() === uKey
+            (s) => (s.username || "").toLowerCase() === uKey,
           );
         });
         setSearchResults(filtrados);

@@ -21,6 +21,8 @@ import {
 import CourseFormModal from "@/components/CourseFormModal";
 import CourseStudentsModal from "@/components/CourseStudentsModal";
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/v1";
+
 const carouselImages = [
   {
     id: "1",
@@ -80,9 +82,8 @@ export default function Feed() {
       // 1. Determinar el endpoint según el rol del usuario
       const endpoint =
         userRole === "student"
-          ? `http://localhost:3001/v1/courses/enrolled/${user.id}`
-          : "http://localhost:3001/v1/courses";
-
+          ? `${API_BASE}/courses/enrolled/${user.id}`
+          : `${API_BASE}/courses`;
       const coursesRes = await fetch(endpoint);
       const rawData = await coursesRes.json();
 
@@ -92,7 +93,7 @@ export default function Feed() {
 
       // 2. Obtener progreso real del usuario
       const progressRes = await fetch(
-        `http://localhost:3001/v1/courses/user-progress?userId=${user.id}`
+        `${API_BASE}/courses/user-progress?userId=${user.id}`,
       );
       const progressData = await progressRes.json();
 
@@ -153,19 +154,16 @@ export default function Feed() {
   const handleSaveCourse = async (updatedCourse: any) => {
     try {
       // 1. Enviar la actualización al backend (NestJS)
-      const response = await fetch(
-        `http://localhost:3001/v1/courses/${updatedCourse.id}`,
-        {
-          method: "PATCH", // o 'PUT' según tu backend
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            fechaLimite: updatedCourse.fechaLimite,
-            // Incluye aquí otros campos si tu API los requiere
-          }),
-        }
-      );
+      const response = await fetch(`${API_BASE}/courses/${updatedCourse.id}`, {
+        method: "PATCH", // o 'PUT' según tu backend
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          fechaLimite: updatedCourse.fechaLimite,
+          // Incluye aquí otros campos si tu API los requiere
+        }),
+      });
 
       if (!response.ok)
         throw new Error("Error al actualizar el curso en el servidor");
@@ -175,7 +173,7 @@ export default function Feed() {
 
       // Actualizamos el estado local con lo que nos devuelve el servidor
       setCursos((prev) =>
-        prev.map((c) => (c.id === updatedCourse.id ? { ...c, ...result } : c))
+        prev.map((c) => (c.id === updatedCourse.id ? { ...c, ...result } : c)),
       );
 
       setIsModalOpen(false); // Cerramos el modal tras guardar
