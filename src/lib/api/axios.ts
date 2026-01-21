@@ -1,13 +1,12 @@
-// src/lib/api/axios.ts
 import axios from "axios";
 
-// 1. Definimos la URL base usando variables de entorno
-// En Vercel usará la variable configurada en el panel.
-// En local, si no encuentra la variable, usará localhost.
-const baseURL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/v1";
+// Log de depuración (solo se verá en la consola del navegador)
+const envURL = process.env.NEXT_PUBLIC_API_URL;
+console.log("Intentando conectar a API:", envURL || "http://localhost:3001/v1");
 
 const api = axios.create({
-  baseURL: baseURL,
+  // Forzamos el uso de la variable o el fallback
+  baseURL: envURL || "http://localhost:3001/v1",
   headers: {
     "Content-Type": "application/json",
     "Bypass-Tunnel-Reminder": "true",
