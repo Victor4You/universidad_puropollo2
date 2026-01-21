@@ -2,7 +2,10 @@ import axios from "axios";
 
 // Log de depuración (solo se verá en la consola del navegador)
 const envURL = process.env.NEXT_PUBLIC_API_URL;
-console.log("Intentando conectar a API:", envURL || "http://localhost:3001/v1");
+console.log(
+  "Intentando conectar a API:",
+  envURL || "https://backend-universidad.vercel.app/v1",
+);
 
 const api = axios.create({
   // Forzamos el uso de la variable o el fallback
