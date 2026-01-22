@@ -2,7 +2,7 @@
 import { Fragment, useState, useEffect } from "react";
 import { Dialog, Transition } from "@headlessui/react";
 import { useRouter } from "next/navigation";
-import axios from "axios";
+import api from "@/lib/api/axios";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/v1";
 
@@ -95,20 +95,12 @@ export default function CourseStudentsModal({
       // Validamos que el ID exista y no sea un string "undefined" accidental
       if (isOpen && courseData?.id && courseData.id !== "undefined") {
         try {
-          const res = await axios.get(
-            `${API_BASE}/courses/${courseData.id}/students`,
-          );
+          const res = await api.get(`/courses/${courseData.id}/students`);
           if (res.data && Array.isArray(res.data)) {
             setInscritos(res.data);
           }
         } catch (error) {
-          // Imprimimos el error completo para ver si es un problema de URL, puerto o CORS
-          console.error("Error detallado en cargarAsignados:", error);
-
-          if (axios.isAxiosError(error)) {
-            console.log("Status:", error.response?.status);
-            console.log("Config URL:", error.config?.url);
-          }
+          console.error("Error cargando asignados:", error);
         }
       }
     };
@@ -117,16 +109,13 @@ export default function CourseStudentsModal({
 
   const fetchUsers = async (query: string) => {
     if (!sucursalId) return;
-
     setIsSearching(true);
     try {
-      // Enviamos el 'query' como parámetro 'q' al backend
-      const response = await axios.get(
-        `${API_BASE}/courses/users/sucursal/${sucursalId}?q=${query}`,
+      // CAMBIO: Usamos 'api' con ruta relativa
+      const response = await api.get(
+        `/courses/users/sucursal/${sucursalId}?q=${query}`,
       );
-
       if (response.data && Array.isArray(response.data)) {
-        // Filtrar solo los que NO están inscritos ya
         const filtrados = response.data.filter(
           (user: any) =>
             !inscritos.some(
@@ -172,18 +161,13 @@ export default function CourseStudentsModal({
 
   const handleSave = async () => {
     try {
-      setLoading(true); // Ahora este estado sí existe
+      setLoading(true);
       if (courseData?.id) {
-        // 1. Guardar en Postgres la lista de IDs seleccionados
-        await axios.post(`${API_BASE}/courses/${courseData.id}/students`, {
+        // CAMBIO: Usamos 'api' con ruta relativa
+        await api.post(`/courses/${courseData.id}/students`, {
           userIds: inscritos.map((s) => s.id),
         });
-
-        // 2. Refrescar la página principal (GestionCursosPage)
-        // Esto ejecuta loadData() en el padre y actualiza el contador de la tarjeta
-        if (onUpdateCourse) {
-          await onUpdateCourse();
-        }
+        if (onUpdateCourse) await onUpdateCourse();
       }
       onClose();
     } catch (error) {
@@ -197,14 +181,9 @@ export default function CourseStudentsModal({
   const handleSearchBySucursal = async () => {
     if (!sucursalId) return;
     setIsSearchingSucursal(true);
-
     try {
-      // Se agrega el parámetro q vacío para compatibilidad con la nueva lógica del service
-      const res = await axios.get(
-        `${API_BASE}/courses/users/sucursal/${sucursalId}?q=`,
-      );
-
-      // Quitamos el else que lanzaba el alert "La API no permite..."
+      // CAMBIO: Usamos 'api' con ruta relativa
+      const res = await api.get(`/courses/users/sucursal/${sucursalId}?q=`);
       if (res.data && Array.isArray(res.data)) {
         const filtrados = res.data.filter((user: any) => {
           const uKey = (user.usuario || user.username || "").toLowerCase();
@@ -215,7 +194,6 @@ export default function CourseStudentsModal({
         setSearchResults(filtrados);
       }
     } catch (error) {
-      console.error("Error al buscar:", error);
       setSearchResults([]);
     } finally {
       setIsSearchingSucursal(false);
