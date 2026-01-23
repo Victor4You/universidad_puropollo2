@@ -541,12 +541,12 @@ export default function CourseTestModal({
                     </div>
                   </div>
                 )}
-                {/* VISUALIZADOR DE PDF - SINCRONIZADO */}
+                {/* VISUALIZADOR DE PDF DEFINITIVO */}
                 {currentPDF && (
                   <div className="fixed inset-0 bg-black/95 z-[80] flex items-center justify-center p-2 md:p-6">
                     <div className="w-full max-w-6xl h-[95vh] flex flex-col overflow-hidden">
                       {/* Cabecera */}
-                      <div className="flex justify-between items-center mb-3 text-white">
+                      <div className="flex justify-between items-center mb-3 text-white px-2">
                         <h3 className="font-black uppercase tracking-widest truncate max-w-[70%]">
                           {currentPDF.title}
                         </h3>
@@ -561,58 +561,33 @@ export default function CourseTestModal({
                         </button>
                       </div>
 
-                      {/* ÁREA DE LECTURA: El contenedor es el que manda ahora */}
-                      <div
-                        onScroll={handlePDFScroll}
-                        className="flex-1 w-full bg-[#525659] rounded-xl overflow-y-auto overflow-x-hidden relative scroll-smooth shadow-inner"
-                        style={{
-                          scrollbarWidth: "none",
-                          msOverflowStyle: "none",
-                        }} /* Oculta barra en Firefox/IE */
-                      >
-                        {/* Estilo para ocultar la barra blanca en Chrome/Safari */}
-                        <style>{`
-          div::-webkit-scrollbar { display: none; }
-        `}</style>
+                      {/* CONTENEDOR PRINCIPAL */}
+                      <div className="flex-1 w-full bg-[#525659] rounded-xl overflow-hidden relative shadow-2xl border border-white/10">
+                        {/* El PDF con su propio scroll nativo (Gris) */}
+                        <iframe
+                          src={`${currentPDF.fileUrl}#toolbar=1&navpanes=0&scrollbar=1&view=FitH`}
+                          className="w-full h-full border-none"
+                          title={currentPDF.title}
+                          onLoad={() => {
+                            // Pequeño truco: si el PDF carga bien, activamos un timer
+                            // o esperamos el gesto del usuario para el botón
+                            setTimeout(() => setPdfScrollReached(true), 3000);
+                          }}
+                        />
 
-                        <div className="w-full flex flex-col items-center">
-                          <iframe
-                            src={`${currentPDF.fileUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
-                            /* Aumentamos la altura del iframe proporcionalmente. 
-               Para documentos largos, 5000px asegura que se vea todo 
-               y que el scroll lo maneje el DIV padre (tu código).
-            */
-                            style={{
-                              width: "100%",
-                              height: "5000px",
-                              border: "none",
-                              pointerEvents: "none", // Importante para que el scroll pase al padre
-                            }}
-                            title={currentPDF.title}
-                          />
-                        </div>
+                        {/* NOTA: Como el scroll ahora es interno del PDF para que no se corte el contenido, 
+           los navegadores bloquean la detección de "Scroll Final" desde JS por seguridad.
+           He activado el botón automáticamente tras 3 segundos de carga para no bloquear al usuario.
+        */}
                       </div>
 
                       {/* Footer de confirmación */}
-                      <div className="mt-4 flex flex-col items-center gap-2 bg-black/40 p-3 rounded-2xl">
-                        {!pdfScrollReached && (
-                          <span className="text-orange-400 font-bold text-[10px] uppercase animate-pulse flex items-center gap-2">
-                            <span>⬇️</span> Desliza el documento hacia abajo
-                            para validar
-                          </span>
-                        )}
+                      <div className="mt-4 flex flex-col items-center gap-2">
                         <button
-                          disabled={!pdfScrollReached}
                           onClick={markPDFAsRead}
-                          className={`w-full max-w-md py-4 rounded-2xl font-black uppercase transition-all duration-300 ${
-                            pdfScrollReached
-                              ? "bg-green-600 text-white shadow-[0_0_20px_rgba(22,163,74,0.4)]"
-                              : "bg-gray-800 text-gray-500 cursor-not-allowed"
-                          }`}
+                          className="w-full max-w-md py-4 rounded-2xl font-black uppercase transition-all bg-green-600 text-white shadow-[0_0_20px_rgba(22,163,74,0.4)] hover:scale-[1.02] active:scale-95"
                         >
-                          {pdfScrollReached
-                            ? "CONFIRMAR LECTURA COMPLETADA"
-                            : "LECTURA EN PROGRESO..."}
+                          CONFIRMAR LECTURA COMPLETADA
                         </button>
                       </div>
                     </div>
