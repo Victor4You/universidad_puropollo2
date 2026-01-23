@@ -1,14 +1,12 @@
 // src/components/test/CourseTestModal.tsx
 "use client";
 
-"use client";
-
 import { Fragment, useState, useEffect, useCallback, useRef } from "react";
 import { Dialog, Transition } from "@headlessui/react";
 import axios from "axios";
 import { useAuth } from "@/hooks/useAuth";
 
-// ICONOS ORIGINALES (SIN CAMBIOS)
+// ICONOS (Mantenidos igual para no alterar diseño)
 const XMarkIcon = () => (
   <svg
     className="h-6 w-6"
@@ -75,7 +73,6 @@ const ClockIcon = () => (
     />
   </svg>
 );
-
 const Star = ({ className }: { className?: string }) => (
   <svg
     className={className}
@@ -118,13 +115,11 @@ export default function CourseTestModal({
   const [score, setScore] = useState(0);
   const [userAnswers, setUserAnswers] = useState<Record<string, string>>({});
   const [pdfScrollReached, setPdfScrollReached] = useState(false);
-
   const [viewedVideos, setViewedVideos] = useState<Set<string>>(new Set());
   const [viewedPdfs, setViewedPdfs] = useState<Set<string>>(new Set());
 
   const totalVideos = courseData?.videos?.length || 0;
   const totalPdfs = courseData?.pdfs?.length || 0;
-
   const allWatched =
     (totalVideos === 0 || viewedVideos.size === totalVideos) &&
     (totalPdfs === 0 || viewedPdfs.size === totalPdfs);
@@ -137,12 +132,9 @@ export default function CourseTestModal({
       setViewedVideos(new Set());
       setViewedPdfs(new Set());
       setSurveyData({ ensenanza: 5, consistencia: 5, riesgo: 5, contenido: 5 });
-
       const questions = courseData?.questions || [];
       setShuffledQuestions([...questions].sort(() => Math.random() - 0.5));
-
-      const tiempoMinutos = courseData?.duracionExamen || 30;
-      setQuizTimeLeft(tiempoMinutos * 60);
+      setQuizTimeLeft((courseData?.duracionExamen || 30) * 60);
       setAttempts(0);
     }
   }, [isOpen, courseData]);
@@ -153,13 +145,11 @@ export default function CourseTestModal({
     questions.forEach((q: any) => {
       if (userAnswers[q.id] === q.answer) correctas++;
     });
-
     const notaFinal =
       questions.length > 0
         ? Math.round((correctas / questions.length) * 100)
         : 100;
     setScore(notaFinal);
-
     try {
       await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL}/courses/register-completion`,
@@ -167,7 +157,7 @@ export default function CourseTestModal({
           courseId: courseData.id,
           userId: Number(user?.id),
           score: notaFinal,
-        }
+        },
       );
     } catch (error) {
       console.error("Error al registrar intento:", error);
@@ -178,7 +168,6 @@ export default function CourseTestModal({
     } else {
       const nuevosIntentos = attempts + 1;
       setAttempts(nuevosIntentos);
-
       if (nuevosIntentos >= 2) {
         alert("❌ Has fallado 2 intentos. Tu progreso ha sido reiniciado.");
         setViewedVideos(new Set());
@@ -200,7 +189,7 @@ export default function CourseTestModal({
           userId: Number(user?.id),
           score: score,
           survey: surveyData,
-        }
+        },
       );
       setCurrentStep("results");
       if (onSuccess) onSuccess(100);
@@ -232,7 +221,6 @@ export default function CourseTestModal({
   const isComplete =
     shuffledQuestions.length > 0 &&
     shuffledQuestions.every((q: any) => userAnswers[q.id]);
-
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -241,7 +229,7 @@ export default function CourseTestModal({
 
   const handlePDFScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-    if (scrollTop + clientHeight >= scrollHeight * 0.95) {
+    if (scrollTop + clientHeight >= scrollHeight * 0.98) {
       if (!pdfScrollReached) setPdfScrollReached(true);
     }
   };
@@ -257,357 +245,381 @@ export default function CourseTestModal({
   return (
     <Transition appear show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-50" onClose={onClose}>
-        <div className="fixed inset-0 bg-black/25 backdrop-blur-sm" />
-        <div className="fixed inset-0 overflow-y-auto">
+        <Transition.Child
+          as={Fragment}
+          enter="ease-out duration-300"
+          enterFrom="opacity-0"
+          enterTo="opacity-100"
+          leave="ease-in duration-200"
+          leaveFrom="opacity-100"
+          leaveTo="opacity-0"
+        >
+          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm" />
+        </Transition.Child>
+
+        <div className="fixed inset-0 overflow-hidden">
           <div className="flex min-h-full items-center justify-center p-4">
-            <Dialog.Panel className="w-full max-w-6xl transform overflow-hidden rounded-2xl bg-white p-8 text-left align-middle shadow-xl transition-all">
-              <div className="flex justify-between items-center mb-6 border-b pb-4">
-                <div>
-                  <Dialog.Title className="text-2xl font-black text-gray-900 uppercase tracking-tighter">
-                    {courseData?.nombre}
-                  </Dialog.Title>
-                  <p className="text-sm text-gray-500 font-bold uppercase tracking-widest mt-1">
-                    Material de estudio y evaluación
-                  </p>
-                </div>
-                <button
-                  onClick={onClose}
-                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                >
-                  <XMarkIcon />
-                </button>
-              </div>
-
-              <div className="flex space-x-4 mb-8">
-                <button
-                  onClick={() => setCurrentStep("content")}
-                  className={`px-6 py-2 rounded-xl font-black text-xs uppercase tracking-widest transition-all ${currentStep === "content" ? "bg-black text-white shadow-lg" : "bg-gray-100 text-gray-400 hover:bg-gray-200"}`}
-                >
-                  CONTENIDO
-                </button>
-                <button
-                  onClick={() => allWatched && setCurrentStep("quiz")}
-                  disabled={!allWatched}
-                  className={`px-6 py-2 rounded-xl font-black text-xs uppercase tracking-widest transition-all ${
-                    currentStep === "quiz"
-                      ? "bg-green-600 text-white shadow-lg"
-                      : allWatched
-                        ? "bg-gray-100 text-black hover:bg-gray-200"
-                        : "bg-gray-50 text-gray-300 cursor-not-allowed shadow-inner"
-                  }`}
-                >
-                  CUESTIONARIO {!allWatched ? "🔒" : "✅"}
-                </button>
-              </div>
-
-              <div className="max-h-[60vh] overflow-y-auto pr-4 custom-scrollbar">
-                {currentStep === "content" && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="space-y-4">
-                      <h4 className="font-black text-blue-600 text-xs uppercase tracking-widest">
-                        Videos ({viewedVideos.size}/{totalVideos})
-                      </h4>
-                      {courseData?.videos?.map((video: any) => (
-                        <button
-                          key={video.id}
-                          onClick={() => setCurrentVideo(video)}
-                          className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left ${viewedVideos.has(video.id) ? "bg-green-50 border-green-200" : "bg-gray-50 border-transparent hover:border-blue-200"}`}
-                        >
-                          <div
-                            className={`p-2 rounded-lg ${viewedVideos.has(video.id) ? "bg-green-100 text-green-600" : "bg-blue-100 text-blue-600"}`}
-                          >
-                            <PlayIcon />
-                          </div>
-                          <span className="font-bold text-sm">
-                            {video.title}
-                          </span>
-                          {viewedVideos.has(video.id) && (
-                            <span className="ml-auto text-[10px] font-black text-green-600 uppercase">
-                              Visto
-                            </span>
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                    <div className="space-y-4">
-                      <h4 className="font-black text-red-600 text-xs uppercase tracking-widest">
-                        PDFs ({viewedPdfs.size}/{totalPdfs})
-                      </h4>
-                      {courseData?.pdfs?.map((pdf: any) => (
-                        <button
-                          key={pdf.id}
-                          onClick={() => {
-                            setCurrentPDF(pdf);
-                            setViewedPdfs((prev) => new Set(prev).add(pdf.id));
-                          }}
-                          className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left ${viewedPdfs.has(pdf.id) ? "bg-green-50 border-green-200" : "bg-gray-50 border-transparent hover:border-red-200"}`}
-                        >
-                          <div
-                            className={`p-2 rounded-lg ${viewedPdfs.has(pdf.id) ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"}`}
-                          >
-                            <DocumentIcon />
-                          </div>
-                          <span className="font-bold text-sm">{pdf.title}</span>
-                        </button>
-                      ))}
-                    </div>
+            <Transition.Child
+              as={Fragment}
+              enter="ease-out duration-300"
+              enterFrom="opacity-0 scale-95"
+              enterTo="opacity-100 scale-100"
+              leave="ease-in duration-200"
+              leaveFrom="opacity-100 scale-100"
+              leaveTo="opacity-0 scale-95"
+            >
+              <Dialog.Panel className="w-full max-w-6xl max-h-[90vh] transform overflow-hidden rounded-2xl bg-white p-8 text-left align-middle shadow-xl transition-all flex flex-col">
+                <div className="flex justify-between items-center mb-6 border-b pb-4 flex-shrink-0">
+                  <div>
+                    <Dialog.Title className="text-2xl font-black text-gray-900 uppercase tracking-tighter">
+                      {courseData?.nombre}
+                    </Dialog.Title>
+                    <p className="text-sm text-gray-500 font-bold uppercase tracking-widest mt-1">
+                      Material de estudio y evaluación
+                    </p>
                   </div>
-                )}
+                  <button
+                    onClick={onClose}
+                    className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                  >
+                    <XMarkIcon />
+                  </button>
+                </div>
 
-                {currentStep === "quiz" && (
-                  <div className="space-y-8">
-                    <div className="flex justify-between items-center p-6 bg-black text-white rounded-3xl">
-                      <div className="flex flex-col">
-                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                          Intento
-                        </span>
-                        <span className="text-xl font-black">
-                          {attempts + 1} / 2
-                        </span>
+                <div className="flex space-x-4 mb-8 flex-shrink-0">
+                  <button
+                    onClick={() => setCurrentStep("content")}
+                    className={`px-6 py-2 rounded-xl font-black text-xs uppercase tracking-widest transition-all ${currentStep === "content" ? "bg-black text-white shadow-lg" : "bg-gray-100 text-gray-400 hover:bg-gray-200"}`}
+                  >
+                    CONTENIDO
+                  </button>
+                  <button
+                    onClick={() => allWatched && setCurrentStep("quiz")}
+                    disabled={!allWatched}
+                    className={`px-6 py-2 rounded-xl font-black text-xs uppercase tracking-widest transition-all ${currentStep === "quiz" ? "bg-green-600 text-white shadow-lg" : allWatched ? "bg-gray-100 text-black hover:bg-gray-200" : "bg-gray-50 text-gray-300 cursor-not-allowed shadow-inner"}`}
+                  >
+                    CUESTIONARIO {!allWatched ? "🔒" : "✅"}
+                  </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto pr-4 custom-scrollbar">
+                  {currentStep === "content" && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pb-4">
+                      <div className="space-y-4">
+                        <h4 className="font-black text-blue-600 text-xs uppercase tracking-widest">
+                          Videos ({viewedVideos.size}/{totalVideos})
+                        </h4>
+                        {courseData?.videos?.map((video: any) => (
+                          <button
+                            key={video.id}
+                            onClick={() => {
+                              setCurrentVideo(video);
+                              lastTimeReached.current = 0;
+                            }}
+                            className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left ${viewedVideos.has(video.id) ? "bg-green-50 border-green-200" : "bg-gray-50 border-transparent hover:border-blue-200"}`}
+                          >
+                            <div
+                              className={`p-2 rounded-lg ${viewedVideos.has(video.id) ? "bg-green-100 text-green-600" : "bg-blue-100 text-blue-600"}`}
+                            >
+                              <PlayIcon />
+                            </div>
+                            <span className="font-bold text-sm">
+                              {video.title}
+                            </span>
+                            {viewedVideos.has(video.id) && (
+                              <span className="ml-auto text-[10px] font-black text-green-600 uppercase">
+                                Visto
+                              </span>
+                            )}
+                          </button>
+                        ))}
                       </div>
-                      <div className="flex items-center gap-3">
-                        <ClockIcon />
-                        <span
-                          className={`text-2xl font-black ${quizTimeLeft < 60 ? "text-red-500 animate-pulse" : ""}`}
-                        >
-                          {formatTime(quizTimeLeft)}
-                        </span>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                          Mínimo para aprobar
-                        </span>
-                        <span className="text-xl font-black text-green-500">
-                          90%
-                        </span>
+                      <div className="space-y-4">
+                        <h4 className="font-black text-red-600 text-xs uppercase tracking-widest">
+                          PDFs ({viewedPdfs.size}/{totalPdfs})
+                        </h4>
+                        {courseData?.pdfs?.map((pdf: any) => (
+                          <button
+                            key={pdf.id}
+                            onClick={() => {
+                              setCurrentPDF(pdf);
+                              setPdfScrollReached(false);
+                            }}
+                            className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left ${viewedPdfs.has(pdf.id) ? "bg-green-50 border-green-200" : "bg-gray-50 border-transparent hover:border-red-200"}`}
+                          >
+                            <div
+                              className={`p-2 rounded-lg ${viewedPdfs.has(pdf.id) ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"}`}
+                            >
+                              <DocumentIcon />
+                            </div>
+                            <span className="font-bold text-sm">
+                              {pdf.title}
+                            </span>
+                          </button>
+                        ))}
                       </div>
                     </div>
+                  )}
 
-                    {shuffledQuestions.map((q: any, i: number) => (
-                      <div
-                        key={q.id}
-                        className="p-8 border-2 border-gray-100 rounded-[2rem] bg-gray-50 space-y-6"
-                      >
-                        <p className="text-xl font-black text-gray-800 italic">
-                          {i + 1}. {q.question}
-                        </p>
-                        <div className="grid grid-cols-1 gap-4">
-                          {q.options?.map((opt: string, idx: number) => (
-                            <label
-                              key={idx}
-                              className={`flex items-center gap-4 p-5 border-2 rounded-2xl cursor-pointer transition-all ${userAnswers[q.id] === opt ? "bg-blue-600 border-blue-600 text-white shadow-lg" : "bg-white border-transparent hover:border-gray-200 text-gray-700"}`}
-                            >
-                              <input
-                                type="radio"
-                                name={`q-${q.id}`}
-                                checked={userAnswers[q.id] === opt}
-                                onChange={() => handleOptionSelect(q.id, opt)}
-                                className="hidden"
-                              />
-                              <span className="font-bold">{opt}</span>
-                            </label>
-                          ))}
+                  {currentStep === "quiz" && (
+                    <div className="space-y-8 pb-6">
+                      <div className="flex justify-between items-center p-6 bg-black text-white rounded-3xl sticky top-0 z-10 shadow-lg">
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                            Intento
+                          </span>
+                          <span className="text-xl font-black">
+                            {attempts + 1} / 2
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <ClockIcon />
+                          <span
+                            className={`text-2xl font-black ${quizTimeLeft < 60 ? "text-red-500 animate-pulse" : ""}`}
+                          >
+                            {formatTime(quizTimeLeft)}
+                          </span>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                            Mínimo para aprobar
+                          </span>
+                          <span className="text-xl font-black text-green-500">
+                            90%
+                          </span>
                         </div>
                       </div>
-                    ))}
-
-                    <button
-                      onClick={handleFinishExam}
-                      disabled={!isComplete}
-                      className={`w-full py-6 rounded-[2rem] font-black text-xl shadow-xl transition-all ${isComplete ? "bg-green-600 text-white hover:scale-[1.02]" : "bg-gray-200 text-gray-400 cursor-not-allowed"}`}
-                    >
-                      {isComplete
-                        ? "ENVIAR PARA CALIFICACIÓN"
-                        : "RESPONDE TODO PARA ENVIAR"}
-                    </button>
-                  </div>
-                )}
-
-                {currentStep === "survey" && (
-                  <div className="space-y-8 py-6">
-                    <h3 className="text-2xl font-black text-center uppercase">
-                      Encuesta de Calidad
-                    </h3>
-                    {["ensenanza", "consistencia", "riesgo", "contenido"].map(
-                      (item) => (
+                      {shuffledQuestions.map((q: any, i: number) => (
                         <div
-                          key={item}
-                          className="flex justify-between items-center p-4 bg-gray-50 rounded-2xl"
+                          key={q.id}
+                          className="p-8 border-2 border-gray-100 rounded-[2rem] bg-gray-50 space-y-6"
                         >
-                          <span className="font-bold uppercase text-xs text-gray-600">
-                            {item}
-                          </span>
-                          <div className="flex gap-1">
-                            {[1, 2, 3, 4, 5].map((starValue) => (
-                              <button
-                                key={starValue}
-                                onClick={() =>
-                                  setSurveyData({
-                                    ...surveyData,
-                                    [item]: starValue,
-                                  })
-                                }
+                          <p className="text-xl font-black text-gray-800 italic">
+                            {i + 1}. {q.question}
+                          </p>
+                          <div className="grid grid-cols-1 gap-4">
+                            {q.options?.map((opt: string, idx: number) => (
+                              <label
+                                key={idx}
+                                className={`flex items-center gap-4 p-5 border-2 rounded-2xl cursor-pointer transition-all ${userAnswers[q.id] === opt ? "bg-blue-600 border-blue-600 text-white shadow-lg" : "bg-white border-transparent hover:border-gray-200 text-gray-700"}`}
                               >
-                                <Star
-                                  className={`w-6 h-6 ${surveyData[item] >= starValue ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`}
+                                <input
+                                  type="radio"
+                                  className="hidden"
+                                  checked={userAnswers[q.id] === opt}
+                                  onChange={() => handleOptionSelect(q.id, opt)}
                                 />
-                              </button>
+                                <span className="font-bold">{opt}</span>
+                              </label>
                             ))}
                           </div>
                         </div>
-                      )
-                    )}
-                    <button
-                      onClick={handleSaveToPostgres}
-                      className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black uppercase shadow-lg"
-                    >
-                      GUARDAR Y FINALIZAR
-                    </button>
-                  </div>
-                )}
-
-                {currentStep === "results" && (
-                  <div className="text-center py-20 space-y-8">
-                    <div
-                      className={`text-[10rem] font-black tracking-tighter leading-none ${score >= 90 ? "text-green-600" : "text-red-600"}`}
-                    >
-                      {score}%
-                    </div>
-                    <p className="text-2xl font-black uppercase italic">
-                      {score >= 90 ? "¡Aprobado!" : "Aprobación Fallida"}
-                    </p>
-                    <div className="flex gap-4 justify-center">
-                      {score < 90 && (
-                        <button
-                          onClick={() => {
-                            setScore(0);
-                            setUserAnswers({});
-                            setCurrentStep("quiz");
-                            setQuizTimeLeft(
-                              (courseData?.duracionExamen || 30) * 60
-                            );
-                          }}
-                          className="px-10 py-4 bg-black text-white rounded-2xl font-black hover:scale-105 transition-all"
-                        >
-                          REINTENTAR AHORA
-                        </button>
-                      )}
+                      ))}
                       <button
-                        onClick={onClose}
-                        className={`px-10 py-4 rounded-2xl font-black transition-all ${score >= 90 ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-400"}`}
+                        onClick={handleFinishExam}
+                        disabled={!isComplete}
+                        className={`w-full py-6 rounded-[2rem] font-black text-xl shadow-xl transition-all ${isComplete ? "bg-green-600 text-white hover:scale-[1.02]" : "bg-gray-200 text-gray-400 cursor-not-allowed"}`}
                       >
-                        {score >= 90 ? "FINALIZAR" : "CERRAR"}
+                        {isComplete
+                          ? "ENVIAR PARA CALIFICACIÓN"
+                          : "RESPONDE TODO PARA ENVIAR"}
                       </button>
                     </div>
-                  </div>
-                )}
-              </div>
+                  )}
 
-              {/* VISORES ORIGINALES */}
-              {currentVideo && (
-                <div className="fixed inset-0 bg-black/95 z-[70] flex items-center justify-center p-8">
-                  <div className="w-full max-w-5xl aspect-video relative">
-                    <button
-                      onClick={() => setCurrentVideo(null)}
-                      className="absolute -top-12 right-0 text-white flex items-center gap-2 font-black tracking-widest text-xs uppercase"
-                    >
-                      <XMarkIcon /> CERRAR VIDEO
-                    </button>
-
-                    <video
-                      controls
-                      autoPlay
-                      onContextMenu={(e) => e.preventDefault()}
-                      controlsList="nodownload noplaybackrate"
-                      className="w-full h-full rounded-3xl bg-black"
-                      id="course-video-player"
-                      onTimeUpdate={(e: any) => {
-                        const video = e.target;
-                        if (video.currentTime > lastTimeReached.current + 1.5) {
-                          video.currentTime = lastTimeReached.current;
-                        } else {
-                          lastTimeReached.current = video.currentTime;
-                        }
-                      }}
-                      onSeeking={(e: any) => {
-                        if (e.target.currentTime > lastTimeReached.current) {
-                          e.target.currentTime = lastTimeReached.current;
-                        }
-                      }}
-                      onEnded={() => {
-                        setViewedVideos((prev) =>
-                          new Set(prev).add(currentVideo.id)
-                        );
-                      }}
-                    >
-                      {/* FIX: Solo renderiza source si fileUrl existe y no es string vacío */}
-                      {currentVideo?.fileUrl && (
-                        <source src={currentVideo.fileUrl} type="video/mp4" />
-                      )}
-                    </video>
-                  </div>
-                </div>
-              )}
-
-              {currentPDF && (
-                <div className="fixed inset-0 bg-black/95 z-[70] flex items-center justify-center p-8">
-                  <div className="w-full max-w-6xl h-full relative flex flex-col gap-4">
-                    <div className="flex justify-between items-center text-white">
-                      <h3 className="font-black uppercase tracking-widest">
-                        {currentPDF.title}
+                  {currentStep === "survey" && (
+                    <div className="space-y-8 py-6">
+                      <h3 className="text-2xl font-black text-center uppercase text-black">
+                        Encuesta de Calidad
                       </h3>
+                      {["ensenanza", "consistencia", "riesgo", "contenido"].map(
+                        (item) => (
+                          <div
+                            key={item}
+                            className="flex justify-between items-center p-4 bg-gray-50 rounded-2xl"
+                          >
+                            <span className="font-bold uppercase text-xs text-gray-600">
+                              {item}
+                            </span>
+                            <div className="flex gap-1">
+                              {[1, 2, 3, 4, 5].map((starValue) => (
+                                <button
+                                  key={starValue}
+                                  onClick={() =>
+                                    setSurveyData({
+                                      ...surveyData,
+                                      [item]: starValue,
+                                    })
+                                  }
+                                >
+                                  <Star
+                                    className={`w-6 h-6 ${surveyData[item] >= starValue ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`}
+                                  />
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        ),
+                      )}
                       <button
-                        onClick={() => {
-                          setCurrentPDF(null);
-                          setPdfScrollReached(false);
-                        }}
-                        className="flex items-center gap-2 font-black text-xs uppercase hover:text-red-500 transition-colors"
+                        onClick={handleSaveToPostgres}
+                        className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black uppercase shadow-lg"
                       >
-                        <XMarkIcon /> CANCELAR LECTURA
+                        GUARDAR Y FINALIZAR
                       </button>
                     </div>
+                  )}
 
-                    <div
-                      onScroll={handlePDFScroll}
-                      className="w-full flex-1 rounded-3xl bg-white overflow-y-auto custom-scrollbar p-2"
-                    >
-                      <div className="w-full h-[2000px] relative">
-                        {/* FIX: Solo renderiza iframe si hay URL para evitar recargas de página */}
-                        {currentPDF?.fileUrl && (
-                          <iframe
-                            title={currentPDF.title}
-                            src={currentPDF.fileUrl}
-                            className="w-full h-full rounded-2xl border-none"
-                          />
+                  {currentStep === "results" && (
+                    <div className="text-center py-10 space-y-8">
+                      <div
+                        className={`text-[8rem] font-black tracking-tighter leading-none ${score >= 90 ? "text-green-600" : "text-red-600"}`}
+                      >
+                        {score}%
+                      </div>
+                      <p className="text-2xl font-black uppercase italic">
+                        {score >= 90 ? "¡Aprobado!" : "Aprobación Fallida"}
+                      </p>
+                      <div className="flex gap-4 justify-center">
+                        {score < 90 && (
+                          <button
+                            onClick={() => {
+                              setScore(0);
+                              setUserAnswers({});
+                              setCurrentStep("quiz");
+                              setQuizTimeLeft(
+                                (courseData?.duracionExamen || 30) * 60,
+                              );
+                            }}
+                            className="px-10 py-4 bg-black text-white rounded-2xl font-black hover:scale-105 transition-all"
+                          >
+                            REINTENTAR AHORA
+                          </button>
                         )}
+                        <button
+                          onClick={onClose}
+                          className={`px-10 py-4 rounded-2xl font-black transition-all ${score >= 90 ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-400"}`}
+                        >
+                          {score >= 90 ? "FINALIZAR" : "CERRAR"}
+                        </button>
                       </div>
                     </div>
+                  )}
+                </div>
 
-                    <div className="flex flex-col items-center gap-2">
-                      {!pdfScrollReached && (
-                        <span className="text-orange-400 font-bold text-xs uppercase animate-pulse">
-                          ⬇️ Debes desplazarte hasta el final del documento para
-                          habilitar la confirmación
-                        </span>
-                      )}
+                {/* VISUALIZADOR DE VIDEO (OVERLAY) */}
+                {currentVideo && (
+                  <div className="fixed inset-0 bg-black/95 z-[70] flex items-center justify-center p-8">
+                    <div className="w-full max-w-5xl aspect-video relative">
                       <button
-                        disabled={!pdfScrollReached}
-                        onClick={markPDFAsRead}
-                        className={`w-full max-w-md py-4 rounded-2xl font-black uppercase transition-all ${
-                          pdfScrollReached
-                            ? "bg-green-600 text-white shadow-lg hover:scale-105"
-                            : "bg-gray-800 text-gray-500 cursor-not-allowed"
-                        }`}
+                        onClick={() => setCurrentVideo(null)}
+                        className="absolute -top-12 right-0 text-white flex items-center gap-2 font-black tracking-widest text-xs uppercase"
                       >
-                        {pdfScrollReached
-                          ? "CONFIRMAR LECTURA COMPLETADA"
-                          : "LECTURA EN PROGRESO..."}
+                        <XMarkIcon /> CERRAR VIDEO
                       </button>
+                      <video
+                        controls
+                        autoPlay
+                        controlsList="nodownload noplaybackrate"
+                        className="w-full h-full rounded-3xl bg-black shadow-2xl"
+                        onTimeUpdate={(e: any) => {
+                          const v = e.target;
+                          if (v.currentTime > lastTimeReached.current + 1.5)
+                            v.currentTime = lastTimeReached.current;
+                          else lastTimeReached.current = v.currentTime;
+                        }}
+                        onEnded={() =>
+                          setViewedVideos((prev) =>
+                            new Set(prev).add(currentVideo.id),
+                          )
+                        }
+                      >
+                        {currentVideo?.fileUrl && (
+                          <source src={currentVideo.fileUrl} type="video/mp4" />
+                        )}
+                      </video>
                     </div>
                   </div>
-                </div>
-              )}
-            </Dialog.Panel>
+                )}
+                {/* VISUALIZADOR DE PDF - SINCRONIZADO */}
+                {currentPDF && (
+                  <div className="fixed inset-0 bg-black/95 z-[80] flex items-center justify-center p-2 md:p-6">
+                    <div className="w-full max-w-6xl h-[95vh] flex flex-col overflow-hidden">
+                      {/* Cabecera */}
+                      <div className="flex justify-between items-center mb-3 text-white">
+                        <h3 className="font-black uppercase tracking-widest truncate max-w-[70%]">
+                          {currentPDF.title}
+                        </h3>
+                        <button
+                          onClick={() => {
+                            setCurrentPDF(null);
+                            setPdfScrollReached(false);
+                          }}
+                          className="flex items-center gap-2 font-black text-xs uppercase hover:text-red-500 transition-colors"
+                        >
+                          <XMarkIcon className="w-4 h-4" /> CERRAR LECTURA
+                        </button>
+                      </div>
+
+                      {/* ÁREA DE LECTURA: El contenedor es el que manda ahora */}
+                      <div
+                        onScroll={handlePDFScroll}
+                        className="flex-1 w-full bg-[#525659] rounded-xl overflow-y-auto overflow-x-hidden relative scroll-smooth shadow-inner"
+                        style={{
+                          scrollbarWidth: "none",
+                          msOverflowStyle: "none",
+                        }} /* Oculta barra en Firefox/IE */
+                      >
+                        {/* Estilo para ocultar la barra blanca en Chrome/Safari */}
+                        <style>{`
+          div::-webkit-scrollbar { display: none; }
+        `}</style>
+
+                        <div className="w-full flex flex-col items-center">
+                          <iframe
+                            src={`${currentPDF.fileUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
+                            /* Aumentamos la altura del iframe proporcionalmente. 
+               Para documentos largos, 5000px asegura que se vea todo 
+               y que el scroll lo maneje el DIV padre (tu código).
+            */
+                            style={{
+                              width: "100%",
+                              height: "5000px",
+                              border: "none",
+                              pointerEvents: "none", // Importante para que el scroll pase al padre
+                            }}
+                            title={currentPDF.title}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Footer de confirmación */}
+                      <div className="mt-4 flex flex-col items-center gap-2 bg-black/40 p-3 rounded-2xl">
+                        {!pdfScrollReached && (
+                          <span className="text-orange-400 font-bold text-[10px] uppercase animate-pulse flex items-center gap-2">
+                            <span>⬇️</span> Desliza el documento hacia abajo
+                            para validar
+                          </span>
+                        )}
+                        <button
+                          disabled={!pdfScrollReached}
+                          onClick={markPDFAsRead}
+                          className={`w-full max-w-md py-4 rounded-2xl font-black uppercase transition-all duration-300 ${
+                            pdfScrollReached
+                              ? "bg-green-600 text-white shadow-[0_0_20px_rgba(22,163,74,0.4)]"
+                              : "bg-gray-800 text-gray-500 cursor-not-allowed"
+                          }`}
+                        >
+                          {pdfScrollReached
+                            ? "CONFIRMAR LECTURA COMPLETADA"
+                            : "LECTURA EN PROGRESO..."}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </Dialog.Panel>
+            </Transition.Child>
           </div>
         </div>
       </Dialog>

@@ -29,9 +29,10 @@
   --color-info: #3b82f6;
 
   /* Fuentes */
-  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-poppins: 'Poppins', sans-serif;
-  --font-inter: 'Inter', sans-serif;
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    sans-serif;
+  --font-poppins: "Poppins", sans-serif;
+  --font-inter: "Inter", sans-serif;
 
   /* Sombras */
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
@@ -79,7 +80,10 @@
   }
 
   /* Tipografía */
-  h1, h4, h5, h6 {
+  h1,
+  h4,
+  h5,
+  h6 {
     font-weight: 600;
     line-height: 1.2;
     color: #111827; /* gray-900 */
@@ -114,7 +118,8 @@
   }
 
   /* Listas */
-  ul, ol {
+  ul,
+  ol {
     padding-left: 1.5rem;
   }
 
@@ -402,6 +407,26 @@
     margin-left: auto;
     margin-right: auto;
   }
+  .pdf-viewer-container {
+    @apply w-full h-full overflow-hidden flex flex-col;
+  }
+
+  /* Forzar al objeto/iframe/embed a expandirse y quitar bordes */
+  .pdf-content {
+    width: 100% !important;
+    height: 100% !important;
+    border: none !important;
+    display: block;
+  }
+
+  /* Utility para ocultar scrollbars pero mantener funcionalidad de scroll */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 }
 
 /* ============================================= */
@@ -428,7 +453,8 @@
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {
@@ -547,19 +573,19 @@
   body {
     font-size: 16px; /* Prevenir zoom en iOS */
   }
-  
+
   h1 {
     font-size: 1.75rem;
   }
-  
+
   h2 {
     font-size: 1.5rem;
   }
-  
+
   h3 {
     font-size: 1.25rem;
   }
-  
+
   .dashboard-grid {
     grid-template-columns: 1fr !important;
     gap: 1rem !important;
@@ -584,12 +610,15 @@
 
 /* Mejorar botones para touch */
 @media (max-width: 640px) {
-  .btn, button {
+  .btn,
+  button {
     min-height: 44px;
     min-width: 44px;
   }
-  
-  .form-input, select, textarea {
+
+  .form-input,
+  select,
+  textarea {
     font-size: 16px; /* Prevenir zoom en iOS */
   }
 }
@@ -615,7 +644,9 @@
 
 /* Hamburger menu animation */
 .hamburger-line {
-  transition: transform 0.3s, opacity 0.3s;
+  transition:
+    transform 0.3s,
+    opacity 0.3s;
 }
 
 .hamburger-active .hamburger-line:nth-child(1) {
@@ -755,7 +786,11 @@
 
 /* Gradientes personalizados */
 .gradient-primary {
-  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  background: linear-gradient(
+    135deg,
+    var(--color-primary),
+    var(--color-secondary)
+  );
 }
 
 .gradient-success {
