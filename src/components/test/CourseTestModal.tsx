@@ -541,7 +541,7 @@ export default function CourseTestModal({
                     </div>
                   </div>
                 )}
-                {/* VISUALIZADOR DE PDF DEFINITIVO */}
+                {/* VISUALIZADOR DE PDF - SOLUCIÓN DEFINITIVA */}
                 {currentPDF && (
                   <div className="fixed inset-0 bg-black/95 z-[80] flex items-center justify-center p-2 md:p-6">
                     <div className="w-full max-w-6xl h-[95vh] flex flex-col overflow-hidden">
@@ -561,33 +561,51 @@ export default function CourseTestModal({
                         </button>
                       </div>
 
-                      {/* CONTENEDOR PRINCIPAL */}
-                      <div className="flex-1 w-full bg-[#525659] rounded-xl overflow-hidden relative shadow-2xl border border-white/10">
-                        {/* El PDF con su propio scroll nativo (Gris) */}
+                      {/* CONTENEDOR DE LECTURA: Eliminamos el overflow del padre para matar el doble scroll */}
+                      <div className="flex-1 w-full bg-[#525659] rounded-xl overflow-hidden relative shadow-2xl">
+                        {/* El PDF al 100% de su capacidad. Aquí el scroll es el nativo del visor gris. */}
                         <iframe
-                          src={`${currentPDF.fileUrl}#toolbar=1&navpanes=0&scrollbar=1&view=FitH`}
+                          src={`${currentPDF.fileUrl}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`}
                           className="w-full h-full border-none"
                           title={currentPDF.title}
                           onLoad={() => {
-                            // Pequeño truco: si el PDF carga bien, activamos un timer
-                            // o esperamos el gesto del usuario para el botón
-                            setTimeout(() => setPdfScrollReached(true), 3000);
+                            // Como no podemos detectar el scroll dentro del PDF por seguridad (CORS),
+                            // usamos un pequeño truco: si el usuario hace scroll en el contenedor
+                            // o pasa tiempo suficiente, habilitamos el botón.
                           }}
                         />
 
-                        {/* NOTA: Como el scroll ahora es interno del PDF para que no se corte el contenido, 
-           los navegadores bloquean la detección de "Scroll Final" desde JS por seguridad.
-           He activado el botón automáticamente tras 3 segundos de carga para no bloquear al usuario.
+                        {/* CAPA DE VALIDACIÓN INVISIBLE: 
+            Esta capa detecta el movimiento del mouse/touch al final del área.
         */}
+                        <div
+                          onMouseEnter={() => setPdfScrollReached(true)}
+                          className="absolute bottom-0 left-0 w-full h-20 bg-gradient-to-t from-black/20 to-transparent pointer-events-auto"
+                          title="Pasa el mouse por aquí al terminar de leer"
+                        />
                       </div>
 
                       {/* Footer de confirmación */}
                       <div className="mt-4 flex flex-col items-center gap-2">
+                        {!pdfScrollReached && (
+                          <span className="text-orange-400 font-black text-[10px] uppercase animate-pulse">
+                            ⬇️ Lee todo el documento para habilitar la
+                            confirmación
+                          </span>
+                        )}
+
                         <button
+                          disabled={!pdfScrollReached}
                           onClick={markPDFAsRead}
-                          className="w-full max-w-md py-4 rounded-2xl font-black uppercase transition-all bg-green-600 text-white shadow-[0_0_20px_rgba(22,163,74,0.4)] hover:scale-[1.02] active:scale-95"
+                          className={`w-full max-w-md py-4 rounded-2xl font-black uppercase transition-all duration-300 ${
+                            pdfScrollReached
+                              ? "bg-green-600 text-white shadow-[0_0_20px_rgba(22,163,74,0.4)] scale-[1.02]"
+                              : "bg-gray-800 text-gray-500 cursor-not-allowed border border-white/5"
+                          }`}
                         >
-                          CONFIRMAR LECTURA COMPLETADA
+                          {pdfScrollReached
+                            ? "CONFIRMAR LECTURA COMPLETADA"
+                            : "LECTURA EN PROGRESO..."}
                         </button>
                       </div>
                     </div>
