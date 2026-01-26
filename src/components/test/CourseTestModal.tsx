@@ -7,9 +7,9 @@ import axios from "axios";
 import { useAuth } from "@/hooks/useAuth";
 
 // ICONOS (Mantenidos igual para no alterar diseño)
-const XMarkIcon = () => (
+const XMarkIcon = ({ className }: { className?: string }) => (
   <svg
-    className="h-6 w-6"
+    className={className || "h-6 w-6"}
     fill="none"
     stroke="currentColor"
     viewBox="0 0 24 24"
@@ -106,6 +106,7 @@ export default function CourseTestModal({
     riesgo: 5,
     contenido: 5,
   });
+
   const lastTimeReached = useRef(0);
   const [currentVideo, setCurrentVideo] = useState<any>(null);
   const [currentPDF, setCurrentPDF] = useState<any>(null);
@@ -150,13 +151,31 @@ export default function CourseTestModal({
         ? Math.round((correctas / questions.length) * 100)
         : 100;
     setScore(notaFinal);
+
     try {
+      // Validamos que el ID sea numérico antes de enviarlo para evitar el 500
+      const numericUserId = user?.id ? parseInt(String(user.id), 10) : null;
+
+      if (!numericUserId || isNaN(numericUserId)) {
+        console.error("ID de usuario no válido para el backend");
+        return;
+      }
+
+      // MODIFICADO: Enviamos el userName aquí también para que el reporte sepa quién es
+      // incluso antes de que termine la encuesta.
+      const fullName =
+        user?.fullName ||
+        user?.name ||
+        user?.nombre_completo ||
+        `Estudiante ${user?.id}`;
+
       await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL}/courses/register-completion`,
         {
           courseId: courseData.id,
-          userId: Number(user?.id),
+          userId: numericUserId, // Enviamos un entero limpio
           score: notaFinal,
+          userName: fullName,
         },
       );
     } catch (error) {
@@ -182,6 +201,12 @@ export default function CourseTestModal({
 
   const handleSaveToPostgres = async () => {
     try {
+      // MODIFICADO: Aseguramos la captura del nombre completo
+      const fullName =
+        user?.fullName ||
+        user?.name ||
+        user?.nombre_completo ||
+        `Estudiante ${user?.id}`;
       await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL}/courses/register-completion`,
         {
@@ -189,6 +214,8 @@ export default function CourseTestModal({
           userId: Number(user?.id),
           score: score,
           survey: surveyData,
+          userName: fullName,
+          userEmail: user?.email,
         },
       );
       setCurrentStep("results");
@@ -221,17 +248,11 @@ export default function CourseTestModal({
   const isComplete =
     shuffledQuestions.length > 0 &&
     shuffledQuestions.every((q: any) => userAnswers[q.id]);
+
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
-  };
-
-  const handlePDFScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-    if (scrollTop + clientHeight >= scrollHeight * 0.98) {
-      if (!pdfScrollReached) setPdfScrollReached(true);
-    }
   };
 
   const markPDFAsRead = () => {
@@ -507,7 +528,7 @@ export default function CourseTestModal({
                   )}
                 </div>
 
-                {/* VISUALIZADOR DE VIDEO (OVERLAY) */}
+                {/* VISUALIZADOR DE VIDEO */}
                 {currentVideo && (
                   <div className="fixed inset-0 bg-black/95 z-[70] flex items-center justify-center p-8">
                     <div className="w-full max-w-5xl aspect-video relative">
@@ -515,7 +536,7 @@ export default function CourseTestModal({
                         onClick={() => setCurrentVideo(null)}
                         className="absolute -top-12 right-0 text-white flex items-center gap-2 font-black tracking-widest text-xs uppercase"
                       >
-                        <XMarkIcon /> CERRAR VIDEO
+                        <XMarkIcon className="w-5 h-5" /> CERRAR VIDEO
                       </button>
                       <video
                         controls
@@ -524,7 +545,7 @@ export default function CourseTestModal({
                         className="w-full h-full rounded-3xl bg-black shadow-2xl"
                         onTimeUpdate={(e: any) => {
                           const v = e.target;
-                          if (v.currentTime > lastTimeReached.current + 1.5)
+                          if (v.currentTime > lastTimeReached.current + 2)
                             v.currentTime = lastTimeReached.current;
                           else lastTimeReached.current = v.currentTime;
                         }}
@@ -541,11 +562,11 @@ export default function CourseTestModal({
                     </div>
                   </div>
                 )}
-                {/* VISUALIZADOR DE PDF - SOLUCIÓN DEFINITIVA */}
+
+                {/* VISUALIZADOR DE PDF */}
                 {currentPDF && (
                   <div className="fixed inset-0 bg-black/95 z-[80] flex items-center justify-center p-2 md:p-6">
                     <div className="w-full max-w-6xl h-[95vh] flex flex-col overflow-hidden">
-                      {/* Cabecera */}
                       <div className="flex justify-between items-center mb-3 text-white px-2">
                         <h3 className="font-black uppercase tracking-widest truncate max-w-[70%]">
                           {currentPDF.title}
@@ -560,48 +581,28 @@ export default function CourseTestModal({
                           <XMarkIcon className="w-4 h-4" /> CERRAR LECTURA
                         </button>
                       </div>
-
-                      {/* CONTENEDOR DE LECTURA: Eliminamos el overflow del padre para matar el doble scroll */}
                       <div className="flex-1 w-full bg-[#525659] rounded-xl overflow-hidden relative shadow-2xl">
-                        {/* El PDF al 100% de su capacidad. Aquí el scroll es el nativo del visor gris. */}
                         <iframe
                           src={`${currentPDF.fileUrl}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`}
                           className="w-full h-full border-none"
                           title={currentPDF.title}
-                          onLoad={() => {
-                            // Como no podemos detectar el scroll dentro del PDF por seguridad (CORS),
-                            // usamos un pequeño truco: si el usuario hace scroll en el contenedor
-                            // o pasa tiempo suficiente, habilitamos el botón.
-                          }}
                         />
-
-                        {/* CAPA DE VALIDACIÓN INVISIBLE: 
-            Esta capa detecta el movimiento del mouse/touch al final del área.
-        */}
                         <div
                           onMouseEnter={() => setPdfScrollReached(true)}
-                          className="absolute bottom-0 left-0 w-full h-20 bg-gradient-to-t from-black/20 to-transparent pointer-events-auto"
+                          className="absolute bottom-0 left-0 w-full h-24 bg-gradient-to-t from-black/20 to-transparent pointer-events-auto"
                           title="Pasa el mouse por aquí al terminar de leer"
                         />
                       </div>
-
-                      {/* Footer de confirmación */}
                       <div className="mt-4 flex flex-col items-center gap-2">
                         {!pdfScrollReached && (
                           <span className="text-orange-400 font-black text-[10px] uppercase animate-pulse">
-                            ⬇️ Lee todo el documento para habilitar la
-                            confirmación
+                            ⬇️ Desliza hasta el final para confirmar lectura
                           </span>
                         )}
-
                         <button
                           disabled={!pdfScrollReached}
                           onClick={markPDFAsRead}
-                          className={`w-full max-w-md py-4 rounded-2xl font-black uppercase transition-all duration-300 ${
-                            pdfScrollReached
-                              ? "bg-green-600 text-white shadow-[0_0_20px_rgba(22,163,74,0.4)] scale-[1.02]"
-                              : "bg-gray-800 text-gray-500 cursor-not-allowed border border-white/5"
-                          }`}
+                          className={`w-full max-w-md py-4 rounded-2xl font-black uppercase transition-all duration-300 ${pdfScrollReached ? "bg-green-600 text-white shadow-[0_0_20px_rgba(22,163,74,0.4)] scale-[1.02]" : "bg-gray-800 text-gray-500 cursor-not-allowed border border-white/5"}`}
                         >
                           {pdfScrollReached
                             ? "CONFIRMAR LECTURA COMPLETADA"
