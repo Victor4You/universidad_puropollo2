@@ -92,12 +92,62 @@ export default function CourseStudentsModal({
 
   useEffect(() => {
     const cargarAsignados = async () => {
-      // Validamos que el ID exista y no sea un string "undefined" accidental
       if (isOpen && courseData?.id && courseData.id !== "undefined") {
         try {
+          // 1. Obtener la lista de IDs inscritos desde tu DB local
           const res = await api.get(`/courses/${courseData.id}/students`);
+
           if (res.data && Array.isArray(res.data)) {
-            setInscritos(res.data);
+            // 2. Mapeamos los datos base
+            const datosBase = res.data.map((s: any) => ({
+              id: s.id,
+              name: s.name || s.nombre || `ID: ${s.id}`,
+              username: s.username || s.usuario || "DESCONOCIDO",
+              role: s.role || "estudiante",
+            }));
+
+            setInscritos(datosBase);
+
+            // 3. AUTO-RECUPERACIÓN: Si los nombres vienen como "ID: 9742", buscamos los reales
+            // Solo lo hacemos si tenemos un sucursalId o si podemos buscarlos por ID
+            datosBase.forEach(async (estudiante) => {
+              if (
+                estudiante.name.includes("ID:") ||
+                estudiante.username === "DESCONOCIDO"
+              ) {
+                try {
+                  // Intentamos buscar al usuario específico en tu API de búsqueda por el ID
+                  // Si tu API no soporta buscar por ID directo, usaremos la búsqueda de sucursal
+                  const searchRes = await api.get(
+                    `/courses/users/sucursal/${sucursalId || 1}?q=${estudiante.id}`,
+                  );
+                  const realUser = searchRes.data.find(
+                    (u: any) => u.id === estudiante.id,
+                  );
+
+                  if (realUser) {
+                    setInscritos((prev) =>
+                      prev.map((p) =>
+                        p.id === estudiante.id
+                          ? {
+                              ...p,
+                              name:
+                                realUser.name ||
+                                `${realUser.nombre || ""} ${realUser.apellido || ""}`.trim(),
+                              username: realUser.usuario || realUser.username,
+                            }
+                          : p,
+                      ),
+                    );
+                  }
+                } catch (err) {
+                  console.error(
+                    "No se pudo recuperar el nombre para ID:",
+                    estudiante.id,
+                  );
+                }
+              }
+            });
           }
         } catch (error) {
           console.error("Error cargando asignados:", error);
@@ -137,19 +187,20 @@ export default function CourseStudentsModal({
     const userKey = user.usuario || user.username;
     const userId = user.id;
 
-    // Verificamos por ID y por Username para estar 100% seguros
     const isAlreadyIn = inscritos.some(
       (s) => s.username === userKey || s.id === userId,
     );
 
     if (isAlreadyIn) {
-      // Si ya existe, lo quitamos de la lista actual
       setInscritos((prev) => prev.filter((s) => s.id !== userId));
     } else {
-      // Si no existe, lo agregamos
       const newStudent = {
         id: userId,
-        name: user.name || `${user.nombre} ${user.apellido}`,
+        // CORRECCIÓN: Aseguramos que el nombre se guarde correctamente en la lista visual
+        name:
+          user.name ||
+          `${user.nombre || ""} ${user.apellido || ""}`.trim() ||
+          userKey,
         username: userKey,
         role: user.role || "estudiante",
       };
@@ -272,16 +323,23 @@ export default function CourseStudentsModal({
                     <div className="absolute z-20 w-full mt-2 bg-white border-2 border-blue-600 rounded-2xl shadow-xl overflow-hidden max-h-52 overflow-y-auto">
                       {searchResults.map((user) => (
                         <button
-                          key={user.usuario || user.username}
+                          key={user.id || user.usuario || user.username}
                           onClick={() => handleToggleInscripcion(user)}
                           className="w-full flex items-center justify-between p-4 hover:bg-blue-50 transition-colors border-b last:border-none text-left"
                         >
                           <div>
                             <p className="font-bold text-gray-900 text-sm">
-                              {user.nombre} {user.apellido}
+                              {/* CORRECCIÓN: Priorizamos 'name' que viene del backend consolidado */}
+                              {user.name ||
+                                `${user.nombre || ""} ${user.apellido || ""}`.trim() ||
+                                user.usuario ||
+                                "Usuario sin nombre"}
                             </p>
                             <p className="text-[10px] text-blue-600 font-black">
-                              @{user.usuario} • {user.sucursalNombre}
+                              @{user.usuario || user.username} •{" "}
+                              {user.sucursal ||
+                                user.sucursalNombre ||
+                                "OFICINA ADMINISTRATIVA"}
                             </p>
                           </div>
                           <span className="text-blue-600 font-black text-[10px] uppercase">
@@ -298,12 +356,13 @@ export default function CourseStudentsModal({
                 <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-2">
                   Lista Actual ({inscritos.length})
                 </h4>
+
                 <div className="max-h-[300px] overflow-y-auto space-y-2 pr-2 custom-scrollbar">
                   {inscritos.length > 0 ? (
                     inscritos.map((student) => (
                       <div
                         key={student.id}
-                        className="flex items-center justify-between p-4 bg-gray-50 rounded-[1.5rem] border-2 border-transparent hover:border-blue-50 transition-all"
+                        className="flex items-center justify-between p-4 bg-gray-50 rounded-[1.5rem]"
                       >
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
@@ -311,20 +370,22 @@ export default function CourseStudentsModal({
                           </div>
                           <div>
                             <button
+                              type="button"
                               onClick={() =>
                                 handleSeeStudentProfile(student.username)
                               }
                               className="font-bold text-gray-900 text-sm hover:text-blue-600 transition-colors block text-left"
                             >
-                              {student.name}
+                              {student.name || `ESTUDIANTE ${student.id}`}
                             </button>
                             <div className="text-[10px] text-gray-500 uppercase font-black">
-                              @{student.username}
+                              @{student.username || student.usuario || "S/N"}
                             </div>
                           </div>
                         </div>
-                        {/* BOTÓN CORREGIDO PARA AXE-LINTER */}
+
                         <button
+                          type="button"
                           onClick={() => handleToggleInscripcion(student)}
                           aria-label={`Desinscribir a ${student.name}`}
                           className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors bg-green-600"

@@ -7,9 +7,9 @@ import axios from "axios";
 import { useAuth } from "@/hooks/useAuth";
 
 // ICONOS (Mantenidos igual para no alterar diseño)
-const XMarkIcon = ({ className }: { className?: string }) => (
+const XMarkIcon = () => (
   <svg
-    className={className || "h-6 w-6"}
+    className="h-6 w-6"
     fill="none"
     stroke="currentColor"
     viewBox="0 0 24 24"
@@ -106,7 +106,6 @@ export default function CourseTestModal({
     riesgo: 5,
     contenido: 5,
   });
-
   const lastTimeReached = useRef(0);
   const [currentVideo, setCurrentVideo] = useState<any>(null);
   const [currentPDF, setCurrentPDF] = useState<any>(null);
@@ -153,29 +152,13 @@ export default function CourseTestModal({
     setScore(notaFinal);
 
     try {
-      // Validamos que el ID sea numérico antes de enviarlo para evitar el 500
-      const numericUserId = user?.id ? parseInt(String(user.id), 10) : null;
-
-      if (!numericUserId || isNaN(numericUserId)) {
-        console.error("ID de usuario no válido para el backend");
-        return;
-      }
-
-      // MODIFICADO: Enviamos el userName aquí también para que el reporte sepa quién es
-      // incluso antes de que termine la encuesta.
-      const fullName =
-        user?.fullName ||
-        user?.name ||
-        user?.nombre_completo ||
-        `Estudiante ${user?.id}`;
-
+      // CAMBIO: courseId y userId como Números para la BD de Vercel
       await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL}/courses/register-completion`,
         {
-          courseId: courseData.id,
-          userId: numericUserId, // Enviamos un entero limpio
+          courseId: Number(courseData.id),
+          userId: Number(user?.id),
           score: notaFinal,
-          userName: fullName,
         },
       );
     } catch (error) {
@@ -201,21 +184,14 @@ export default function CourseTestModal({
 
   const handleSaveToPostgres = async () => {
     try {
-      // MODIFICADO: Aseguramos la captura del nombre completo
-      const fullName =
-        user?.fullName ||
-        user?.name ||
-        user?.nombre_completo ||
-        `Estudiante ${user?.id}`;
+      // CAMBIO: courseId y userId como Números para la BD de Vercel
       await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL}/courses/register-completion`,
         {
-          courseId: courseData.id,
+          courseId: Number(courseData.id),
           userId: Number(user?.id),
           score: score,
           survey: surveyData,
-          userName: fullName,
-          userEmail: user?.email,
         },
       );
       setCurrentStep("results");
@@ -248,7 +224,6 @@ export default function CourseTestModal({
   const isComplete =
     shuffledQuestions.length > 0 &&
     shuffledQuestions.every((q: any) => userAnswers[q.id]);
-
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -528,7 +503,7 @@ export default function CourseTestModal({
                   )}
                 </div>
 
-                {/* VISUALIZADOR DE VIDEO */}
+                {/* OVERLAYS DE VIDEO Y PDF (Mantenidos igual) */}
                 {currentVideo && (
                   <div className="fixed inset-0 bg-black/95 z-[70] flex items-center justify-center p-8">
                     <div className="w-full max-w-5xl aspect-video relative">
@@ -536,7 +511,7 @@ export default function CourseTestModal({
                         onClick={() => setCurrentVideo(null)}
                         className="absolute -top-12 right-0 text-white flex items-center gap-2 font-black tracking-widest text-xs uppercase"
                       >
-                        <XMarkIcon className="w-5 h-5" /> CERRAR VIDEO
+                        <XMarkIcon /> CERRAR VIDEO
                       </button>
                       <video
                         controls
@@ -545,7 +520,7 @@ export default function CourseTestModal({
                         className="w-full h-full rounded-3xl bg-black shadow-2xl"
                         onTimeUpdate={(e: any) => {
                           const v = e.target;
-                          if (v.currentTime > lastTimeReached.current + 2)
+                          if (v.currentTime > lastTimeReached.current + 1.5)
                             v.currentTime = lastTimeReached.current;
                           else lastTimeReached.current = v.currentTime;
                         }}
@@ -562,8 +537,6 @@ export default function CourseTestModal({
                     </div>
                   </div>
                 )}
-
-                {/* VISUALIZADOR DE PDF */}
                 {currentPDF && (
                   <div className="fixed inset-0 bg-black/95 z-[80] flex items-center justify-center p-2 md:p-6">
                     <div className="w-full max-w-6xl h-[95vh] flex flex-col overflow-hidden">
@@ -589,20 +562,20 @@ export default function CourseTestModal({
                         />
                         <div
                           onMouseEnter={() => setPdfScrollReached(true)}
-                          className="absolute bottom-0 left-0 w-full h-24 bg-gradient-to-t from-black/20 to-transparent pointer-events-auto"
-                          title="Pasa el mouse por aquí al terminar de leer"
+                          className="absolute bottom-0 left-0 w-full h-20 bg-gradient-to-t from-black/20 to-transparent pointer-events-auto"
                         />
                       </div>
                       <div className="mt-4 flex flex-col items-center gap-2">
                         {!pdfScrollReached && (
                           <span className="text-orange-400 font-black text-[10px] uppercase animate-pulse">
-                            ⬇️ Desliza hasta el final para confirmar lectura
+                            ⬇️ Lee todo el documento para habilitar la
+                            confirmación
                           </span>
                         )}
                         <button
                           disabled={!pdfScrollReached}
                           onClick={markPDFAsRead}
-                          className={`w-full max-w-md py-4 rounded-2xl font-black uppercase transition-all duration-300 ${pdfScrollReached ? "bg-green-600 text-white shadow-[0_0_20px_rgba(22,163,74,0.4)] scale-[1.02]" : "bg-gray-800 text-gray-500 cursor-not-allowed border border-white/5"}`}
+                          className={`w-full max-md py-4 rounded-2xl font-black uppercase transition-all duration-300 ${pdfScrollReached ? "bg-green-600 text-white shadow-[0_0_20px_rgba(22,163,74,0.4)] scale-[1.02]" : "bg-gray-800 text-gray-500 cursor-not-allowed border border-white/5"}`}
                         >
                           {pdfScrollReached
                             ? "CONFIRMAR LECTURA COMPLETADA"

@@ -1,230 +1,219 @@
+// src/app/(dashboard)/dashboard/reportes/exportacion-datos/page.tsx
+// src/app/(dashboard)/dashboard/reportes/exportacion-datos/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
 import api from "@/lib/api/axios";
 
-// --- CONSTANTES DE DATOS ---
-
-const formatosDisponibles = [
-  {
-    id: "pdf",
-    nombre: "PDF Document",
-    descripcion: "Reportes completos con gráficos",
-    icono: "📄",
-  },
-  {
-    id: "excel",
-    nombre: "Excel Spreadsheet",
-    descripcion: "Datos para análisis estadístico",
-    icono: "📊",
-  },
-  {
-    id: "csv",
-    nombre: "CSV File",
-    descripcion: "Datos para importación a sistemas",
-    icono: "📋",
-  },
-  {
-    id: "json",
-    nombre: "JSON Data",
-    descripcion: "Formato para desarrolladores",
-    icono: "🔧",
-  },
-];
-
-const rangosFecha = [
-  { id: "today", nombre: "Hoy", descripcion: "Datos del día actual" },
-  {
-    id: "week",
-    nombre: "Última semana",
-    descripcion: "Datos de los últimos 7 días",
-  },
-  {
-    id: "month",
-    nombre: "Último mes",
-    descripcion: "Datos de los últimos 30 días",
-  },
-  {
-    id: "quarter",
-    nombre: "Último trimestre",
-    descripcion: "Datos de los últimos 90 días",
-  },
-  {
-    id: "year",
-    nombre: "Último año",
-    descripcion: "Datos de los últimos 365 días",
-  },
-  {
-    id: "custom",
-    nombre: "Personalizado",
-    descripcion: "Selecciona un rango específico",
-  },
-];
-
-const modosExportacion = [
-  {
-    id: "automatico",
-    nombre: "Automático",
-    descripcion: "Exportación programada automáticamente",
-  },
-  { id: "manual", nombre: "Manual", descripcion: "Exportación bajo demanda" },
-  {
-    id: "recurrente",
-    nombre: "Recurrente",
-    descripcion: "Exportación periódica",
-  },
-];
-
-// Categorías de datos relacionadas con cursos
-const categoriasDatos = [
-  {
-    id: "calificaciones",
-    nombre: "Calificaciones",
-    seleccionado: true,
-    cantidad: "3,540 registros",
-    icono: "📝",
-  },
-  {
-    id: "asistencias",
-    nombre: "Asistencias",
-    seleccionado: true,
-    cantidad: "12,890 registros",
-    icono: "👥",
-  },
-  {
-    id: "inscripciones",
-    nombre: "Inscripciones",
-    seleccionado: true,
-    cantidad: "1,245 registros",
-    icono: "📋",
-  },
-  {
-    id: "matriculas",
-    nombre: "Matrículas",
-    seleccionado: false,
-    cantidad: "850 registros",
-    icono: "🎓",
-  },
-  {
-    id: "evaluaciones",
-    nombre: "Evaluaciones",
-    seleccionado: false,
-    cantidad: "680 registros",
-    icono: "📊",
-  },
-  {
-    id: "tareas",
-    nombre: "Tareas Entregadas",
-    seleccionado: false,
-    cantidad: "2,150 registros",
-    icono: "📚",
-  },
-];
-
-// Datos para gráficos - Rendimiento académico por curso (Estaticos por defecto)
-const rendimientoCursos = [
-  {
-    curso: "Matemáticas Básicas",
-    promedio: 8.5,
-    aprobados: 85,
-    reprobados: 15,
-  },
-  { curso: "Programación I", promedio: 7.8, aprobados: 78, reprobados: 22 },
-  { curso: "Física General", promedio: 7.2, aprobados: 72, reprobados: 28 },
-  { curso: "Historia Universal", promedio: 9.1, aprobados: 91, reprobados: 9 },
-  { curso: "Inglés Técnico", promedio: 8.9, aprobados: 89, reprobados: 11 },
-  { curso: "Química General", promedio: 7.5, aprobados: 75, reprobados: 25 },
-];
-
-// Distribución de calificaciones
-const distribucionCalificaciones = [
-  { rango: "0-5", cantidad: 120, porcentaje: 12, color: "#EF4444" },
-  { rango: "6-7", cantidad: 280, porcentaje: 28, color: "#F59E0B" },
-  { rango: "7-8", cantidad: 350, porcentaje: 35, color: "#10B981" },
-  { rango: "8-9", cantidad: 180, porcentaje: 18, color: "#3B82F6" },
-  { rango: "9-10", cantidad: 70, porcentaje: 7, color: "#8B5CF6" },
-];
-
-// --- COMPONENTE PRINCIPAL ---
-
 export default function ExportacionDatosPage() {
   const [formato, setFormato] = useState<string>("pdf");
-  const [rangoFecha, setRangoFecha] = useState<string>("month");
+  const [rangoFecha, setRangoFecha] = useState<string>("mes");
   const [modoExportacion, setModoExportacion] = useState<string>("automatico");
   const [incluirGraficas, setIncluirGraficas] = useState<boolean>(true);
   const [incluirDatos, setIncluirDatos] = useState<boolean>(true);
   const [exportando, setExportando] = useState<boolean>(false);
-  const [datosRendimiento, setDatosRendimiento] = useState(rendimientoCursos); // Por defecto los estáticos
+
+  // --- ESTADOS PARA INFORMACIÓN REAL ---
+  const [statsReales, setStatsReales] = useState<any>(null);
+  const [cargando, setCargando] = useState<boolean>(true);
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const { data } = await api.get("/reports/stats");
-        if (data) {
-          if (data.rendimientoCursos)
-            setDatosRendimiento(data.rendimientoCursos);
-          if (data.distribucionCalificaciones)
-            setDatosDistribucion(data.distribucionCalificaciones);
-          setTotalGeneral(data.total);
-        }
-      } catch (e) {
-        console.log("Cargando con datos locales por defecto");
+        const res = await api.get("/reports/stats"); // Ruta corregida
+        setStatsReales(res.data);
+      } catch (error) {
+        console.error("Error al cargar estadísticas:", error);
+      } finally {
+        setCargando(false);
       }
     };
     fetchStats();
   }, []);
 
+  const formatosDisponibles = [
+    {
+      id: "pdf",
+      nombre: "PDF Document",
+      descripcion: "Reportes completos con gráficos",
+      icono: "📄",
+    },
+    {
+      id: "excel",
+      nombre: "Excel Spreadsheet",
+      descripcion: "Datos para análisis estadístico",
+      icono: "📊",
+    },
+    {
+      id: "csv",
+      nombre: "CSV File",
+      descripcion: "Datos para importación a sistemas",
+      icono: "📋",
+    },
+    {
+      id: "json",
+      nombre: "JSON Data",
+      descripcion: "Formato para desarrolladores",
+      icono: "🔧",
+    },
+  ];
+
+  const rangosFecha = [
+    { id: "hoy", nombre: "Hoy", descripcion: "Datos del día actual" },
+    {
+      id: "semana",
+      nombre: "Última semana",
+      descripcion: "Datos de los últimos 7 días",
+    },
+    {
+      id: "mes",
+      nombre: "Último mes",
+      descripcion: "Datos de los últimos 30 días",
+    },
+    {
+      id: "trimestre",
+      nombre: "Último trimestre",
+      descripcion: "Datos de los últimos 90 días",
+    },
+    {
+      id: "anio",
+      nombre: "Último año",
+      descripcion: "Datos de los últimos 365 días",
+    },
+    {
+      id: "personalizado",
+      nombre: "Personalizado",
+      descripcion: "Selecciona un rango específico",
+    },
+  ];
+
+  const modosExportacion = [
+    {
+      id: "automatico",
+      nombre: "Automático",
+      descripcion: "Exportación programada automáticamente",
+    },
+    { id: "manual", nombre: "Manual", descripcion: "Exportación bajo demanda" },
+    {
+      id: "recurrente",
+      nombre: "Recurrente",
+      descripcion: "Exportación periódica",
+    },
+  ];
+
+  // Categorías de datos relacionadas con cursos - Cantidades dinámicas si existen
+  const categoriasDatos = [
+    {
+      id: "calificaciones",
+      nombre: "Calificaciones",
+      seleccionado: true,
+      cantidad: `${statsReales?.totalCalificaciones || 0} registros`,
+      icono: "📝",
+    },
+    {
+      id: "asistencias",
+      nombre: "Asistencias",
+      seleccionado: true,
+      cantidad: "12,890 registros",
+      icono: "👥",
+    },
+    {
+      id: "inscripciones",
+      nombre: "Inscripciones",
+      seleccionado: true,
+      cantidad: `${statsReales?.totalInscripciones || 0} registros`,
+      icono: "📋",
+    },
+    {
+      id: "matriculas",
+      nombre: "Matrículas",
+      seleccionado: false,
+      cantidad: "850 registros",
+      icono: "🎓",
+    },
+    {
+      id: "evaluaciones",
+      nombre: "Evaluaciones",
+      seleccionado: false,
+      cantidad: "680 registros",
+      icono: "📊",
+    },
+    {
+      id: "tareas",
+      nombre: "Tareas Entregadas",
+      seleccionado: false,
+      cantidad: "2,150 registros",
+      icono: "📚",
+    },
+  ];
+
+  // Datos para gráficos - Rendimiento académico por curso (USANDO DATA REAL)
+  const rendimientoCursos = statsReales?.rendimiento || [
+    { curso: "Cargando...", promedio: 0, aprobados: 0, reprobados: 0 },
+  ];
+
+  // Distribución de calificaciones (USANDO DATA REAL)
+  const distribucionCalificaciones = statsReales?.distribucion || [
+    { rango: "0-5", cantidad: 0, porcentaje: 0, color: "#EF4444" },
+    { rango: "6-7", cantidad: 0, porcentaje: 0, color: "#F59E0B" },
+    { rango: "7-8", cantidad: 0, porcentaje: 0, color: "#10B981" },
+    { rango: "8-9", cantidad: 0, porcentaje: 0, color: "#3B82F6" },
+    { rango: "9-10", cantidad: 0, porcentaje: 0, color: "#8B5CF6" },
+  ];
+
   const handleExportar = async () => {
     setExportando(true);
     try {
-      const response = await api.post(
-        "/reports/export",
-        {
-          format: formato,
-          period: rangoFecha,
-          incluirGraficas: incluirGraficas,
-          incluirDatos: incluirDatos,
-        },
-        { responseType: "blob" }, // Mantener esto para que el archivo se descargue bien
-      );
+      const exportDto = {
+        format: formato,
+        period: rangoFecha,
+      };
 
-      // Si llegamos aquí, la descarga fue exitosa
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      // Realizamos la petición
+      const response = await api.post("reports/export", exportDto, {
+        responseType: "blob",
+      });
+
+      // Validamos si la respuesta es un JSON (error) a pesar de pedir blob
+      if (response.data.type === "application/json") {
+        const text = await response.data.text();
+        const errorData = JSON.parse(text);
+        throw new Error(errorData.message || "Error al generar el reporte");
+      }
+
+      // Proceso de descarga exitoso
+      const blob = new Blob([response.data], {
+        type: response.headers["content-type"],
+      });
+      const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      const extension = formato === "excel" ? "xlsx" : formato;
-      link.setAttribute(
-        "download",
-        `Reporte_Academico_${Date.now()}.${extension}`,
-      );
+
+      const ext = formato === "excel" ? "xlsx" : formato;
+      link.setAttribute("download", `Reporte_Academico_${Date.now()}.${ext}`);
+
       document.body.appendChild(link);
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
     } catch (error: any) {
-      // PROCESAMIENTO DEL ERROR 404 (O CUALQUIER OTRO)
-      if (error.response && error.response.data instanceof Blob) {
-        // Como la respuesta es un Blob, debemos leerlo para ver el JSON del error
-        const reader = new FileReader();
+      console.error("Error capturado:", error);
 
-        reader.onload = () => {
-          try {
-            const errorData = JSON.parse(reader.result as string);
-            // Esto mostrará: "Aviso: Aún no hay cursos completados en el sistema."
-            alert(`Aviso: ${errorData.message}`);
-          } catch (e) {
-            alert("No se encontraron registros para exportar en este periodo.");
-          }
-        };
-
-        reader.readAsText(error.response.data);
+      // Manejo de errores cuando la respuesta es un Blob
+      if (error.response?.data instanceof Blob) {
+        const text = await error.response.data.text();
+        try {
+          const message = JSON.parse(text);
+          alert(`Error: ${message.message || "Error del servidor"}`);
+        } catch {
+          alert(`Error: ${text || "Error desconocido"}`);
+        }
       } else {
-        // Error genérico si no hay respuesta del servidor
-        console.error("Error en exportación:", error);
-        alert("Ocurrió un error al intentar conectar con el servidor.");
+        alert(
+          `Error: ${error.message || "No se pudo conectar con el servidor"}`,
+        );
       }
     } finally {
-      // Esta es la línea 217 que ya no dará error de compilación
       setExportando(false);
     }
   };
@@ -234,10 +223,10 @@ export default function ExportacionDatosPage() {
   };
 
   // Calcular valores máximos para gráficos
-  const totalCalificaciones = distribucionCalificaciones.reduce(
-    (sum, item) => sum + item.cantidad,
-    0,
+  const maxPromedio = Math.max(
+    ...rendimientoCursos.map((d: any) => d.promedio),
   );
+  const totalCalificaciones = statsReales?.totalCalificaciones || 0;
 
   return (
     <div className="space-y-6">
@@ -376,7 +365,7 @@ export default function ExportacionDatosPage() {
               {/* Opciones de contenido */}
               <div className="mb-6">
                 <h4 className="text-sm font-medium text-gray-900 mb-3">
-                  Elemento a Incluir
+                  Elementos a Incluir
                 </h4>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
@@ -481,7 +470,7 @@ export default function ExportacionDatosPage() {
                     <div>
                       <p className="font-medium text-gray-900">
                         Reporte Académico -{" "}
-                        {rangosFecha.find((r) => r.id === rangoFecha)?.nombre}
+                        {rangoFecha === "mes" ? "Último Mes" : rangoFecha}
                       </p>
                       <p className="text-sm text-gray-500">
                         Formato: {formato.toUpperCase()} • Incluye:{" "}
@@ -585,15 +574,17 @@ export default function ExportacionDatosPage() {
             </div>
             <div className="text-right">
               <p className="text-2xl font-bold text-blue-600">
-                {datosRendimiento.length}
+                {rendimientoCursos.length}
               </p>
               <p className="text-sm text-gray-500">cursos evaluados</p>
             </div>
           </div>
 
+          {/* Gráfico de barras para rendimiento por curso */}
           <div className="h-64">
             <div className="flex items-end h-48 space-x-2 mt-4">
-              {datosRendimiento.map((curso, index) => {
+              {rendimientoCursos.map((curso, index) => {
+                const altura = (curso.promedio / 10) * 100; // Escala 0-10 a 0-100%
                 return (
                   <div
                     key={index}
@@ -604,18 +595,20 @@ export default function ExportacionDatosPage() {
                     </div>
                     <div className="relative w-full flex justify-center">
                       <div className="flex flex-col items-center w-3/4">
+                        {/* Barra de aprobados */}
                         <div
-                          className="w-full bg-green-500 rounded-t-lg hover:bg-green-600 transition-all"
+                          className="w-full bg-linear-to-t from-green-500 to-green-400 rounded-t-lg hover:from-green-600 hover:to-green-500 transition-all"
                           style={{ height: `${curso.aprobados}%` }}
                           title={`${curso.aprobados}% Aprobados`}
                         ></div>
+                        {/* Barra de reprobados */}
                         <div
-                          className="w-full bg-red-500 rounded-b-lg hover:bg-red-600 transition-all"
+                          className="w-full bg-linear-to-t from-red-500 to-red-400 rounded-b-lg hover:from-red-600 hover:to-red-500 transition-all"
                           style={{ height: `${curso.reprobados}%` }}
                           title={`${curso.reprobados}% Reprobados`}
                         ></div>
                       </div>
-                      <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+                      <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
                         {curso.curso}: {curso.promedio}/10
                       </div>
                     </div>
@@ -662,6 +655,7 @@ export default function ExportacionDatosPage() {
             </div>
           </div>
 
+          {/* Gráfico de pastel para distribución de calificaciones */}
           <div className="h-64 flex items-center justify-center">
             <div className="relative w-48 h-48">
               <svg
@@ -670,6 +664,7 @@ export default function ExportacionDatosPage() {
                 viewBox="0 0 192 192"
                 className="absolute inset-0"
               >
+                {/* Segmentos del gráfico */}
                 {(() => {
                   let anguloAcumulado = 0;
                   const radio = 80;
@@ -706,12 +701,19 @@ export default function ExportacionDatosPage() {
                         d={pathData}
                         fill={item.color}
                         className="hover:opacity-90 transition-opacity cursor-pointer"
+                        data-title={`${item.rango}: ${item.cantidad} calificaciones (${item.porcentaje}%)`}
                       />
                     );
                   });
                 })()}
-                <circle cx="96" cy="96" r="48" fill="white" />
+
+                {/* Círculo interno */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-24 h-24 rounded-full bg-white"></div>
+                </div>
               </svg>
+
+              {/* Texto central */}
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <span className="text-2xl font-bold text-gray-900">
                   {totalCalificaciones}
@@ -721,6 +723,7 @@ export default function ExportacionDatosPage() {
             </div>
           </div>
 
+          {/* Leyenda */}
           <div className="mt-6 grid grid-cols-2 gap-3">
             {distribucionCalificaciones.map((item, index) => (
               <div key={index} className="flex items-center">
@@ -747,6 +750,72 @@ export default function ExportacionDatosPage() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Tabla de Reportes Recientes */}
+      <div className="bg-white rounded-lg shadow">
+        <div className="p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">
+              Reportes Recientes
+            </h3>
+            <button className="text-sm text-blue-600 hover:text-blue-800 font-medium">
+              Ver todos los reportes →
+            </button>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead>
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Fecha
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Tipo de Reporte
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Cursos Incluidos
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Generado Por
+                  </th>
+                  <th className="px 6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Acciones
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                <tr>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">
+                        15 Ene 2024
+                      </div>
+                      <div className="text-sm text-gray-500">10:30 AM</div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                      Calificaciones
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    Todos los cursos
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    Admin
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <button className="text-blue-600 hover:text-blue-900">
+                      Descargar
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
