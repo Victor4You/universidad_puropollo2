@@ -1,5 +1,4 @@
 // src/app/(dashboard)/dashboard/reportes/exportacion-datos/page.tsx
-// src/app/(dashboard)/dashboard/reportes/exportacion-datos/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -20,7 +19,7 @@ export default function ExportacionDatosPage() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const res = await api.get("/reports/stats"); // Ruta corregida
+        const res = await api.get("/courses/reports/stats");
         setStatsReales(res.data);
       } catch (error) {
         console.error("Error al cargar estadísticas:", error);
@@ -170,7 +169,7 @@ export default function ExportacionDatosPage() {
       };
 
       // Realizamos la petición
-      const response = await api.post("reports/export", exportDto, {
+      const response = await api.post("/courses/export", exportDto, {
         responseType: "blob",
       });
 
