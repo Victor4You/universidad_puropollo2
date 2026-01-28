@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Loader } from "@/components/ui/Loader/Loader";
 import { UserDropdown } from "@/components/auth/UserDropdown/UserDropdown";
 import Link from "next/link";
-import Image from "next/image"; // Ajuste: Importación para fondo responsivo
+import Image from "next/image"; // Única importación añadida para la funcionalidad
 import dynamic from "next/dynamic";
 import LoginView from "@/components/auth/LoginView";
 
@@ -15,7 +15,7 @@ const Feed = dynamic(() => import("@/components/Feed"), {
 });
 
 export default function HomePage() {
-  const { isAuthenticated, isLoading, user } = useAuth(); // Ajuste: Extraemos 'user' para el saludo
+  const { isAuthenticated, isLoading } = useAuth();
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -33,31 +33,28 @@ export default function HomePage() {
     );
   }
 
-  // SI NO ESTÁ AUTENTICADO: Mostramos la VISTA de login con FONDO RESPONSIVO
+  // SI NO ESTÁ AUTENTICADO: Fondo con tu LoginView original encima
   if (!isAuthenticated) {
     return (
       <main className="relative min-h-screen w-full flex items-center justify-center overflow-hidden">
-        {/* Ajuste: Contenedor de Imagen de Fondo */}
+        {/* Imagen de fondo detrás de todo */}
         <div className="absolute inset-0 -z-10">
           <Image
             src="/assets/images/baner_inicio.png"
-            alt="Fondo Universidad"
+            alt="Fondo"
             fill
             priority
             className="object-cover object-center"
           />
-          <div className="absolute inset-0 bg-black/40" />{" "}
-          {/* Overlay para legibilidad */}
         </div>
 
-        <div className="z-10 w-full flex justify-center">
-          <LoginView />
-        </div>
+        {/* Tu LoginView tal cual es, sin contenedores extra que alteren su diseño */}
+        <LoginView />
       </main>
     );
   }
 
-  // SI ESTÁ AUTENTICADO: Mostramos el Feed (Manteniendo tu estructura original)
+  // SI ESTÁ AUTENTICADO: Tu Header original (Sin el saludo "Hola, Juan" que agregué y no estaba)
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm border-b border-gray-200">
@@ -82,19 +79,8 @@ export default function HomePage() {
                 </div>
               )}
             </Link>
-
-            {/* Ajuste: Saludo personalizado al lado del dropdown */}
-            <div className="flex items-center space-x-4">
-              {!isMobile && user && (
-                <span className="text-sm text-gray-600">
-                  Hola,{" "}
-                  <span className="font-semibold text-blue-600">
-                    {user.name}
-                  </span>
-                </span>
-              )}
-              <UserDropdown />
-            </div>
+            {/* Restaurado: Solo el dropdown, sin textos adicionales */}
+            <UserDropdown />
           </div>
         </div>
       </header>
