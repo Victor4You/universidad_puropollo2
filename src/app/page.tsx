@@ -40,7 +40,7 @@ export default function HomePage() {
         {/* Imagen de fondo detrás de todo */}
         <div className="absolute inset-0 -z-10">
           <Image
-            src="/assets/images/baner_inicio.png"
+            src="/assets/images/banner_inicio_nuevo.png"
             alt="Fondo"
             fill
             priority

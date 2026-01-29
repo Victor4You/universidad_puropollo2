@@ -16,6 +16,18 @@ export default function ExportacionDatosPage() {
   const [statsReales, setStatsReales] = useState<any>(null);
   const [cargando, setCargando] = useState<boolean>(true);
 
+  // NUEVO: Estado para controlar qué categorías están marcadas
+  const [categoriasSeleccionadas, setCategoriasSeleccionadas] = useState<
+    Record<string, boolean>
+  >({
+    calificaciones: true,
+    asistencias: true,
+    inscripciones: true,
+    matriculas: false,
+    evaluaciones: false,
+    tareas: false,
+  });
+
   useEffect(() => {
     const fetchStats = async () => {
       try {
@@ -29,6 +41,68 @@ export default function ExportacionDatosPage() {
     };
     fetchStats();
   }, []);
+
+  // --- HANDLERS ---
+  const handleSeleccionarTodos = () => {
+    const todosTrue = Object.keys(categoriasSeleccionadas).reduce(
+      (acc, key) => {
+        acc[key] = true;
+        return acc;
+      },
+      {} as Record<string, boolean>,
+    );
+    setCategoriasSeleccionadas(todosTrue);
+  };
+
+  const handleToggleCategoria = (id: string) => {
+    setCategoriasSeleccionadas((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
+
+  const handleExportar = async () => {
+    setExportando(true);
+    try {
+      // Filtramos solo las llaves que están en true
+      const categoriasAExportar = Object.keys(categoriasSeleccionadas).filter(
+        (key) => categoriasSeleccionadas[key],
+      );
+
+      const response = await api.post(
+        "/reports/export",
+        {
+          format: formato,
+          range: rangoFecha,
+          includeCharts: incluirGraficas,
+          includeDetails: incluirDatos,
+          categories: categoriasAExportar, // Se envía como 'categories' para coincidir con el backend
+        },
+        { responseType: "blob" }, // Importante para descargar archivos
+      );
+
+      // Crear link de descarga
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+
+      // Ajuste de extensión basado en la respuesta del backend
+      const extension = formato === "excel" ? "xlsx" : formato;
+      link.setAttribute(
+        "download",
+        `Reporte_${rangoFecha}_${Date.now()}.${extension}`,
+      );
+
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error al exportar:", error);
+    } finally {
+      setExportando(false);
+    }
+  };
 
   const formatosDisponibles = [
     {
@@ -105,127 +179,48 @@ export default function ExportacionDatosPage() {
     {
       id: "calificaciones",
       nombre: "Calificaciones",
-      seleccionado: true,
-      cantidad: `${statsReales?.totalCalificaciones || 0} registros`,
       icono: "📝",
+      cantidad: `${statsReales?.totalCalificaciones || 0} registros`,
     },
     {
       id: "asistencias",
       nombre: "Asistencias",
-      seleccionado: true,
-      cantidad: "12,890 registros",
-      icono: "👥",
+      icono: "📅",
+      cantidad: "Sincronizado",
     },
     {
       id: "inscripciones",
       nombre: "Inscripciones",
-      seleccionado: true,
+      icono: "👤",
       cantidad: `${statsReales?.totalInscripciones || 0} registros`,
-      icono: "📋",
     },
     {
       id: "matriculas",
       nombre: "Matrículas",
-      seleccionado: false,
-      cantidad: "850 registros",
-      icono: "🎓",
+      icono: "💳",
+      cantidad: "Datos financieros",
     },
     {
       id: "evaluaciones",
       nombre: "Evaluaciones",
-      seleccionado: false,
-      cantidad: "680 registros",
       icono: "📊",
+      cantidad: "Resultados test",
     },
-    {
-      id: "tareas",
-      nombre: "Tareas Entregadas",
-      seleccionado: false,
-      cantidad: "2,150 registros",
-      icono: "📚",
-    },
+    { id: "tareas", nombre: "Tareas", icono: "📚", cantidad: "Entregas" },
   ];
-
-  // Datos para gráficos - Rendimiento académico por curso (USANDO DATA REAL)
-  const rendimientoCursos = statsReales?.rendimiento || [
-    { curso: "Cargando...", promedio: 0, aprobados: 0, reprobados: 0 },
-  ];
-
-  // Distribución de calificaciones (USANDO DATA REAL)
-  const distribucionCalificaciones = statsReales?.distribucion || [
-    { rango: "0-5", cantidad: 0, porcentaje: 0, color: "#EF4444" },
-    { rango: "6-7", cantidad: 0, porcentaje: 0, color: "#F59E0B" },
-    { rango: "7-8", cantidad: 0, porcentaje: 0, color: "#10B981" },
-    { rango: "8-9", cantidad: 0, porcentaje: 0, color: "#3B82F6" },
-    { rango: "9-10", cantidad: 0, porcentaje: 0, color: "#8B5CF6" },
-  ];
-
-  const handleExportar = async () => {
-    setExportando(true);
-    try {
-      const exportDto = {
-        format: formato,
-        period: rangoFecha,
-      };
-
-      // Realizamos la petición
-      const response = await api.post("/courses/export", exportDto, {
-        responseType: "blob",
-      });
-
-      // Validamos si la respuesta es un JSON (error) a pesar de pedir blob
-      if (response.data.type === "application/json") {
-        const text = await response.data.text();
-        const errorData = JSON.parse(text);
-        throw new Error(errorData.message || "Error al generar el reporte");
-      }
-
-      // Proceso de descarga exitoso
-      const blob = new Blob([response.data], {
-        type: response.headers["content-type"],
-      });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-
-      const ext = formato === "excel" ? "xlsx" : formato;
-      link.setAttribute("download", `Reporte_Academico_${Date.now()}.${ext}`);
-
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-    } catch (error: any) {
-      console.error("Error capturado:", error);
-
-      // Manejo de errores cuando la respuesta es un Blob
-      if (error.response?.data instanceof Blob) {
-        const text = await error.response.data.text();
-        try {
-          const message = JSON.parse(text);
-          alert(`Error: ${message.message || "Error del servidor"}`);
-        } catch {
-          alert(`Error: ${text || "Error desconocido"}`);
-        }
-      } else {
-        alert(
-          `Error: ${error.message || "No se pudo conectar con el servidor"}`,
-        );
-      }
-    } finally {
-      setExportando(false);
-    }
-  };
-
-  const handleSeleccionarTodos = () => {
-    // Lógica para seleccionar todas las categorías
-  };
 
   // Calcular valores máximos para gráficos
-  const maxPromedio = Math.max(
-    ...rendimientoCursos.map((d: any) => d.promedio),
-  );
+  const rendimientoCursos = statsReales?.rendimiento || [];
+  const distribucionCalificaciones = statsReales?.distribucion || [];
   const totalCalificaciones = statsReales?.totalCalificaciones || 0;
+
+  if (cargando) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -435,8 +430,8 @@ export default function ExportacionDatosPage() {
                         <div className="flex items-center h-5">
                           <input
                             type="checkbox"
-                            checked={categoria.seleccionado}
-                            onChange={() => {}}
+                            checked={categoriasSeleccionadas[categoria.id]}
+                            onChange={() => handleToggleCategoria(categoria.id)}
                             className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                           />
                         </div>
@@ -469,7 +464,8 @@ export default function ExportacionDatosPage() {
                     <div>
                       <p className="font-medium text-gray-900">
                         Reporte Académico -{" "}
-                        {rangoFecha === "mes" ? "Último Mes" : rangoFecha}
+                        {rangosFecha.find((r) => r.id === rangoFecha)?.nombre ||
+                          "Personalizado"}
                       </p>
                       <p className="text-sm text-gray-500">
                         Formato: {formato.toUpperCase()} • Incluye:{" "}
@@ -478,8 +474,12 @@ export default function ExportacionDatosPage() {
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-2xl font-bold text-blue-600">1,000+</p>
-                      <p className="text-xs text-gray-500">registros</p>
+                      <p className="text-2xl font-bold text-blue-600">
+                        {Object.values(categoriasSeleccionadas).filter(Boolean)
+                          .length * 100}
+                        +
+                      </p>
+                      <p className="text-xs text-gray-500">registros aprox.</p>
                     </div>
                   </div>
                 </div>
@@ -498,8 +498,11 @@ export default function ExportacionDatosPage() {
                 </p>
                 <p className="text-xs text-gray-500">
                   El reporte incluirá datos de{" "}
-                  {categoriasDatos.filter((c) => c.seleccionado).length}{" "}
-                  categorías
+                  {
+                    Object.values(categoriasSeleccionadas).filter(Boolean)
+                      .length
+                  }{" "}
+                  categorías seleccionadas
                 </p>
               </div>
               <button
@@ -579,11 +582,9 @@ export default function ExportacionDatosPage() {
             </div>
           </div>
 
-          {/* Gráfico de barras para rendimiento por curso */}
           <div className="h-64">
             <div className="flex items-end h-48 space-x-2 mt-4">
-              {rendimientoCursos.map((curso, index) => {
-                const altura = (curso.promedio / 10) * 100; // Escala 0-10 a 0-100%
+              {rendimientoCursos.map((curso: any, index: number) => {
                 return (
                   <div
                     key={index}
@@ -594,35 +595,26 @@ export default function ExportacionDatosPage() {
                     </div>
                     <div className="relative w-full flex justify-center">
                       <div className="flex flex-col items-center w-3/4">
-                        {/* Barra de aprobados */}
                         <div
                           className="w-full bg-linear-to-t from-green-500 to-green-400 rounded-t-lg hover:from-green-600 hover:to-green-500 transition-all"
-                          style={{ height: `${curso.aprobados}%` }}
-                          title={`${curso.aprobados}% Aprobados`}
-                        ></div>
-                        {/* Barra de reprobados */}
-                        <div
-                          className="w-full bg-linear-to-t from-red-500 to-red-400 rounded-b-lg hover:from-red-600 hover:to-red-500 transition-all"
-                          style={{ height: `${curso.reprobados}%` }}
-                          title={`${curso.reprobados}% Reprobados`}
+                          style={{ height: `${curso.promedio}%` }}
+                          title={`${curso.promedio}% Promedio`}
                         ></div>
                       </div>
-                      <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                        {curso.curso}: {curso.promedio}/10
+                      <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+                        {curso.curso}: {curso.promedio}/100
                       </div>
                     </div>
                   </div>
                 );
               })}
             </div>
-            <div className="flex justify-between mt-4 pt-4 border-t border-gray-200">
+            <div className="flex justify-center mt-4 pt-4 border-t border-gray-200">
               <div className="flex items-center">
                 <div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
-                <span className="text-xs text-gray-600">Aprobados</span>
-              </div>
-              <div className="flex items-center">
-                <div className="w-3 h-3 rounded-full bg-red-500 mr-2"></div>
-                <span className="text-xs text-gray-600">Reprobados</span>
+                <span className="text-xs text-gray-600">
+                  Promedio de Aprobación
+                </span>
               </div>
             </div>
           </div>
@@ -641,20 +633,21 @@ export default function ExportacionDatosPage() {
             </div>
             <div className="text-right">
               <p className="text-2xl font-bold text-blue-600">
-                {(
-                  ((distribucionCalificaciones[2].cantidad +
-                    distribucionCalificaciones[3].cantidad +
-                    distribucionCalificaciones[4].cantidad) /
-                    totalCalificaciones) *
-                  100
-                ).toFixed(1)}
+                {distribucionCalificaciones.length > 0
+                  ? distribucionCalificaciones
+                      .filter((i: any) => i.min >= 60)
+                      .reduce(
+                        (acc: number, cur: any) => acc + cur.porcentaje,
+                        0,
+                      )
+                      .toFixed(1)
+                  : "0"}
                 %
               </p>
               <p className="text-sm text-gray-500">aprobación</p>
             </div>
           </div>
 
-          {/* Gráfico de pastel para distribución de calificaciones */}
           <div className="h-64 flex items-center justify-center">
             <div className="relative w-48 h-48">
               <svg
@@ -663,68 +656,64 @@ export default function ExportacionDatosPage() {
                 viewBox="0 0 192 192"
                 className="absolute inset-0"
               >
-                {/* Segmentos del gráfico */}
                 {(() => {
                   let anguloAcumulado = 0;
                   const radio = 80;
                   const centroX = 96;
                   const centroY = 96;
 
-                  return distribucionCalificaciones.map((item, index) => {
-                    const porcentaje =
-                      (item.cantidad / totalCalificaciones) * 100;
-                    const angulo = (porcentaje / 100) * 360;
-                    const anguloRad = (anguloAcumulado * Math.PI) / 180;
-                    const anguloFinalRad =
-                      ((anguloAcumulado + angulo) * Math.PI) / 180;
+                  return distribucionCalificaciones.map(
+                    (item: any, index: number) => {
+                      const porcentaje = item.porcentaje;
+                      if (porcentaje === 0) return null;
 
-                    const x1 = centroX + radio * Math.cos(anguloRad);
-                    const y1 = centroY + radio * Math.sin(anguloRad);
-                    const x2 = centroX + radio * Math.cos(anguloFinalRad);
-                    const y2 = centroY + radio * Math.sin(anguloFinalRad);
+                      const angulo = (porcentaje / 100) * 360;
+                      const anguloRad = (anguloAcumulado * Math.PI) / 180;
+                      const anguloFinalRad =
+                        ((anguloAcumulado + angulo) * Math.PI) / 180;
 
-                    const largeArc = angulo > 180 ? 1 : 0;
+                      const x1 = centroX + radio * Math.cos(anguloRad);
+                      const y1 = centroY + radio * Math.sin(anguloRad);
+                      const x2 = centroX + radio * Math.cos(anguloFinalRad);
+                      const y2 = centroY + radio * Math.sin(anguloFinalRad);
 
-                    const pathData = [
-                      `M ${centroX} ${centroY}`,
-                      `L ${x1} ${y1}`,
-                      `A ${radio} ${radio} 0 ${largeArc} 1 ${x2} ${y2}`,
-                      `Z`,
-                    ].join(" ");
+                      const largeArc = angulo > 180 ? 1 : 0;
 
-                    anguloAcumulado += angulo;
+                      const pathData = [
+                        `M ${centroX} ${centroY}`,
+                        `L ${x1} ${y1}`,
+                        `A ${radio} ${radio} 0 ${largeArc} 1 ${x2} ${y2}`,
+                        `Z`,
+                      ].join(" ");
 
-                    return (
-                      <path
-                        key={index}
-                        d={pathData}
-                        fill={item.color}
-                        className="hover:opacity-90 transition-opacity cursor-pointer"
-                        data-title={`${item.rango}: ${item.cantidad} calificaciones (${item.porcentaje}%)`}
-                      />
-                    );
-                  });
+                      anguloAcumulado += angulo;
+
+                      return (
+                        <path
+                          key={index}
+                          d={pathData}
+                          fill={item.color}
+                          className="hover:opacity-90 transition-opacity cursor-pointer"
+                        />
+                      );
+                    },
+                  );
                 })()}
-
-                {/* Círculo interno */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-24 h-24 rounded-full bg-white"></div>
-                </div>
               </svg>
 
-              {/* Texto central */}
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-2xl font-bold text-gray-900">
-                  {totalCalificaciones}
-                </span>
-                <span className="text-xs text-gray-500">calificaciones</span>
+                <div className="w-24 h-24 rounded-full bg-white flex flex-col items-center justify-center shadow-inner">
+                  <span className="text-2xl font-bold text-gray-900">
+                    {totalCalificaciones}
+                  </span>
+                  <span className="text-xs text-gray-500">total</span>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Leyenda */}
           <div className="mt-6 grid grid-cols-2 gap-3">
-            {distribucionCalificaciones.map((item, index) => (
+            {distribucionCalificaciones.map((item: any, index: number) => (
               <div key={index} className="flex items-center">
                 <div
                   className="w-3 h-3 rounded-full mr-2"
@@ -734,17 +723,8 @@ export default function ExportacionDatosPage() {
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-700">{item.rango}</span>
                     <span className="text-sm font-medium text-gray-900">
-                      {item.cantidad} ({item.porcentaje}%)
+                      {item.porcentaje}%
                     </span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-1 mt-1">
-                    <div
-                      className="h-1 rounded-full"
-                      style={{
-                        width: `${item.porcentaje}%`,
-                        backgroundColor: item.color,
-                      }}
-                    ></div>
                   </div>
                 </div>
               </div>
@@ -781,7 +761,7 @@ export default function ExportacionDatosPage() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Generado Por
                   </th>
-                  <th className="px 6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Acciones
                   </th>
                 </tr>
