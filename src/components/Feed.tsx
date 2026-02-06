@@ -9,6 +9,8 @@ import { Post } from "@/lib/types/post.types";
 import CreatePost from "@/components/posts/CreatePost/CreatePost";
 import PostCard from "@/components/posts/PostCard/PostCard";
 import { Carousel } from "@/components/ui/Carousel/Carousel";
+import Cookies from "js-cookie";
+import api from "@/lib/api/axios";
 import {
   ChevronLeft,
   ChevronRight,
@@ -66,7 +68,9 @@ export default function Feed() {
   const router = useRouter();
   const { user, isAuthenticated } = useAuth();
   const { isRole, userRole } = usePermission();
-  const [posts, setPosts] = useState<Post[]>(mockPosts);
+
+  // 1. Inicializamos con array vacío para evitar conflictos con el ID "1" del mock
+  const [posts, setPosts] = useState<Post[]>([]);
   const [isMobile, setIsMobile] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -74,6 +78,17 @@ export default function Feed() {
   const [selectedCurso, setSelectedCurso] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showStudentsModal, setShowStudentsModal] = useState(false);
+
+  // 2. Función para cargar posts reales desde el Backend
+  const loadPosts = async () => {
+    try {
+      const res = await api.get("/posts");
+      // Axios ya devuelve el JSON en la propiedad .data
+      setPosts(res.data);
+    } catch (error) {
+      console.error("Error al cargar posts:", error);
+    }
+  };
 
   const loadCursos = async () => {
     if (!user?.id) return;
@@ -123,16 +138,16 @@ export default function Feed() {
   };
 
   useEffect(() => {
-    // Solo cargamos si el usuario ya está autenticado y tenemos su ID
     if (isAuthenticated && user?.id) {
       loadCursos();
+      loadPosts(); // Cargamos los posts al iniciar
     }
 
     const checkMobile = () => setIsMobile(window.innerWidth < 1024);
     checkMobile();
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
-  }, [isAuthenticated, user?.id]); // Agregamos user?.id como dependencia
+  }, [isAuthenticated, user?.id]);
 
   const esAdminOProfesor = userRole === "admin" || userRole === "teacher";
 
@@ -180,6 +195,26 @@ export default function Feed() {
     } catch (error) {
       console.error("Error al guardar:", error);
       alert("No se pudo guardar los cambios.");
+    }
+  };
+
+  const handleCreatePost = async (formData: FormData) => {
+    try {
+      const response = await api.post("/posts", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      const newPostSaved = response.data; // Axios ya devuelve la data parseada
+      setPosts((prev) => [newPostSaved, ...prev]);
+
+      return newPostSaved;
+    } catch (error: any) {
+      console.error("Error persistiendo el post:", error);
+      const message = error.response?.data?.message || "No se pudo publicar";
+      alert(message);
+      throw error;
     }
   };
 
@@ -357,26 +392,32 @@ export default function Feed() {
               </div>
             </div>
           </div>
-
           <div className="lg:w-3/5">
             {isAuthenticated &&
               user &&
               (isRole("admin") || isRole("teacher")) && (
                 <CreatePost
                   currentUser={user}
-                  onPostCreated={(newPost) => setPosts([newPost, ...posts])}
+                  onPostCreated={handleCreatePost} // <-- Ahora usamos la función que sí guarda en BD
                 />
               )}
             <div className="space-y-6 mt-6">
-              {posts.map((post) => (
+              {posts.map((post, index) => (
                 <PostCard
-                  key={post.id}
+                  // 3. Solución al error de Key: ID único + índice como fallback
+                  key={`${post.id}-${index}`}
                   post={post}
                   onLike={() => {}}
                   onComment={() => {}}
                   onShare={() => {}}
                 />
               ))}
+
+              {posts.length === 0 && (
+                <div className="text-center py-10 text-gray-400">
+                  No hay publicaciones todavía.
+                </div>
+              )}
             </div>
           </div>
 

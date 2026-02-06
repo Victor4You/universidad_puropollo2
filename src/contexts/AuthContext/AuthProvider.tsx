@@ -43,11 +43,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
         const userData: any = await authService.login(credentials);
 
         if (userData) {
-          const fullUser: User = {
+          const fullUser: User & { token: string } = {
+            // Añadimos el token al tipo
             id: userData.id || 0,
-            // Cambia esto para asegurar que tome 'usuario' que viene de tu JSON del backend
             username: userData.usuario || userData.username || "",
-            // Aquí toma 'name' que ya confirmamos que el backend envía
             name:
               userData.name ||
               `${userData.nombre || ""} ${userData.apellido || ""}`.trim() ||
@@ -55,6 +54,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
             email: userData.email || "",
             role: userData.role || "estudiante",
             avatar: userData.avatar || "",
+            token: userData.token, // <--- ¡ESTA LÍNEA ES LA QUE FALTA!
           };
 
           // 2. GUARDAR EN ESTADO Y EN COOKIE
@@ -64,9 +64,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
             isLoading: false,
           });
 
+          // Guardamos el objeto COMPLETO que ahora sí incluye el token
           Cookies.set(COOKIE_NAME, JSON.stringify(fullUser), {
-            expires: 1, // La sesión dura 1 día
-            sameSite: "strict",
+            expires: 1,
+            path: "/", // Añadimos path '/' para que sea accesible en toda la web
+            sameSite: "lax", // Cambiamos a lax para mejor compatibilidad con redirects
           });
 
           return true;
