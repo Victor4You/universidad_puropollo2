@@ -12,6 +12,7 @@ interface PostCardProps {
   onLike?: (postId: string) => void;
   onComment?: (postId: string, content: string) => void;
   onShare?: (postId: string) => void;
+  onVote?: (postId: string, index: number) => void;
 }
 
 export default function PostCard({
@@ -19,54 +20,29 @@ export default function PostCard({
   onLike,
   onComment,
   onShare,
+  onVote,
 }: PostCardProps) {
   const [showComments, setShowComments] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const { user: currentUser } = useAuth();
 
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 640);
-    };
+    const checkMobile = () => setIsMobile(window.innerWidth < 640);
     checkMobile();
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  const handleLike = () => {
-    if (!currentUser) return;
-    onLike?.(post.id);
-  };
-
-  const handleShare = () => {
-    if (!currentUser) return;
-    onShare?.(post.id);
-  };
-
-  const handleCommentAdded = (content: string) => {
-    if (!currentUser) return;
-    onComment?.(post.id, content);
-  };
-
-  const handleVote = (optionId: string) => {
-    if (!currentUser || !post.poll || post.poll.voted) return;
-    alert(`¡Voto registrado para la opción ${optionId}!`);
-  };
-
-  const totalVotes = post.poll
-    ? post.poll.options.reduce((sum, opt) => sum + opt.votes, 0)
-    : 0;
+  const pollInfo = post.pollData;
+  const totalVotes =
+    pollInfo?.options?.reduce((sum, opt) => sum + (opt.votes || 0), 0) || 0;
+  const hasVoted = pollInfo?.options?.some((opt) =>
+    opt.vitedBy?.includes(currentUser?.id?.toString() || ""),
+  );
 
   const formatDate = (timestamp: string) => {
     const date = new Date(timestamp);
     if (isNaN(date.getTime())) return timestamp;
-
-    if (isMobile) {
-      return date.toLocaleDateString("es-ES", {
-        month: "short",
-        day: "numeric",
-      });
-    }
     return date.toLocaleDateString("es-ES", {
       year: "numeric",
       month: "long",
@@ -76,199 +52,106 @@ export default function PostCard({
 
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden mb-4 lg:mb-6">
-      {/* Header */}
       <div className="p-4 lg:p-6">
         <div className="flex items-start space-x-3">
           <Avatar
-            // Blindaje contra undefined
             src={post.user?.avatar}
             alt={`Avatar de ${post.user?.name || "Usuario"}`}
             size={isMobile ? "sm" : "md"}
             fallbackLetter={post.user?.name?.charAt(0) || "U"}
-            className="flex-shrink-0"
           />
           <div className="flex-1 min-w-0">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-              <div className="mb-1 sm:mb-0">
-                <div className="flex items-center space-x-2">
-                  <h3 className="font-semibold text-gray-900 text-sm lg:text-base truncate">
-                    {post.user?.name || "Usuario desconocido"}
-                  </h3>
-                  {post.user?.role === "admin" && (
-                    <span className="bg-blue-100 text-blue-800 text-xs px-1.5 lg:px-2 py-0.5 lg:py-1 rounded-full flex-shrink-0">
-                      {isMobile ? "A" : "Admin"}
-                    </span>
-                  )}
-                  {post.user?.role === "teacher" && (
-                    <span className="bg-green-100 text-green-800 text-xs px-1.5 lg:px-2 py-0.5 lg:py-1 rounded-full flex-shrink-0">
-                      {isMobile ? "P" : "Prof"}
-                    </span>
-                  )}
-                </div>
-                <p className="text-gray-500 text-xs lg:text-sm truncate">
-                  {post.user?.role || "Invitado"} • {formatDate(post.timestamp)}
-                </p>
-              </div>
-            </div>
+            <h3 className="font-semibold text-gray-900 text-sm lg:text-base truncate">
+              {post.user?.name || "Usuario desconocido"}
+            </h3>
+            <p className="text-gray-500 text-xs lg:text-sm truncate">
+              {post.user?.role || "Invitado"} • {formatDate(post.timestamp)}
+            </p>
           </div>
         </div>
 
-        {/* Contenido */}
         <div className="mt-3 lg:mt-4">
           <p className="text-gray-800 whitespace-pre-line text-sm lg:text-base break-words">
             {post.content}
           </p>
 
-          {/* Imagen */}
           {post.media?.type === "image" && (
             <div className="mt-3 lg:mt-4">
               <img
                 src={post.media.url}
-                alt="Contenido multimedia"
+                alt="Media"
                 className="rounded-lg w-full h-auto max-h-48 lg:max-h-96 object-cover"
               />
             </div>
           )}
 
-          {/* Archivo */}
-          {post.media?.type === "file" && (
+          {post.isPoll && pollInfo && (
             <div className="mt-3 lg:mt-4 p-3 lg:p-4 bg-gray-50 rounded-lg border">
-              <div className="flex items-center space-x-2 lg:space-x-3">
-                <div className="text-xl lg:text-2xl flex-shrink-0">
-                  {post.media.name?.endsWith(".pdf")
-                    ? "📕"
-                    : post.media.name?.endsWith(".doc") ||
-                        post.media.name?.endsWith(".docx")
-                      ? "📄"
-                      : post.media.name?.endsWith(".xls") ||
-                          post.media.name?.endsWith(".xlsx")
-                        ? "📊"
-                        : "📎"}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-gray-900 text-sm lg:text-base truncate">
-                    {post.media.name || "Archivo adjunto"}
-                  </p>
-                  <p className="text-gray-500 text-xs lg:text-sm">
-                    Haz clic para descargar
-                  </p>
-                </div>
-                <a
-                  href={post.media.url}
-                  download={post.media.name}
-                  className="bg-blue-600 text-white px-3 lg:px-4 py-1.5 lg:py-2 rounded-lg text-xs lg:text-sm font-medium hover:bg-blue-700 transition-colors flex-shrink-0"
-                >
-                  {isMobile ? "⬇️" : "Descargar"}
-                </a>
-              </div>
-            </div>
-          )}
-
-          {/* Encuesta */}
-          {post.poll && (
-            <div className="mt-3 lg:mt-4 p-3 lg:p-4 bg-gray-50 rounded-lg border">
-              <h4 className="font-semibold text-gray-900 mb-2 lg:mb-3 text-sm lg:text-base">
-                {post.poll.question}
+              <h4 className="font-semibold text-gray-900 mb-2 text-sm">
+                {pollInfo.question}
               </h4>
-              <div className="space-y-1.5 lg:space-y-2">
-                {post.poll.options.map((option) => {
+              <div className="space-y-2">
+                {pollInfo.options.map((option, idx) => {
                   const percentage =
                     totalVotes > 0 ? (option.votes / totalVotes) * 100 : 0;
-
+                  const userVotedThis = option.vitedBy?.includes(
+                    currentUser?.id?.toString() || "",
+                  );
                   return (
-                    <div key={option.id} className="relative">
-                      <button
-                        onClick={() => handleVote(option.id)}
-                        disabled={
-                          !currentUser ||
-                          post.poll?.voted ||
-                          currentUser.role === "admin" ||
-                          currentUser.role === "teacher"
-                        }
-                        className={`w-full text-left p-2 lg:p-3 rounded-lg border-2 transition-all text-sm lg:text-base ${
-                          post.poll?.voted
-                            ? "bg-blue-50 border-blue-200"
-                            : currentUser &&
-                                (currentUser.role === "student" ||
-                                  currentUser.role === "user")
-                              ? "bg-white border-gray-200 hover:border-blue-300 cursor-pointer"
-                              : "bg-gray-100 border-gray-200 cursor-not-allowed"
-                        }`}
-                      >
-                        <div className="flex justify-between items-center">
-                          <span className="truncate pr-2">{option.text}</span>
-                          {post.poll?.voted && (
-                            <span className="text-gray-600 text-xs lg:text-sm flex-shrink-0">
-                              {isMobile
-                                ? `${percentage.toFixed(0)}%`
-                                : `${option.votes} (${percentage.toFixed(1)}%)`}
-                            </span>
-                          )}
-                        </div>
-                        {post.poll?.voted && (
-                          <div
-                            className="absolute bottom-0 left-0 h-1 bg-blue-500 rounded-full transition-all duration-500"
-                            style={{ width: `${percentage}%` }}
-                          />
-                        )}
-                      </button>
-                    </div>
+                    <button
+                      key={idx}
+                      onClick={() => !hasVoted && onVote?.(post.id, idx)}
+                      disabled={!currentUser || hasVoted}
+                      className={`w-full text-left p-2 rounded-lg border-2 relative overflow-hidden transition-all ${
+                        userVotedThis
+                          ? "border-blue-500 bg-blue-50"
+                          : "border-gray-200 bg-white"
+                      }`}
+                    >
+                      {hasVoted && (
+                        <div
+                          className={`absolute left-0 top-0 h-full ${userVotedThis ? "bg-blue-200" : "bg-gray-100"}`}
+                          style={{ width: `${percentage}%`, zIndex: 0 }}
+                        />
+                      )}
+                      <div className="relative z-10 flex justify-between text-sm font-medium">
+                        <span>
+                          {userVotedThis && "✓ "} {option.option}
+                        </span>
+                        {hasVoted && <span>{percentage.toFixed(0)}%</span>}
+                      </div>
+                    </button>
                   );
                 })}
               </div>
-              <p className="text-gray-500 text-xs lg:text-sm mt-2">
-                {post.poll.voted
-                  ? `✅ ${isMobile ? "Votaste" : "Ya votaste"} - ${totalVotes} ${isMobile ? "votos" : "votos totales"}`
-                  : `${totalVotes} ${isMobile ? "votos" : "votos totales"}`}
-              </p>
+              <p className="text-gray-500 text-xs mt-2">{totalVotes} votos</p>
             </div>
           )}
         </div>
       </div>
 
-      {/* Estadísticas */}
       <div className="px-4 lg:px-6 pb-2 lg:pb-3">
-        {/* Usamos ?.length y fallback a 0 para que nunca falle */}
-        {((post.likes || 0) > 0 ||
-          (post.comments?.length || 0) > 0 ||
-          (post.shares || 0) > 0) && (
-          <div className="flex items-center space-x-3 lg:space-x-4 text-xs lg:text-sm text-gray-500 border-b pb-2 lg:pb-3">
-            {(post.likes || 0) > 0 && (
-              <span>
-                {post.likes} {isMobile ? "👍" : "me gusta"}
-              </span>
-            )}
-            {(post.comments?.length || 0) > 0 && (
-              <span>
-                {post.comments.length} {isMobile ? "💬" : "comentarios"}
-              </span>
-            )}
-            {(post.shares || 0) > 0 && (
-              <span>
-                {post.shares} {isMobile ? "↗️" : "compartidos"}
-              </span>
-            )}
-          </div>
-        )}
+        <div className="flex items-center space-x-3 text-xs lg:text-sm text-gray-500 border-b pb-2 mb-2">
+          <span>{post.likes || 0} me gusta</span>
+          <span>{post.comments?.length || 0} comentarios</span>
+          <span>{post.shares || 0} compartidos</span>
+        </div>
 
-        {/* Botones de interacción */}
         <Reactions
           post={post}
-          onLike={handleLike}
+          onLike={() => onLike?.(post.id)}
           onComment={() => setShowComments(!showComments)}
-          onShare={handleShare}
+          onShare={() => onShare?.(post.id)}
           isMobile={isMobile}
         />
       </div>
 
-      {/* Comentarios */}
       {showComments && (
         <div className="border-t">
           <Comments
             post={post}
             currentUser={currentUser}
-            // Blindamos también el acceso a comments aquí
-            onCommentAdded={(comment) => handleCommentAdded(comment.content)}
+            onCommentAdded={(c) => onComment?.(post.id, c.content)}
             isMobile={isMobile}
           />
         </div>

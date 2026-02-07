@@ -1,15 +1,13 @@
 // src/components/Feed.tsx
 "use client";
-
+import { usePosts } from "@/hooks/usePosts";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermission } from "@/hooks/usePermission";
-import { Post } from "@/lib/types/post.types";
 import CreatePost from "@/components/posts/CreatePost/CreatePost";
 import PostCard from "@/components/posts/PostCard/PostCard";
 import { Carousel } from "@/components/ui/Carousel/Carousel";
-import Cookies from "js-cookie";
 import api from "@/lib/api/axios";
 import {
   ChevronLeft,
@@ -42,81 +40,43 @@ const carouselImages = [
   },
 ];
 
-const mockPosts: Post[] = [
-  {
-    id: "1",
-    user: {
-      id: "1",
-      name: "Admin Universidad",
-      username: "admin",
-      role: "admin",
-      avatar: null,
-      email: "admin@universidad.edu",
-      createdAt: "2024-01-01",
-    },
-    content: "¡Bienvenidos al nuevo sistema de la Universidad PuroPollo!",
-    timestamp: "2024-01-15T10:30:00Z",
-    likes: 24,
-    liked: false,
-    comments: [],
-    shares: 5,
-    shared: false,
-  },
-];
-
 export default function Feed() {
   const router = useRouter();
   const { user, isAuthenticated } = useAuth();
   const { isRole, userRole } = usePermission();
 
-  // 1. Inicializamos con array vacío para evitar conflictos con el ID "1" del mock
-  const [posts, setPosts] = useState<Post[]>([]);
+  // Usamos los posts y acciones directamente del hook
+  const { posts, addPost, likePost, commentOnPost, sharePost, voteOnPoll } =
+    usePosts();
+
   const [isMobile, setIsMobile] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-
   const [cursos, setCursos] = useState<any[]>([]);
   const [selectedCurso, setSelectedCurso] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showStudentsModal, setShowStudentsModal] = useState(false);
 
-  // 2. Función para cargar posts reales desde el Backend
-  const loadPosts = async () => {
-    try {
-      const res = await api.get("/posts");
-      // Axios ya devuelve el JSON en la propiedad .data
-      setPosts(res.data);
-    } catch (error) {
-      console.error("Error al cargar posts:", error);
-    }
-  };
-
   const loadCursos = async () => {
     if (!user?.id) return;
-
     try {
-      // 1. Determinar el endpoint según el rol del usuario
       const endpoint =
         userRole === "student"
           ? `${API_BASE}/courses/enrolled/${user.id}`
           : `${API_BASE}/courses`;
       const coursesRes = await fetch(endpoint);
       const rawData = await coursesRes.json();
-
       const todosLosCursos = Array.isArray(rawData)
         ? rawData
         : rawData.courses || rawData.data || [];
 
-      // 2. Obtener progreso real del usuario
       const progressRes = await fetch(
         `${API_BASE}/courses/user-progress?userId=${user.id}`,
       );
       const progressData = await progressRes.json();
-
       const completadosIds = (
         Array.isArray(progressData) ? progressData : []
       ).map((id) => String(id));
 
-      // 3. Mapear datos finales
       if (todosLosCursos.length > 0) {
         const dataFinal = todosLosCursos.map((c: any) => ({
           ...c,
@@ -126,7 +86,6 @@ export default function Feed() {
           profesor: c.profesor || "Staff Universidad",
           completado: completadosIds.includes(String(c.id)),
         }));
-
         setCursos(dataFinal);
       } else {
         setCursos([]);
@@ -140,9 +99,7 @@ export default function Feed() {
   useEffect(() => {
     if (isAuthenticated && user?.id) {
       loadCursos();
-      loadPosts(); // Cargamos los posts al iniciar
     }
-
     const checkMobile = () => setIsMobile(window.innerWidth < 1024);
     checkMobile();
     window.addEventListener("resize", checkMobile);
@@ -168,53 +125,19 @@ export default function Feed() {
 
   const handleSaveCourse = async (updatedCourse: any) => {
     try {
-      // 1. Enviar la actualización al backend (NestJS)
       const response = await fetch(`${API_BASE}/courses/${updatedCourse.id}`, {
-        method: "PATCH", // o 'PUT' según tu backend
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          fechaLimite: updatedCourse.fechaLimite,
-          // Incluye aquí otros campos si tu API los requiere
-        }),
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fechaLimite: updatedCourse.fechaLimite }),
       });
-
-      if (!response.ok)
-        throw new Error("Error al actualizar el curso en el servidor");
-
-      // 2. Si la API responde bien, actualizamos el estado local para reflejar el cambio sin recargar
+      if (!response.ok) throw new Error("Error al actualizar curso");
       const result = await response.json();
-
-      // Actualizamos el estado local con lo que nos devuelve el servidor
       setCursos((prev) =>
         prev.map((c) => (c.id === updatedCourse.id ? { ...c, ...result } : c)),
       );
-
-      setIsModalOpen(false); // Cerramos el modal tras guardar
+      setIsModalOpen(false);
     } catch (error) {
       console.error("Error al guardar:", error);
-      alert("No se pudo guardar los cambios.");
-    }
-  };
-
-  const handleCreatePost = async (formData: FormData) => {
-    try {
-      const response = await api.post("/posts", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-
-      const newPostSaved = response.data; // Axios ya devuelve la data parseada
-      setPosts((prev) => [newPostSaved, ...prev]);
-
-      return newPostSaved;
-    } catch (error: any) {
-      console.error("Error persistiendo el post:", error);
-      const message = error.response?.data?.message || "No se pudo publicar";
-      alert(message);
-      throw error;
     }
   };
 
@@ -260,18 +183,16 @@ export default function Feed() {
               style={{ scrollbarWidth: "none" }}
             >
               {cursos.map((curso, index) => {
-                // DETERMINAR SI EL CURSO ESTÁ VENCIDO
                 const ahora = new Date();
-                const fechaCreacion = new Date(curso.createdAt);
                 const fechaLimite = curso.fechaLimite
                   ? new Date(curso.fechaLimite)
                   : null;
                 const estaVencido = fechaLimite ? ahora > fechaLimite : false;
-
                 const estaHabilitado =
                   esAdminOProfesor ||
                   (!estaVencido &&
                     (index === 0 || !!cursos[index - 1].completado));
+
                 return (
                   <div
                     key={curso.id}
@@ -281,7 +202,6 @@ export default function Feed() {
                       <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 bg-gray-50 px-2 py-1 rounded">
                         {curso.codigo}
                       </span>
-                      {/* Lógica para botones de edición si es admin/profesor */}
                       <div className="flex gap-2">
                         {esAdminOProfesor && (
                           <>
@@ -291,7 +211,6 @@ export default function Feed() {
                                 setShowStudentsModal(true);
                               }}
                               className="text-gray-400 hover:text-blue-500 transition-colors"
-                              title="Ver estudiantes"
                             >
                               <Users size={16} />
                             </button>
@@ -301,18 +220,11 @@ export default function Feed() {
                                 setIsModalOpen(true);
                               }}
                               className="text-gray-400 hover:text-purple-500 transition-colors"
-                              title="Editar curso"
                             >
                               <BookOpen size={16} />
                             </button>
                           </>
                         )}
-                        <span className="text-[9px] font-bold text-gray-400 uppercase">
-                          {" "}
-                          {curso.createdAt
-                            ? new Date(curso.createdAt).toLocaleDateString()
-                            : "Nuevo"}{" "}
-                        </span>
                       </div>
                     </div>
                     <h3 className="text-lg font-bold text-gray-900 mb-1 leading-tight h-12 line-clamp-2">
@@ -323,21 +235,15 @@ export default function Feed() {
                         <Users size={16} className="mr-1.5" /> {curso.profesor}
                       </p>
                     </div>
-                    {/* Visualización de última modificación */}
                     <div className="text-[10px] flex items-center">
                       <span
                         className={`w-2 h-2 rounded-full mr-2 ${estaVencido ? "bg-red-400" : "bg-green-400"}`}
                       ></span>
                       <span className="text-gray-400 font-medium">
-                        {estaVencido ? "Desactivado: " : "Disponible hasta: "}
-                        {fechaLimite
-                          ? fechaLimite.toLocaleDateString() +
-                            " " +
-                            fechaLimite.toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })
-                          : "Sin límite"}
+                        {estaVencido
+                          ? "Desactivado"
+                          : "Disponible hasta: " +
+                            (fechaLimite?.toLocaleDateString() || "Sin límite")}
                       </span>
                     </div>
                     <div className="pt-4 border-t border-gray-50 flex justify-between items-center">
@@ -346,23 +252,16 @@ export default function Feed() {
                           estaHabilitado &&
                           router.push("/dashboard/gestion-cursos")
                         }
-                        disabled={
-                          !estaHabilitado || (estaVencido && !esAdminOProfesor)
-                        }
-                        className={`flex items-center gap-2 font-bold text-sm ${estaHabilitado && (!estaVencido || esAdminOProfesor) ? "text-purple-600" : "text-gray-400 cursor-not-allowed"}`}
+                        disabled={!estaHabilitado}
+                        className={`flex items-center gap-2 font-bold text-sm ${estaHabilitado ? "text-purple-600" : "text-gray-400"}`}
                       >
-                        {estaHabilitado &&
-                        (!estaVencido || esAdminOProfesor) ? (
+                        {estaHabilitado ? (
                           <BookOpen size={20} />
                         ) : (
                           <LockIcon size={20} />
                         )}
                         <span>
-                          {estaVencido && !esAdminOProfesor
-                            ? "Expirado"
-                            : estaHabilitado
-                              ? "Ir al curso"
-                              : "Bloqueado"}
+                          {estaHabilitado ? "Ir al curso" : "Bloqueado"}
                         </span>
                       </button>
                       {curso.completado && (
@@ -382,37 +281,34 @@ export default function Feed() {
 
         <div className="flex flex-col lg:flex-row gap-4 lg:gap-8">
           <div className="hidden lg:block lg:w-1/6">
-            <div className="sticky top-6 space-y-6">
-              <div className="bg-white rounded-xl shadow-lg overflow-hidden h-96">
-                <img
-                  src="https://images.unsplash.com/photo-1523050854058-8df90110c9f1?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80"
-                  alt="Uni"
-                  className="w-full h-full object-cover"
-                />
-              </div>
+            <div className="sticky top-6 bg-white rounded-xl shadow-lg overflow-hidden h-96">
+              <img
+                src="https://images.unsplash.com/photo-1523050854058-8df90110c9f1?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80"
+                alt="Uni"
+                className="w-full h-full object-cover"
+              />
             </div>
           </div>
+
           <div className="lg:w-3/5">
             {isAuthenticated &&
               user &&
               (isRole("admin") || isRole("teacher")) && (
-                <CreatePost
-                  currentUser={user}
-                  onPostCreated={handleCreatePost} // <-- Ahora usamos la función que sí guarda en BD
-                />
+                <CreatePost currentUser={user} onPostCreated={addPost} />
               )}
             <div className="space-y-6 mt-6">
-              {posts.map((post, index) => (
+              {posts.map((post) => (
                 <PostCard
-                  // 3. Solución al error de Key: ID único + índice como fallback
-                  key={`${post.id}-${index}`}
+                  key={post.id}
                   post={post}
-                  onLike={() => {}}
-                  onComment={() => {}}
-                  onShare={() => {}}
+                  onLike={() => likePost(post.id)}
+                  onComment={(postId, content) =>
+                    commentOnPost(postId, content)
+                  }
+                  onShare={() => sharePost(post.id)}
+                  onVote={(postId, idx) => voteOnPoll(postId, idx)}
                 />
               ))}
-
               {posts.length === 0 && (
                 <div className="text-center py-10 text-gray-400">
                   No hay publicaciones todavía.
@@ -428,6 +324,7 @@ export default function Feed() {
             </div>
           </div>
         </div>
+
         {isModalOpen && (
           <CourseFormModal
             isOpen={isModalOpen}
@@ -439,7 +336,6 @@ export default function Feed() {
             onSave={handleSaveCourse}
           />
         )}
-
         {showStudentsModal && (
           <CourseStudentsModal
             isOpen={showStudentsModal}

@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { User, Post } from "@/lib/types/post.types";
+import { User } from "@/lib/types/post.types";
 import { Avatar } from "@/components/ui/Avatar/Avatar";
 
 interface CreatePostProps {
   currentUser: User;
-  onPostCreated: (formData: FormData) => void; // Cambiado a FormData para soportar archivos
+  onPostCreated: (formData: FormData) => void;
 }
 
 export default function CreatePost({
@@ -17,7 +17,11 @@ export default function CreatePost({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-  // Referencias para los botones de adjuntos
+  // --- ESTADOS PARA ENCUESTA ---
+  const [isPoll, setIsPoll] = useState(false);
+  const [pollQuestion, setPollQuestion] = useState("");
+  const [pollOptions, setPollOptions] = useState(["", ""]);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
 
@@ -42,22 +46,40 @@ export default function CreatePost({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!content.trim() || !currentUser || isSubmitting) return;
+    if ((!content.trim() && !isPoll) || !currentUser || isSubmitting) return;
 
     setIsSubmitting(true);
 
     try {
-      // Usamos FormData para enviar texto y archivo al Backend
       const formData = new FormData();
       formData.append("content", content.trim());
+
       if (selectedFile) {
-        // CAMBIO: Usa "image" en lugar de "file" para que el Backend lo reconozca
         formData.append("image", selectedFile);
       }
+
+      // --- LOGICA DE ENCUESTA ---
+      if (isPoll && pollQuestion.trim()) {
+        const validOptions = pollOptions.filter((opt) => opt.trim() !== "");
+        if (validOptions.length >= 2) {
+          formData.append(
+            "pollData",
+            JSON.stringify({
+              question: pollQuestion,
+              options: validOptions,
+            }),
+          );
+        }
+      }
+
       await onPostCreated(formData);
-      // Limpiar estado tras éxito
+
+      // Limpiar estados
       setContent("");
       setSelectedFile(null);
+      setIsPoll(false);
+      setPollQuestion("");
+      setPollOptions(["", ""]);
     } catch (error) {
       console.error("Error al crear post:", error);
     } finally {
@@ -71,7 +93,7 @@ export default function CreatePost({
     <div className="bg-white rounded-lg lg:rounded-xl shadow-md p-4 lg:p-6 mb-4 lg:mb-6">
       <div className="flex space-x-3 lg:space-x-4">
         <Avatar
-          src={currentUser.avatar || undefined} // Aseguramos que si es null pase como undefined
+          src={currentUser.avatar || undefined}
           alt={currentUser.name}
           size="md"
           fallbackLetter={currentUser.name?.charAt(0) || "U"}
@@ -88,7 +110,42 @@ export default function CreatePost({
             disabled={isSubmitting}
           />
 
-          {/* Indicador de archivo seleccionado (Mantiene el diseño limpio) */}
+          {/* --- INTERFAZ DE ENCUESTA (Solo si isPoll es true) --- */}
+          {isPoll && (
+            <div className="mt-3 p-3 border border-blue-100 bg-blue-50/50 rounded-lg space-y-2">
+              <input
+                type="text"
+                placeholder="Pregunta de la encuesta..."
+                className="w-full p-2 text-sm border rounded focus:ring-1 focus:ring-blue-400 outline-none"
+                value={pollQuestion}
+                onChange={(e) => setPollQuestion(e.target.value)}
+              />
+              {pollOptions.map((opt, i) => (
+                <input
+                  key={i}
+                  type="text"
+                  placeholder={`Opción ${i + 1}`}
+                  className="w-full p-2 text-xs border rounded outline-none"
+                  value={opt}
+                  onChange={(e) => {
+                    const newOps = [...pollOptions];
+                    newOps[i] = e.target.value;
+                    setPollOptions(newOps);
+                  }}
+                />
+              ))}
+              {pollOptions.length < 5 && (
+                <button
+                  type="button"
+                  onClick={() => setPollOptions([...pollOptions, ""])}
+                  className="text-xs text-blue-600 font-bold hover:underline"
+                >
+                  + Añadir opción
+                </button>
+              )}
+            </div>
+          )}
+
           {selectedFile && (
             <div className="mt-2 text-xs text-blue-600 flex items-center bg-blue-50 p-2 rounded">
               📎 {selectedFile.name}
@@ -104,7 +161,6 @@ export default function CreatePost({
 
           <div className="mt-3 lg:mt-4 flex justify-between items-center">
             <div className="flex space-x-1 lg:space-x-2">
-              {/* Inputs ocultos para archivos */}
               <input
                 type="file"
                 accept="image/*"
@@ -135,10 +191,13 @@ export default function CreatePost({
               >
                 📎
               </button>
+
+              {/* --- BOTÓN DE ENCUESTAS AHORA ACTIVO --- */}
               <button
                 type="button"
-                className="p-1 lg:p-2 text-gray-500 hover:text-blue-600 text-lg lg:text-xl opacity-50 cursor-not-allowed"
-                aria-label="Añadir gráfico (Próximamente)"
+                onClick={() => setIsPoll(!isPoll)}
+                className={`p-1 lg:p-2 text-lg lg:text-xl transition-colors ${isPoll ? "text-blue-600" : "text-gray-500 hover:text-blue-600"}`}
+                aria-label="Añadir encuesta"
               >
                 📊
               </button>
@@ -146,7 +205,7 @@ export default function CreatePost({
 
             <button
               type="submit"
-              disabled={!content.trim() || isSubmitting}
+              disabled={(!content.trim() && !isPoll) || isSubmitting}
               className="px-4 lg:px-6 py-1.5 lg:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm lg:text-base font-medium transition-colors"
             >
               {isSubmitting ? "Publicando..." : "Publicar"}

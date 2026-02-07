@@ -1,4 +1,3 @@
-// src/hooks/usePosts.ts - VERSIÓN FINAL
 "use client";
 
 import { useState, useEffect } from "react";
@@ -13,10 +12,9 @@ export function usePosts() {
   const fetchPosts = async () => {
     setIsLoading(true);
     setError(null);
-
     try {
       const data = await postsService.getPosts();
-      setPosts(data);
+      setPosts(Array.isArray(data) ? data : []);
     } catch (err) {
       setError("Error al cargar las publicaciones");
       console.error("Error fetching posts:", err);
@@ -41,21 +39,13 @@ export function usePosts() {
   };
 
   const likePost = async (postId: string) => {
-    const targetPost = posts.find((p) => p.id === postId);
-    if (!targetPost) return;
     try {
-      await postsService.likePost(postId);
-      setPosts((prev) =>
-        prev.map((post) =>
-          post.id === postId
-            ? {
-                ...post,
-                likes: post.liked ? post.likes - 1 : post.likes + 1,
-                liked: !post.liked,
-              }
-            : post,
-        ),
-      );
+      const updatedPost = await postsService.likePost(postId);
+      if (updatedPost) {
+        setPosts((prev) =>
+          prev.map((p) => (p?.id === postId ? updatedPost : p)),
+        );
+      }
     } catch (err) {
       console.error("Error liking post:", err);
     }
@@ -63,18 +53,10 @@ export function usePosts() {
 
   const commentOnPost = async (postId: string, content: string) => {
     try {
-      const newComment = await postsService.commentOnPost(postId, content);
-      setPosts((prev) =>
-        prev.map((post) => {
-          if (post.id === postId) {
-            return {
-              ...post,
-              comments: [...post.comments, newComment],
-            };
-          }
-          return post;
-        }),
-      );
+      await postsService.commentOnPost(postId, content);
+      // Refrescamos para obtener los contadores actualizados
+      const data = await postsService.getPosts();
+      setPosts(data);
     } catch (err) {
       console.error("Error commenting on post:", err);
     }
@@ -82,27 +64,40 @@ export function usePosts() {
 
   const sharePost = async (postId: string) => {
     try {
-      await postsService.sharePost(postId);
-      setPosts((prev) =>
-        prev.map((post) =>
-          post.id === postId
-            ? { ...post, shares: post.shares + 1, shared: true }
-            : post,
-        ),
-      );
+      const updatedPost = await postsService.sharePost(postId);
+      if (updatedPost) {
+        setPosts((prev) =>
+          prev.map((p) => (p?.id === postId ? updatedPost : p)),
+        );
+      }
     } catch (err) {
       console.error("Error sharing post:", err);
     }
   };
 
+  const voteOnPoll = async (postId: string, optionIndex: number) => {
+    try {
+      const updatedPost = await postsService.votePoll(postId, optionIndex);
+      if (updatedPost) {
+        setPosts((prev) =>
+          prev.map((p) => (p?.id === postId ? updatedPost : p)),
+        );
+      }
+    } catch (err) {
+      console.error("Error voting:", err);
+    }
+  };
+
   return {
     posts,
+    setPosts,
     isLoading,
     error,
     addPost,
     likePost,
     commentOnPost,
     sharePost,
+    voteOnPoll,
     refetch: fetchPosts,
   };
 }
