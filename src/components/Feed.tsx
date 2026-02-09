@@ -1,4 +1,3 @@
-// src/components/Feed.tsx
 "use client";
 import { usePosts } from "@/hooks/usePosts";
 import { useState, useEffect, useRef } from "react";
@@ -45,9 +44,17 @@ export default function Feed() {
   const { user, isAuthenticated } = useAuth();
   const { isRole, userRole } = usePermission();
 
-  // Usamos los posts y acciones directamente del hook
-  const { posts, addPost, likePost, commentOnPost, sharePost, voteOnPoll } =
-    usePosts();
+  // Traemos 'isLoading' y 'refetch' del hook para controlar el estado en Vercel
+  const {
+    posts,
+    addPost,
+    likePost,
+    commentOnPost,
+    sharePost,
+    voteOnPoll,
+    isLoading,
+    refetch,
+  } = usePosts();
 
   const [isMobile, setIsMobile] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -97,9 +104,12 @@ export default function Feed() {
   };
 
   useEffect(() => {
-    if (isAuthenticated && user?.id) {
+    // En Vercel, forzamos la carga de datos cuando la auth esté lista
+    if (isAuthenticated) {
       loadCursos();
+      refetch(); // Asegura que los posts se pidan a Neon tras el refresh
     }
+
     const checkMobile = () => setIsMobile(window.innerWidth < 1024);
     checkMobile();
     window.addEventListener("resize", checkMobile);
@@ -297,22 +307,31 @@ export default function Feed() {
                 <CreatePost currentUser={user} onPostCreated={addPost} />
               )}
             <div className="space-y-6 mt-6">
-              {posts.map((post) => (
-                <PostCard
-                  key={post.id}
-                  post={post}
-                  onLike={() => likePost(post.id)}
-                  onComment={(postId, content) =>
-                    commentOnPost(postId, content)
-                  }
-                  onShare={() => sharePost(post.id)}
-                  onVote={(postId, idx) => voteOnPoll(postId, idx)}
-                />
-              ))}
-              {posts.length === 0 && (
-                <div className="text-center py-10 text-gray-400">
-                  No hay publicaciones todavía.
+              {/* Mostramos Skeleton o Loader si está cargando en Vercel */}
+              {isLoading ? (
+                <div className="text-center py-10 text-gray-400 animate-pulse">
+                  Cargando publicaciones...
                 </div>
+              ) : (
+                <>
+                  {posts.map((post) => (
+                    <PostCard
+                      key={post.id}
+                      post={post}
+                      onLike={() => likePost(post.id)}
+                      onComment={(postId, content) =>
+                        commentOnPost(postId, content)
+                      }
+                      onShare={() => sharePost(post.id)}
+                      onVote={(postId, idx) => voteOnPoll(postId, idx)}
+                    />
+                  ))}
+                  {!isLoading && posts.length === 0 && (
+                    <div className="text-center py-10 text-gray-400">
+                      No hay publicaciones todavía.
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
