@@ -1,15 +1,22 @@
+// src/hooks/usePosts.ts
 "use client";
-
-import { useState, useEffect } from "react";
-import { Post, Comment } from "@/lib/types/post.types";
+import { useState, useEffect, useCallback } from "react";
+import { Post } from "@/lib/types/post.types";
 import { postsService } from "@/services/posts.service";
+import { useAuth } from "@/hooks/useAuth";
 
 export function usePosts() {
+  const { isAuthenticated, user } = useAuth();
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchPosts = async () => {
+  const fetchPosts = useCallback(async () => {
+    if (!isAuthenticated) {
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
     try {
@@ -21,11 +28,11 @@ export function usePosts() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [isAuthenticated]);
 
   useEffect(() => {
     fetchPosts();
-  }, []);
+  }, [fetchPosts]);
 
   const addPost = async (formData: FormData): Promise<Post> => {
     try {
@@ -54,7 +61,6 @@ export function usePosts() {
   const commentOnPost = async (postId: string, content: string) => {
     try {
       await postsService.commentOnPost(postId, content);
-      // Refrescamos para obtener los contadores actualizados
       const data = await postsService.getPosts();
       setPosts(data);
     } catch (err) {
@@ -76,6 +82,12 @@ export function usePosts() {
   };
 
   const voteOnPoll = async (postId: string, optionIndex: number) => {
+    // AJUSTE: Si no hay usuario en el estado, no disparamos la petición
+    if (!user?.id) {
+      console.warn("⚠️ Esperando identificación de usuario para votar...");
+      return;
+    }
+
     try {
       const updatedPost = await postsService.votePoll(postId, optionIndex);
       if (updatedPost) {

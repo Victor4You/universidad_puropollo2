@@ -1,3 +1,4 @@
+// src/lib/api/axios.ts
 import axios from "axios";
 import Cookies from "js-cookie";
 
@@ -16,17 +17,16 @@ api.interceptors.request.use((config) => {
   if (session) {
     try {
       const user = JSON.parse(session);
-      if (user && user.token) {
-        config.headers.Authorization = `Bearer ${user.token}`;
-        console.log("✅ Token inyectado en la petición");
-      } else {
-        console.error("❌ La sesión existe pero no tiene token");
+      // Ajuste: Buscamos el token en todas las propiedades posibles que genera tu Auth
+      const token = user.token || user.accessToken || user.data?.token;
+
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+        // console.log("✅ Token inyectado"); // Mantengo tus logs si los necesitas
       }
     } catch (e) {
-      console.error("❌ Error al leer la cookie (JSON inválido):", e);
+      console.error("❌ Error al leer la cookie:", e);
     }
-  } else {
-    console.warn("⚠️ No se encontró la cookie 'univ_auth_session'");
   }
   return config;
 });
