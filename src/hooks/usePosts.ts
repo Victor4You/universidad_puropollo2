@@ -14,10 +14,10 @@ export function usePosts() {
   const [error, setError] = useState<string | null>(null);
 
   const fetchPosts = useCallback(async () => {
-    // Si el Auth aún está leyendo la cookie, no hacemos nada todavía
+    // 1. Si la sesión se está recuperando de la cookie, NO disparamos la petición aún
     if (authLoading) return;
 
-    // Si terminó de leer y no hay sesión, dejamos de cargar y salimos
+    // 2. Si no hay usuario autenticado después de cargar, paramos el spinner y salimos
     if (!isAuthenticated) {
       setIsLoading(false);
       return;
@@ -26,9 +26,10 @@ export function usePosts() {
     setIsLoading(true);
     try {
       const data = await postsService.getPosts();
+      // 3. Solo actualizamos si data es realmente un array
       setPosts(Array.isArray(data) ? data : []);
     } catch (err) {
-      setError("Error al cargar las publicaciones");
+      console.error("Error al cargar posts:", err);
     } finally {
       setIsLoading(false);
     }
@@ -114,4 +115,3 @@ export function usePosts() {
     refetch: fetchPosts,
   };
 }
-
