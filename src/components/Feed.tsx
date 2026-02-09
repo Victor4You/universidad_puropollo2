@@ -70,6 +70,7 @@ export default function Feed() {
         userRole === "student"
           ? `${API_BASE}/courses/enrolled/${user.id}`
           : `${API_BASE}/courses`;
+          console.log("Llamando a:", endpoint);
       const coursesRes = await fetch(endpoint);
       const rawData = await coursesRes.json();
       const todosLosCursos = Array.isArray(rawData)
