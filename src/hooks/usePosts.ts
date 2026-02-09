@@ -6,34 +6,37 @@ import { postsService } from "@/services/posts.service";
 import { useAuth } from "@/hooks/useAuth";
 
 export function usePosts() {
-  const { isAuthenticated, user } = useAuth();
+  // AJUSTE AQUÍ: Añadimos 'user' a la desestructuración
+  const { isAuthenticated, user, isLoading: authLoading } = useAuth();
+
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchPosts = useCallback(async () => {
+    // Si el Auth aún está leyendo la cookie, no hacemos nada todavía
+    if (authLoading) return;
+
+    // Si terminó de leer y no hay sesión, dejamos de cargar y salimos
     if (!isAuthenticated) {
       setIsLoading(false);
       return;
     }
 
     setIsLoading(true);
-    setError(null);
     try {
       const data = await postsService.getPosts();
       setPosts(Array.isArray(data) ? data : []);
     } catch (err) {
       setError("Error al cargar las publicaciones");
-      console.error("Error fetching posts:", err);
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, authLoading]); // Importante: depende de authLoading
 
   useEffect(() => {
     fetchPosts();
   }, [fetchPosts]);
-
   const addPost = async (formData: FormData): Promise<Post> => {
     try {
       const newPost = await postsService.createPost(formData);
@@ -46,6 +49,9 @@ export function usePosts() {
   };
 
   const likePost = async (postId: string) => {
+    // Ahora 'user' ya está definido y no dará ReferenceError
+    if (!user?.id) return;
+
     try {
       const updatedPost = await postsService.likePost(postId);
       if (updatedPost) {
@@ -61,8 +67,9 @@ export function usePosts() {
   const commentOnPost = async (postId: string, content: string) => {
     try {
       await postsService.commentOnPost(postId, content);
+      // Refrescamos los posts para ver el nuevo comentario
       const data = await postsService.getPosts();
-      setPosts(data);
+      if (Array.isArray(data)) setPosts(data);
     } catch (err) {
       console.error("Error commenting on post:", err);
     }
@@ -82,12 +89,7 @@ export function usePosts() {
   };
 
   const voteOnPoll = async (postId: string, optionIndex: number) => {
-    // AJUSTE: Si no hay usuario en el estado, no disparamos la petición
-    if (!user?.id) {
-      console.warn("⚠️ Esperando identificación de usuario para votar...");
-      return;
-    }
-
+    if (!user?.id) return;
     try {
       const updatedPost = await postsService.votePoll(postId, optionIndex);
       if (updatedPost) {
@@ -99,11 +101,10 @@ export function usePosts() {
       console.error("Error voting:", err);
     }
   };
-
   return {
     posts,
     setPosts,
-    isLoading,
+    isLoading: isLoading || authLoading, // 5. Mostramos carga mientras se valida el auth O la petición
     error,
     addPost,
     likePost,

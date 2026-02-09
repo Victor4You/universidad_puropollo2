@@ -22,18 +22,25 @@ export function AuthProvider({ children }: AuthProviderProps) {
     if (savedSession) {
       try {
         const restoredUser = JSON.parse(savedSession);
-        setAuthState({
-          user: restoredUser,
-          isAuthenticated: true,
-          isLoading: false,
-        });
+
+        // Verificamos que el objeto restaurado tenga los datos mínimos
+        if (restoredUser && (restoredUser.token || restoredUser.accessToken)) {
+          setAuthState({
+            user: restoredUser,
+            isAuthenticated: true,
+            isLoading: false,
+          });
+        } else {
+          // Si la cookie existe pero está corrupta o sin token
+          throw new Error("Sesión inválida");
+        }
       } catch (error) {
         console.error("Error al restaurar sesión:", error);
         Cookies.remove(COOKIE_NAME);
-        setAuthState((prev) => ({ ...prev, isLoading: false }));
+        setAuthState({ user: null, isAuthenticated: false, isLoading: false });
       }
     } else {
-      setAuthState((prev) => ({ ...prev, isLoading: false }));
+      setAuthState({ user: null, isAuthenticated: false, isLoading: false });
     }
   }, []);
 
