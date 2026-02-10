@@ -163,38 +163,43 @@ export default function GestionCursosPage() {
 
   // EL RESTO DE TUS FUNCIONES ORIGINALES (SIN CAMBIOS)
   const handleSaveCourse = async (courseFormData: any) => {
+    // 1. Construimos el payload incluyendo el campo 'secciones' y el 'tipo'
     const payload = {
       codigo: courseFormData.codigo,
       nombre: courseFormData.nombre,
       profesor: courseFormData.profesor,
       creditos: Number(courseFormData.creditos),
       semestre: courseFormData.semestre,
-      estado: courseFormData.estado, // Añadido para persistir el estado (activo/inactivo)
-      fechaLimite: courseFormData.fechaLimite, // Añadido para persistir la fecha límite
+      estado: courseFormData.estado,
+      tipo: courseFormData.tipo, // Importante para saber si es estándar o especializado
+      fechaLimite: courseFormData.fechaLimite,
       videos: courseFormData.videos,
       pdfs: courseFormData.pdfs,
       questions: courseFormData.questions,
+      secciones: courseFormData.secciones, // <--- ESTA ES LA PIEZA QUE FALTA
       duracionExamen: Number(courseFormData.duracionExamen),
     };
 
     try {
       if (selectedCurso) {
-        // CAMBIO: api.patch y ruta relativa
+        // Actualizar curso existente
         await api.patch(`/courses/${selectedCurso.id}`, payload);
+        await loadData();
       } else {
-        // CAMBIO: api.post y ruta relativa
+        // Crear nuevo curso
         await api.post(`/courses`, payload);
       }
-      const res = await api.get(`/courses`);
-      setCursos(res.data);
+
+      // 2. Refrescamos los datos directamente desde el servidor
+      await loadData();
+
       setIsModalOpen(false);
-      setSelectedCurso(null); // Limpiar selección tras guardar
+      setSelectedCurso(null);
     } catch (error) {
-      console.error("Error detallado:", error);
+      console.error("Error detallado al guardar:", error);
       alert("Error al guardar el curso completo.");
     }
   };
-
   const handleUpdateCourseData = (updatedCourse: Curso) => {
     const nuevosCursos = cursos.map((c) =>
       c.id === updatedCourse.id ? updatedCourse : c,
