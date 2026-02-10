@@ -176,28 +176,22 @@ export default function GestionCursosPage() {
       videos: courseFormData.videos,
       pdfs: courseFormData.pdfs,
       questions: courseFormData.questions,
-      secciones: courseFormData.secciones, // <--- ESTA ES LA PIEZA QUE FALTA
+      secciones: courseFormData.secciones || [],
       duracionExamen: Number(courseFormData.duracionExamen),
     };
 
     try {
       if (selectedCurso) {
-        // Actualizar curso existente
         await api.patch(`/courses/${selectedCurso.id}`, payload);
-        await loadData();
       } else {
-        // Crear nuevo curso
         await api.post(`/courses`, payload);
       }
-
-      // 2. Refrescamos los datos directamente desde el servidor
+      // IMPORTANTE: Refrescar datos después de guardar
       await loadData();
-
       setIsModalOpen(false);
-      setSelectedCurso(null);
     } catch (error) {
-      console.error("Error detallado al guardar:", error);
-      alert("Error al guardar el curso completo.");
+      console.error("Error en Vercel:", error);
+      alert("Error al guardar: Verifica la conexión con la base de datos.");
     }
   };
   const handleUpdateCourseData = (updatedCourse: Curso) => {

@@ -6,7 +6,7 @@ import { Dialog, Transition } from "@headlessui/react";
 import axios from "axios";
 import { useAuth } from "@/hooks/useAuth";
 
-// ICONOS (Mantenidos igual para no alterar diseño)
+// ICONOS ORIGINALES
 const XMarkIcon = () => (
   <svg
     className="h-6 w-6"
@@ -118,11 +118,27 @@ export default function CourseTestModal({
   const [viewedVideos, setViewedVideos] = useState<Set<string>>(new Set());
   const [viewedPdfs, setViewedPdfs] = useState<Set<string>>(new Set());
 
-  const totalVideos = courseData?.videos?.length || 0;
-  const totalPdfs = courseData?.pdfs?.length || 0;
+  // Lógica para detectar secciones y calcular totales
+  const tieneSecciones =
+    courseData?.secciones && courseData.secciones.length > 0;
+
+  const totalVideos = tieneSecciones
+    ? courseData.secciones.reduce(
+        (acc: number, s: any) => acc + (s.videos?.length || 0),
+        0,
+      )
+    : courseData?.videos?.length || 0;
+
+  const totalPdfs = tieneSecciones
+    ? courseData.secciones.reduce(
+        (acc: number, s: any) => acc + (s.pdfs?.length || 0),
+        0,
+      )
+    : courseData?.pdfs?.length || 0;
+
   const allWatched =
-    (totalVideos === 0 || viewedVideos.size === totalVideos) &&
-    (totalPdfs === 0 || viewedPdfs.size === totalPdfs);
+    (totalVideos === 0 || viewedVideos.size >= totalVideos) &&
+    (totalPdfs === 0 || viewedPdfs.size >= totalPdfs);
 
   useEffect(() => {
     if (isOpen) {
@@ -140,19 +156,17 @@ export default function CourseTestModal({
   }, [isOpen, courseData]);
 
   const handleFinishExam = useCallback(async () => {
-    const questions = shuffledQuestions;
     let correctas = 0;
-    questions.forEach((q: any) => {
+    shuffledQuestions.forEach((q: any) => {
       if (userAnswers[q.id] === q.answer) correctas++;
     });
     const notaFinal =
-      questions.length > 0
-        ? Math.round((correctas / questions.length) * 100)
+      shuffledQuestions.length > 0
+        ? Math.round((correctas / shuffledQuestions.length) * 100)
         : 100;
     setScore(notaFinal);
 
     try {
-      // CAMBIO: courseId y userId como Números para la BD de Vercel
       await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL}/courses/register-completion`,
         {
@@ -184,7 +198,6 @@ export default function CourseTestModal({
 
   const handleSaveToPostgres = async () => {
     try {
-      // CAMBIO: courseId y userId como Números para la BD de Vercel
       await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL}/courses/register-completion`,
         {
@@ -217,25 +230,18 @@ export default function CourseTestModal({
     return () => clearInterval(timer);
   }, [currentStep, quizTimeLeft, handleFinishExam]);
 
-  const handleOptionSelect = (qId: string, option: string) => {
-    setUserAnswers((prev) => ({ ...prev, [qId]: option }));
-  };
-
-  const isComplete =
-    shuffledQuestions.length > 0 &&
-    shuffledQuestions.every((q: any) => userAnswers[q.id]);
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
-  };
-
   const markPDFAsRead = () => {
     if (currentPDF && pdfScrollReached) {
       setViewedPdfs((prev) => new Set(prev).add(currentPDF.id));
       setCurrentPDF(null);
       setPdfScrollReached(false);
     }
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
   return (
@@ -265,6 +271,7 @@ export default function CourseTestModal({
               leaveTo="opacity-0 scale-95"
             >
               <Dialog.Panel className="w-full max-w-6xl max-h-[90vh] transform overflow-hidden rounded-2xl bg-white p-8 text-left align-middle shadow-xl transition-all flex flex-col">
+                {/* HEADER */}
                 <div className="flex justify-between items-center mb-6 border-b pb-4 flex-shrink-0">
                   <div>
                     <Dialog.Title className="text-2xl font-black text-gray-900 uppercase tracking-tighter">
@@ -282,6 +289,7 @@ export default function CourseTestModal({
                   </button>
                 </div>
 
+                {/* TABS */}
                 <div className="flex space-x-4 mb-8 flex-shrink-0">
                   <button
                     onClick={() => setCurrentStep("content")}
@@ -298,62 +306,142 @@ export default function CourseTestModal({
                   </button>
                 </div>
 
+                {/* BODY CONTENT */}
                 <div className="flex-1 overflow-y-auto pr-4 custom-scrollbar">
                   {currentStep === "content" && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pb-4">
-                      <div className="space-y-4">
-                        <h4 className="font-black text-blue-600 text-xs uppercase tracking-widest">
-                          Videos ({viewedVideos.size}/{totalVideos})
-                        </h4>
-                        {courseData?.videos?.map((video: any) => (
-                          <button
-                            key={video.id}
-                            onClick={() => {
-                              setCurrentVideo(video);
-                              lastTimeReached.current = 0;
-                            }}
-                            className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left ${viewedVideos.has(video.id) ? "bg-green-50 border-green-200" : "bg-gray-50 border-transparent hover:border-blue-200"}`}
-                          >
+                    <div className="space-y-8 pb-4">
+                      {tieneSecciones ? (
+                        /* VISTA POR SECCIONES */
+                        courseData.secciones.map(
+                          (seccion: any, sIdx: number) => (
                             <div
-                              className={`p-2 rounded-lg ${viewedVideos.has(video.id) ? "bg-green-100 text-green-600" : "bg-blue-100 text-blue-600"}`}
+                              key={sIdx}
+                              className="bg-white border-2 border-gray-100 rounded-[2rem] p-6 shadow-sm"
                             >
-                              <PlayIcon />
+                              <h3 className="text-sm font-black text-blue-600 uppercase tracking-widest mb-6 flex items-center gap-3">
+                                <span className="bg-blue-600 text-white w-7 h-7 rounded-full flex items-center justify-center text-xs">
+                                  {sIdx + 1}
+                                </span>
+                                {seccion.titulo}
+                              </h3>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {/* Videos de la sección */}
+                                {seccion.videos?.map((video: any) => (
+                                  <button
+                                    key={video.id}
+                                    onClick={() => {
+                                      setCurrentVideo(video);
+                                      lastTimeReached.current = 0;
+                                    }}
+                                    className={`flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left ${viewedVideos.has(video.id) ? "bg-green-50 border-green-200" : "bg-gray-50 border-transparent hover:border-blue-200"}`}
+                                  >
+                                    <div
+                                      className={`p-2 rounded-lg ${viewedVideos.has(video.id) ? "bg-green-100 text-green-600" : "bg-blue-100 text-blue-600"}`}
+                                    >
+                                      <PlayIcon />
+                                    </div>
+                                    <span className="font-bold text-sm truncate">
+                                      {video.title}
+                                    </span>
+                                    {viewedVideos.has(video.id) && (
+                                      <span className="ml-auto text-[10px] font-black text-green-600 uppercase">
+                                        Visto
+                                      </span>
+                                    )}
+                                  </button>
+                                ))}
+                                {/* PDFs de la sección */}
+                                {seccion.pdfs?.map((pdf: any) => (
+                                  <button
+                                    key={pdf.id}
+                                    onClick={() => {
+                                      setCurrentPDF(pdf);
+                                      setPdfScrollReached(false);
+                                    }}
+                                    className={`flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left ${viewedPdfs.has(pdf.id) ? "bg-green-50 border-green-200" : "bg-gray-50 border-transparent hover:border-red-200"}`}
+                                  >
+                                    <div
+                                      className={`p-2 rounded-lg ${viewedPdfs.has(pdf.id) ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"}`}
+                                    >
+                                      <DocumentIcon />
+                                    </div>
+                                    <span className="font-bold text-sm truncate">
+                                      {pdf.title}
+                                    </span>
+                                    {viewedPdfs.has(pdf.id) && (
+                                      <span className="ml-auto text-[10px] font-black text-green-600 uppercase">
+                                        Leído
+                                      </span>
+                                    )}
+                                  </button>
+                                ))}
+                              </div>
                             </div>
-                            <span className="font-bold text-sm">
-                              {video.title}
-                            </span>
-                            {viewedVideos.has(video.id) && (
-                              <span className="ml-auto text-[10px] font-black text-green-600 uppercase">
-                                Visto
-                              </span>
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                      <div className="space-y-4">
-                        <h4 className="font-black text-red-600 text-xs uppercase tracking-widest">
-                          PDFs ({viewedPdfs.size}/{totalPdfs})
-                        </h4>
-                        {courseData?.pdfs?.map((pdf: any) => (
-                          <button
-                            key={pdf.id}
-                            onClick={() => {
-                              setCurrentPDF(pdf);
-                              setPdfScrollReached(false);
-                            }}
-                            className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left ${viewedPdfs.has(pdf.id) ? "bg-green-50 border-green-200" : "bg-gray-50 border-transparent hover:border-red-200"}`}
-                          >
-                            <div
-                              className={`p-2 rounded-lg ${viewedPdfs.has(pdf.id) ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"}`}
-                            >
-                              <DocumentIcon />
-                            </div>
-                            <span className="font-bold text-sm">
-                              {pdf.title}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
+                          ),
+                        )
+                      ) : (
+                        /* VISTA TRADICIONAL (Sin secciones) */
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                          <div className="space-y-4">
+                            <h4 className="font-black text-blue-600 text-xs uppercase tracking-widest">
+                              Videos ({viewedVideos.size}/{totalVideos})
+                            </h4>
+                            {courseData?.videos?.map((video: any) => (
+                              <button
+                                key={video.id}
+                                onClick={() => {
+                                  setCurrentVideo(video);
+                                  lastTimeReached.current = 0;
+                                }}
+                                className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left ${viewedVideos.has(video.id) ? "bg-green-50 border-green-200" : "bg-gray-50 border-transparent hover:border-blue-200"}`}
+                              >
+                                <div
+                                  className={`p-2 rounded-lg ${viewedVideos.has(video.id) ? "bg-green-100 text-green-600" : "bg-blue-100 text-blue-600"}`}
+                                >
+                                  <PlayIcon />
+                                </div>
+                                <span className="font-bold text-sm">
+                                  {video.title}
+                                </span>
+                                {viewedVideos.has(video.id) && (
+                                  <span className="ml-auto text-[10px] font-black text-green-600 uppercase">
+                                    Visto
+                                  </span>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                          <div className="space-y-4">
+                            <h4 className="font-black text-red-600 text-xs uppercase tracking-widest">
+                              PDFs ({viewedPdfs.size}/{totalPdfs})
+                            </h4>
+                            {courseData?.pdfs?.map((pdf: any) => (
+                              <button
+                                key={pdf.id}
+                                onClick={() => {
+                                  setCurrentPDF(pdf);
+                                  setPdfScrollReached(false);
+                                }}
+                                className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left ${viewedPdfs.has(pdf.id) ? "bg-green-50 border-green-200" : "bg-gray-50 border-transparent hover:border-red-200"}`}
+                              >
+                                <div
+                                  className={`p-2 rounded-lg ${viewedPdfs.has(pdf.id) ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"}`}
+                                >
+                                  <DocumentIcon />
+                                </div>
+                                <span className="font-bold text-sm">
+                                  {pdf.title}
+                                </span>
+                                {viewedPdfs.has(pdf.id) && (
+                                  <span className="ml-auto text-[10px] font-black text-green-600 uppercase">
+                                    Leído
+                                  </span>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -403,7 +491,12 @@ export default function CourseTestModal({
                                   type="radio"
                                   className="hidden"
                                   checked={userAnswers[q.id] === opt}
-                                  onChange={() => handleOptionSelect(q.id, opt)}
+                                  onChange={() =>
+                                    setUserAnswers((prev) => ({
+                                      ...prev,
+                                      [q.id]: opt,
+                                    }))
+                                  }
                                 />
                                 <span className="font-bold">{opt}</span>
                               </label>
@@ -413,10 +506,14 @@ export default function CourseTestModal({
                       ))}
                       <button
                         onClick={handleFinishExam}
-                        disabled={!isComplete}
-                        className={`w-full py-6 rounded-[2rem] font-black text-xl shadow-xl transition-all ${isComplete ? "bg-green-600 text-white hover:scale-[1.02]" : "bg-gray-200 text-gray-400 cursor-not-allowed"}`}
+                        disabled={
+                          !shuffledQuestions.every(
+                            (q: any) => userAnswers[q.id],
+                          )
+                        }
+                        className={`w-full py-6 rounded-[2rem] font-black text-xl shadow-xl transition-all ${shuffledQuestions.every((q: any) => userAnswers[q.id]) ? "bg-green-600 text-white hover:scale-[1.02]" : "bg-gray-200 text-gray-400 cursor-not-allowed"}`}
                       >
-                        {isComplete
+                        {shuffledQuestions.every((q: any) => userAnswers[q.id])
                           ? "ENVIAR PARA CALIFICACIÓN"
                           : "RESPONDE TODO PARA ENVIAR"}
                       </button>
@@ -503,7 +600,7 @@ export default function CourseTestModal({
                   )}
                 </div>
 
-                {/* OVERLAYS DE VIDEO Y PDF (Mantenidos igual) */}
+                {/* OVERLAYS DE VIDEO Y PDF */}
                 {currentVideo && (
                   <div className="fixed inset-0 bg-black/95 z-[70] flex items-center justify-center p-8">
                     <div className="w-full max-w-5xl aspect-video relative">
