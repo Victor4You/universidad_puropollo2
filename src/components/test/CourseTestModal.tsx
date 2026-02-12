@@ -592,28 +592,40 @@ export default function CourseTestModal({
                       >
                         <XMarkIcon /> CERRAR VIDEO
                       </button>
-                      <video
-                        controls
-                        autoPlay
-                        className="w-full h-full rounded-3xl bg-black shadow-2xl"
-                        onTimeUpdate={(e: any) => {
-                          const v = e.target;
-                          if (v.currentTime > lastTimeReached.current + 1.5) {
-                            v.currentTime = lastTimeReached.current;
-                          } else {
-                            lastTimeReached.current = v.currentTime;
-                          }
-                        }}
-                        onEnded={() => {
-                          const updatedV = new Set(viewedVideos).add(
-                            String(currentVideo.id),
-                          );
-                          setViewedVideos(updatedV);
-                          syncProgress(updatedV, viewedPdfs, attempts);
-                        }}
-                      >
-                        <source src={currentVideo.fileUrl} type="video/mp4" />
-                      </video>
+                      {currentVideo.fileUrl.includes("youtube.com") ||
+                      currentVideo.fileUrl.includes("youtu.be") ? (
+                        <iframe
+                          className="w-full h-full rounded-3xl"
+                          src={currentVideo.fileUrl.replace(
+                            "watch?v=",
+                            "embed/",
+                          )}
+                          allowFullScreen
+                        />
+                      ) : (
+                        <video
+                          controls
+                          autoPlay
+                          className="w-full h-full rounded-3xl bg-black shadow-2xl"
+                          onTimeUpdate={(e: any) => {
+                            const v = e.target;
+                            if (v.currentTime > lastTimeReached.current + 1.5) {
+                              v.currentTime = lastTimeReached.current;
+                            } else {
+                              lastTimeReached.current = v.currentTime;
+                            }
+                          }}
+                          onEnded={() => {
+                            const updatedV = new Set(viewedVideos).add(
+                              String(currentVideo.id),
+                            );
+                            setViewedVideos(updatedV);
+                            syncProgress(updatedV, viewedPdfs, attempts);
+                          }}
+                        >
+                          <source src={currentVideo.fileUrl} type="video/mp4" />
+                        </video>
+                      )}
                     </div>
                   </div>
                 )}

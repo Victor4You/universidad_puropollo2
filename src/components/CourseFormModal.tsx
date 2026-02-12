@@ -405,14 +405,20 @@ export default function CourseFormModal({
                         <div className="flex gap-2 items-center">
                           <input
                             value={v.fileUrl}
-                            readOnly
-                            placeholder="URL .mp4"
-                            className="flex-1 bg-white px-2 py-1 rounded text-[10px] text-blue-500 border"
+                            // QUITAMOS EL readOnly para permitir pegar links
+                            onChange={(e) => {
+                              const list = [...getContent("videos")];
+                              list[i].fileUrl = e.target.value;
+                              updateContent("videos", list);
+                            }}
+                            placeholder="Pega un link (YouTube/Drive) o sube un archivo .mp4"
+                            className="flex-1 bg-white px-2 py-1 rounded text-[10px] text-blue-500 border border-blue-100 focus:border-blue-500 outline-none"
                           />
                           <input
                             type="file"
                             id={`v-${i}`}
                             className="hidden"
+                            accept="video/mp4" // Recomendado para Vercel Blob
                             onChange={(e) =>
                               e.target.files?.[0] &&
                               handleFileUpload(i, "video", e.target.files[0])
@@ -481,14 +487,20 @@ export default function CourseFormModal({
                         <div className="flex gap-2 items-center">
                           <input
                             value={p.fileUrl}
-                            readOnly
-                            placeholder="URL .pdf"
-                            className="flex-1 bg-white px-2 py-1 rounded text-[10px] text-red-500 border"
+                            // QUITAMOS EL readOnly
+                            onChange={(e) => {
+                              const list = [...getContent("pdfs")];
+                              list[i].fileUrl = e.target.value;
+                              updateContent("pdfs", list);
+                            }}
+                            placeholder="Pega link de PDF externo o sube uno"
+                            className="flex-1 bg-white px-2 py-1 rounded text-[10px] text-red-500 border border-red-100 focus:border-red-500 outline-none"
                           />
                           <input
                             type="file"
                             id={`p-${i}`}
                             className="hidden"
+                            accept=".pdf"
                             onChange={(e) =>
                               e.target.files?.[0] &&
                               handleFileUpload(i, "pdf", e.target.files[0])
