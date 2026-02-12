@@ -158,13 +158,14 @@ export default function CourseStudentsModal({
   }, [isOpen, courseData?.id]);
 
   const fetchUsers = async (query: string) => {
-    if (!sucursalId) return;
+    const idBusqueda = sucursalId || "0";
     setIsSearching(true);
     try {
-      // CAMBIO: Usamos 'api' con ruta relativa
+      // Usamos la instancia 'api' para que use la URL correcta según el entorno
       const response = await api.get(
-        `/courses/users/sucursal/${sucursalId}?q=${query}`,
+        `/courses/users/sucursal/${idBusqueda}?q=${query}`,
       );
+
       if (response.data && Array.isArray(response.data)) {
         const filtrados = response.data.filter(
           (user: any) =>
@@ -176,8 +177,15 @@ export default function CourseStudentsModal({
         );
         setSearchResults(filtrados);
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Error en búsqueda:", error);
+      // Si hay un error 502 o 504 de red, limpiamos resultados y avisamos
       setSearchResults([]);
+      if (error.response?.status === 502) {
+        console.warn(
+          "La API externa no responde (502). Verifica el túnel o la IP local.",
+        );
+      }
     } finally {
       setIsSearching(false);
     }
@@ -219,8 +227,8 @@ export default function CourseStudentsModal({
           userIds: inscritos.map((s) => s.id),
         });
         if (onUpdateCourse) await onUpdateCourse();
+        onClose();
       }
-      onClose();
     } catch (error) {
       console.error("Error al guardar:", error);
       alert("Error al sincronizar con la base de datos");
