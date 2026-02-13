@@ -39,7 +39,7 @@ export default function ProfilePage({
       try {
         // RUTA CORREGIDA basándonos en main.ts (v1) y users.controller.ts (user/:username)
         const response = await fetch(
-          `http://localhost:3001/v1/users/user/${username}`
+          `${window.location.origin.replace(":3000", ":3001")}/v1/users/user/${username}`,
         );
 
         if (!response.ok) {
