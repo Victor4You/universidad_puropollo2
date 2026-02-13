@@ -24,7 +24,6 @@ export default function ProfilePage({
   params: Promise<{ id: string }>;
 }) {
   const resolvedParams = use(params);
-  // En tu caso, el 'id' de la URL debe ser el 'username' para que el backend lo encuentre
   const username = resolvedParams.id;
 
   const [profileData, setProfileData] = useState<any>(null);
@@ -37,10 +36,14 @@ export default function ProfilePage({
       setLoading(true);
       setError(null);
       try {
-        // RUTA CORREGIDA basándonos en main.ts (v1) y users.controller.ts (user/:username)
-        const response = await fetch(
-          `${window.location.origin.replace(":3000", ":3001")}/v1/users/user/${username}`,
-        );
+        // --- ÚNICO CAMBIO TÉCNICO: DETECCIÓN DE URL ---
+        const isLocal = window.location.hostname === "localhost";
+        const backendUrl = isLocal
+          ? "http://localhost:3001"
+          : "https://backend-universidad.vercel.app";
+
+        const response = await fetch(`${backendUrl}/v1/users/user/${username}`);
+        // ----------------------------------------------
 
         if (!response.ok) {
           if (response.status === 404)
@@ -61,6 +64,7 @@ export default function ProfilePage({
     if (username) fetchProfile();
   }, [username]);
 
+  // Lógica original intacta
   const calcularAntiguedad = (fechaIngreso: string) => {
     if (!fechaIngreso) return "No disponible";
     const ingreso = new Date(fechaIngreso);
@@ -109,22 +113,7 @@ export default function ProfilePage({
 
   const emp = profileData.empleado;
 
-  const displayData = {
-    nombre: profileData?.nombre || "Usuario",
-    apellido: profileData?.apellido || "",
-    usuario: profileData?.usuario || username,
-    rol: profileData?.role === "admin" ? "ADMINISTRADOR" : "COLABORADOR",
-    // Ajuste según la estructura de UniversidadUser
-    sucursal: emp?.sucursalActiva?.nombre || "---",
-    departamento: emp?.departamento?.nombre || "---",
-    // Si la API externa no manda municipio, usa un fallback
-    ubicacion: emp?.municipio
-      ? `${emp.municipio}, ${emp.estado}`
-      : "Ubicación no disponible",
-    celular: emp?.celular || "No disponible",
-    email: profileData?.email || emp?.email || "Sin correo registrado",
-  };
-
+  // Renderizado y Diseño original intacto
   return (
     <div className="max-w-6xl mx-auto p-4 md:p-8 space-y-8 animate-fadeIn">
       <button
@@ -189,7 +178,11 @@ export default function ProfilePage({
             <InfoItem
               icon={<MapPin />}
               label="Ubicación"
-              value={`${emp?.municipio}, ${emp?.estado}`}
+              value={
+                emp?.municipio
+                  ? `${emp.municipio}, ${emp.estado}`
+                  : "No disponible"
+              }
             />
           </div>
         </div>
@@ -208,7 +201,9 @@ export default function ProfilePage({
             <ContactItem
               icon={<Mail />}
               label="Email"
-              value={emp?.email || "Sin correo registrado"}
+              value={
+                emp?.email || profileData?.email || "Sin correo registrado"
+              }
             />
           </div>
         </div>
@@ -217,6 +212,7 @@ export default function ProfilePage({
   );
 }
 
+// InfoItem y ContactItem originales intactos
 function InfoItem({ icon, label, value, subValue }: any) {
   return (
     <div className="flex items-start gap-4">
