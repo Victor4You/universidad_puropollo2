@@ -359,80 +359,140 @@ export default function CourseTestModal({
                 <div className="flex-1 overflow-y-auto pr-4 custom-scrollbar">
                   {currentStep === "content" && (
                     <div className="space-y-8 pb-4">
-                      {tieneSecciones
-                        ? courseData.secciones.map(
-                            (seccion: any, sIdx: number) => {
-                              const locked = isSectionLocked(sIdx);
-                              return (
-                                <div
-                                  key={sIdx}
-                                  className={`bg-white border-2 rounded-[2rem] p-6 shadow-sm transition-all ${locked ? "opacity-50 grayscale bg-gray-50 border-gray-100" : "border-gray-100"}`}
-                                >
-                                  <h3 className="text-sm font-black text-blue-600 uppercase tracking-widest mb-6 flex items-center gap-3">
-                                    <span
-                                      className={`w-7 h-7 rounded-full flex items-center justify-center text-xs ${locked ? "bg-gray-400 text-white" : "bg-blue-600 text-white"}`}
+                      {tieneSecciones ? (
+                        courseData.secciones.map(
+                          (seccion: any, sIdx: number) => {
+                            const locked = isSectionLocked(sIdx);
+                            return (
+                              <div
+                                key={sIdx}
+                                className={`bg-white border-2 rounded-[2rem] p-6 shadow-sm transition-all ${locked ? "opacity-50 grayscale bg-gray-50 border-gray-100" : "border-gray-100"}`}
+                              >
+                                <h3 className="text-sm font-black text-blue-600 uppercase tracking-widest mb-6 flex items-center gap-3">
+                                  <span
+                                    className={`w-7 h-7 rounded-full flex items-center justify-center text-xs ${locked ? "bg-gray-400 text-white" : "bg-blue-600 text-white"}`}
+                                  >
+                                    {locked ? "🔒" : sIdx + 1}
+                                  </span>
+                                  {seccion.titulo}
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  {seccion.videos?.map((video: any) => (
+                                    <button
+                                      key={video.id}
+                                      disabled={locked}
+                                      onClick={() => {
+                                        setCurrentVideo(video);
+                                        lastTimeReached.current = 0;
+                                      }}
+                                      className={`flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left ${viewedVideos.has(String(video.id)) ? "bg-green-50 border-green-200" : "bg-gray-50 border-transparent hover:border-blue-200"}`}
                                     >
-                                      {locked ? "🔒" : sIdx + 1}
-                                    </span>
-                                    {seccion.titulo}
-                                  </h3>
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {seccion.videos?.map((video: any) => (
-                                      <button
-                                        key={video.id}
-                                        disabled={locked}
-                                        onClick={() => {
-                                          setCurrentVideo(video);
-                                          lastTimeReached.current = 0;
-                                        }}
-                                        className={`flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left ${viewedVideos.has(String(video.id)) ? "bg-green-50 border-green-200" : "bg-gray-50 border-transparent hover:border-blue-200"}`}
+                                      <div
+                                        className={`p-2 rounded-lg ${viewedVideos.has(String(video.id)) ? "bg-green-100 text-green-600" : "bg-blue-100 text-blue-600"}`}
                                       >
-                                        <div
-                                          className={`p-2 rounded-lg ${viewedVideos.has(String(video.id)) ? "bg-green-100 text-green-600" : "bg-blue-100 text-blue-600"}`}
-                                        >
-                                          <PlayIcon />
-                                        </div>
-                                        <span className="font-bold text-sm truncate">
-                                          {video.title}
+                                        <PlayIcon />
+                                      </div>
+                                      <span className="font-bold text-sm truncate">
+                                        {video.title}
+                                      </span>
+                                      {viewedVideos.has(String(video.id)) && (
+                                        <span className="ml-auto text-[10px] font-black text-green-600 uppercase">
+                                          Visto
                                         </span>
-                                        {viewedVideos.has(String(video.id)) && (
-                                          <span className="ml-auto text-[10px] font-black text-green-600 uppercase">
-                                            Visto
-                                          </span>
-                                        )}
-                                      </button>
-                                    ))}
-                                    {seccion.pdfs?.map((pdf: any) => (
-                                      <button
-                                        key={pdf.id}
-                                        disabled={locked}
-                                        onClick={() => {
-                                          setCurrentPDF(pdf);
-                                          setPdfScrollReached(false);
-                                        }}
-                                        className={`flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left ${viewedPdfs.has(String(pdf.id)) ? "bg-green-50 border-green-200" : "bg-gray-50 border-transparent hover:border-red-200"}`}
+                                      )}
+                                    </button>
+                                  ))}
+                                  {seccion.pdfs?.map((pdf: any) => (
+                                    <button
+                                      key={pdf.id}
+                                      disabled={locked}
+                                      onClick={() => {
+                                        setCurrentPDF(pdf);
+                                        setPdfScrollReached(false);
+                                      }}
+                                      className={`flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left ${viewedPdfs.has(String(pdf.id)) ? "bg-green-50 border-green-200" : "bg-gray-50 border-transparent hover:border-red-200"}`}
+                                    >
+                                      <div
+                                        className={`p-2 rounded-lg ${viewedPdfs.has(String(pdf.id)) ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"}`}
                                       >
-                                        <div
-                                          className={`p-2 rounded-lg ${viewedPdfs.has(String(pdf.id)) ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"}`}
-                                        >
-                                          <DocumentIcon />
-                                        </div>
-                                        <span className="font-bold text-sm truncate">
-                                          {pdf.title}
+                                        <DocumentIcon />
+                                      </div>
+                                      <span className="font-bold text-sm truncate">
+                                        {pdf.title}
+                                      </span>
+                                      {viewedPdfs.has(String(pdf.id)) && (
+                                        <span className="ml-auto text-[10px] font-black text-green-600 uppercase">
+                                          Leído
                                         </span>
-                                        {viewedPdfs.has(String(pdf.id)) && (
-                                          <span className="ml-auto text-[10px] font-black text-green-600 uppercase">
-                                            Leído
-                                          </span>
-                                        )}
-                                      </button>
-                                    ))}
-                                  </div>
+                                      )}
+                                    </button>
+                                  ))}
                                 </div>
-                              );
-                            },
-                          )
-                        : null}
+                              </div>
+                            );
+                          },
+                        )
+                      ) : (
+                        /* RENDERIZADO PARA CURSOS ESTÁNDAR (SIN SECCIONES) */
+                        <div className="bg-white border-2 border-gray-100 rounded-[2rem] p-6 shadow-sm">
+                          <h3 className="text-sm font-black text-purple-600 uppercase tracking-widest mb-6 flex items-center gap-3">
+                            <span className="w-7 h-7 rounded-full bg-purple-600 text-white flex items-center justify-center text-xs">
+                              ★
+                            </span>
+                            Contenido General
+                          </h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {courseData?.videos?.map((video: any) => (
+                              <button
+                                key={video.id}
+                                onClick={() => {
+                                  setCurrentVideo(video);
+                                  lastTimeReached.current = 0;
+                                }}
+                                className={`flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left ${viewedVideos.has(String(video.id)) ? "bg-green-50 border-green-200" : "bg-gray-50 border-transparent hover:border-blue-200"}`}
+                              >
+                                <div
+                                  className={`p-2 rounded-lg ${viewedVideos.has(String(video.id)) ? "bg-green-100 text-green-600" : "bg-blue-100 text-blue-600"}`}
+                                >
+                                  <PlayIcon />
+                                </div>
+                                <span className="font-bold text-sm truncate">
+                                  {video.title}
+                                </span>
+                                {viewedVideos.has(String(video.id)) && (
+                                  <span className="ml-auto text-[10px] font-black text-green-600 uppercase">
+                                    Visto
+                                  </span>
+                                )}
+                              </button>
+                            ))}
+                            {courseData?.pdfs?.map((pdf: any) => (
+                              <button
+                                key={pdf.id}
+                                onClick={() => {
+                                  setCurrentPDF(pdf);
+                                  setPdfScrollReached(false);
+                                }}
+                                className={`flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left ${viewedPdfs.has(String(pdf.id)) ? "bg-green-50 border-green-200" : "bg-gray-50 border-transparent hover:border-red-200"}`}
+                              >
+                                <div
+                                  className={`p-2 rounded-lg ${viewedPdfs.has(String(pdf.id)) ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"}`}
+                                >
+                                  <DocumentIcon />
+                                </div>
+                                <span className="font-bold text-sm truncate">
+                                  {pdf.title}
+                                </span>
+                                {viewedPdfs.has(String(pdf.id)) && (
+                                  <span className="ml-auto text-[10px] font-black text-green-600 uppercase">
+                                    Leído
+                                  </span>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
 

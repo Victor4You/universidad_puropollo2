@@ -13,9 +13,7 @@ import {
   ChevronRight,
   CheckCircle2,
   BookOpen,
-  Star,
   Lock as LockIcon,
-  CheckCircle,
 } from "lucide-react";
 import CourseFormModal from "@/components/CourseFormModal";
 import CourseStudentsModal from "@/components/CourseStudentsModal";
@@ -40,10 +38,9 @@ interface Curso {
   pdfs?: any[];
   questions?: any[];
   duracionExamen?: number;
-  fechaLimite?: string; // Se añade para dar soporte a la lógica de expiración existente
+  fechaLimite?: string;
 }
 
-// Tus cursos Mock originales
 const cursosMock: Curso[] = [
   {
     id: "1",
@@ -90,7 +87,6 @@ export default function GestionCursosPage() {
     }
   }, [user, authLoading]);
 
-  // NUEVA FUNCIÓN: Sincronizar con PostgreSQL
   const loadPostgresProgress = async () => {
     try {
       setLoading(true);
@@ -100,7 +96,6 @@ export default function GestionCursosPage() {
         : cursosMock;
 
       if (user?.id) {
-        // CAMBIO: Se usa 'api' y ruta relativa
         const response = await api.get(
           `/courses/user-progress?userId=${user.id}`,
         );
@@ -126,8 +121,6 @@ export default function GestionCursosPage() {
     setLoading(true);
     try {
       const isAdminOProfesor = isRole("admin") || isRole("teacher");
-
-      // CAMBIO: Rutas relativas
       const url = isAdminOProfesor
         ? `/courses`
         : `/courses/enrolled/${user.id}`;
@@ -161,9 +154,7 @@ export default function GestionCursosPage() {
     }
   };
 
-  // EL RESTO DE TUS FUNCIONES ORIGINALES (SIN CAMBIOS)
   const handleSaveCourse = async (courseFormData: any) => {
-    // 1. Construimos el payload incluyendo el campo 'secciones' y el 'tipo'
     const payload = {
       codigo: courseFormData.codigo,
       nombre: courseFormData.nombre,
@@ -171,7 +162,7 @@ export default function GestionCursosPage() {
       creditos: Number(courseFormData.creditos),
       semestre: courseFormData.semestre,
       estado: courseFormData.estado,
-      tipo: courseFormData.tipo, // Importante para saber si es estándar o especializado
+      tipo: courseFormData.tipo,
       fechaLimite: courseFormData.fechaLimite,
       videos: courseFormData.videos,
       pdfs: courseFormData.pdfs,
@@ -186,7 +177,6 @@ export default function GestionCursosPage() {
       } else {
         await api.post(`/courses`, payload);
       }
-      // IMPORTANTE: Refrescar datos después de guardar
       await loadData();
       setIsModalOpen(false);
     } catch (error) {
@@ -194,24 +184,34 @@ export default function GestionCursosPage() {
       alert("Error al guardar: Verifica la conexión con la base de datos.");
     }
   };
-  const handleUpdateCourseData = (updatedCourse: Curso) => {
-    const nuevosCursos = cursos.map((c) =>
-      c.id === updatedCourse.id ? updatedCourse : c,
-    );
-    setCursos(nuevosCursos);
-    localStorage.setItem(
-      "lista_cursos_universidad",
-      JSON.stringify(nuevosCursos),
-    );
-  };
 
+  // --- FUNCIÓN DE ELIMINACIÓN CON VALIDACIÓN DE PERMISOS ZAK/MARCO ---
   const handleDeleteCourse = async (id: string) => {
-    if (confirm("¿Estás seguro de que deseas eliminar este curso?")) {
-      try {
-        // CAMBIO: api.delete y ruta relativa
-        await api.delete(`/courses/${id}`);
+    // 1. Validar Identidad
+    const authorizedUsers = ["ZAK", "MARCO"];
+    const currentUsername = user?.username?.toUpperCase();
 
-        // Actualizar estado local solo si se borró en el back
+    if (!currentUsername || !authorizedUsers.includes(currentUsername)) {
+      alert(
+        `⛔ No tienes los permisos necesarios para realizar esta acción. Solo los administradores principales pueden eliminar cursos.`,
+      );
+      return;
+    }
+
+    // 2. Confirmación
+    if (
+      confirm(
+        "¿Estás seguro de que deseas eliminar este curso? Esta acción borrará permanentemente todos los registros asociados en Vercel/Neon.",
+      )
+    ) {
+      try {
+        // Enviamos el header de seguridad para el backend
+        await api.delete(`/courses/${id}`, {
+          headers: {
+            "x-user-username": user?.username || "",
+          },
+        });
+
         const nuevosCursos = cursos.filter((c) => c.id !== id);
         setCursos(nuevosCursos);
 
@@ -219,9 +219,12 @@ export default function GestionCursosPage() {
           "lista_cursos_universidad",
           JSON.stringify(nuevosCursos),
         );
+        alert("✅ Curso eliminado exitosamente.");
       } catch (error) {
         console.error("Error al eliminar el curso:", error);
-        alert("No se pudo eliminar el curso del servidor.");
+        alert(
+          "Error: No se pudo eliminar el curso. Es posible que existan dependencias en la base de datos.",
+        );
       }
     }
   };
@@ -286,7 +289,6 @@ export default function GestionCursosPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
         {currentItems.map((curso, index) => {
-          // TU LÓGICA DE CANDADOS ORIGINAL
           const ahora = new Date();
           const fechaLimiteObj = curso.fechaLimite
             ? new Date(curso.fechaLimite)
@@ -330,19 +332,15 @@ export default function GestionCursosPage() {
                     {curso.creditos} CRÉDITOS
                   </div>
                   <div
-                    className={estaExpirado ? "text-red-600" : "text-gray-500"}
+                    className={
+                      estaExpirado
+                        ? "text-red-600 text-[11px] font-bold"
+                        : "text-gray-500 text-[11px] font-bold"
+                    }
                   >
                     {estaExpirado
                       ? "EXPIRADO"
-                      : `LÍMITE: ${
-                          curso.fechaLimite
-                            ? new Date(curso.fechaLimite).toLocaleDateString()
-                            : "SIN FECHA"
-                        }`}
-                  </div>
-                  <div className="flex items-center text-[11px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded border border-blue-100 uppercase">
-                    <Users className="w-3 h-3 mr-1" />
-                    {curso.estudiantes || 0} Registrados
+                      : `LÍMITE: ${curso.fechaLimite ? new Date(curso.fechaLimite).toLocaleDateString() : "SIN FECHA"}`}
                   </div>
                 </div>
               </div>
@@ -360,7 +358,7 @@ export default function GestionCursosPage() {
                     }}
                     className={`p-2 rounded-lg transition-colors ${curso.completado ? "text-green-600 bg-green-50" : estaHabilitado ? "text-purple-600 hover:bg-purple-100" : "text-gray-400 cursor-not-allowed"}`}
                   >
-                    <BookOpen className="w-5 h-5" />{" "}
+                    <BookOpen className="w-5 h-5" />
                   </button>
                   {esAdminOProfesor && (
                     <>
@@ -436,7 +434,7 @@ export default function GestionCursosPage() {
             setSelectedCurso(null);
           }}
           courseData={selectedCurso}
-          onUpdateCourse={loadData} // CAMBIA handleUpdateCourseData por loadData
+          onUpdateCourse={loadData}
         />
       )}
       {showTestModal && selectedCurso && (
@@ -447,7 +445,7 @@ export default function GestionCursosPage() {
             setSelectedCurso(null);
           }}
           courseData={selectedCurso}
-          onSuccess={() => loadPostgresProgress()} // Sincroniza al terminar
+          onSuccess={() => loadPostgresProgress()}
         />
       )}
     </div>
