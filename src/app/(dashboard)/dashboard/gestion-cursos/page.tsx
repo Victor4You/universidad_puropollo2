@@ -327,6 +327,13 @@ export default function GestionCursosPage() {
                 <p className="text-gray-500 text-sm mb-4 flex items-center">
                   <Users className="w-4 h-4 mr-1.5" /> {curso.profesor}
                 </p>
+                {/* NUEVO: Contador de Alumnos */}
+                <p className="text-gray-400 text-[12px] flex items-center ml-0.5">
+                  <Users className="w-3.5 h-3.5 mr-1.5" />
+                  <span className="font-medium">
+                    {curso.estudiantes || 0} alumnos inscritos
+                  </span>
+                </p>
                 <div className="flex items-center gap-3">
                   <div className="text-[11px] font-bold text-gray-500 bg-gray-50 px-2 py-1 rounded border border-gray-100 uppercase">
                     {curso.creditos} CRÉDITOS
