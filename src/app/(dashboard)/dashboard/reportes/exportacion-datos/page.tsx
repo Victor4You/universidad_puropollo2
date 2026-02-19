@@ -31,7 +31,7 @@ export default function ExportacionDatosPage() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const res = await api.get("/courses/reports/stats");
+        const res = await api.get("reports/stats");
         setStatsReales(res.data);
       } catch (error) {
         console.error("Error al cargar estadísticas:", error);
@@ -70,15 +70,16 @@ export default function ExportacionDatosPage() {
       );
 
       const response = await api.post(
-        "/reports/export",
+        "reports/export",
         {
           format: formato,
           range: rangoFecha,
           includeCharts: incluirGraficas,
           includeDetails: incluirDatos,
-          categories: categoriasAExportar, // Se envía como 'categories' para coincidir con el backend
+          // CAMBIO AQUÍ: Usamos 'dataTypes' para que el backend lo reconozca
+          dataTypes: categoriasAExportar,
         },
-        { responseType: "blob" }, // Importante para descargar archivos
+        { responseType: "blob" },
       );
 
       // Crear link de descarga
